@@ -2,7 +2,7 @@ import json
 import pypandoc
 
 # Import a latex file with pandoc
-input_data = pypandoc.convert_file('/Users/peterbjohnson/code/lambdafeedback/content_conversion/example.tex', 'json')
+input_data = pypandoc.convert_file('example.tex', 'json')
 
 # Parse the pandoc JSON output into Python
 parsed_data=json.loads(input_data)
@@ -41,24 +41,27 @@ def content_extractor(par):
         return ''
 
 # Main code
-# Loop through the blocks in the content until an 'orderedlist' is found. This is specific to the way the example latex file is created, using \begin{enumerate}
-for block in parsed_data['blocks']:
-    if block['t']=='OrderedList':
-        block_lists = block['c'][1:]                                                    # Ignore [0] as a header, go from [1] onwards
-        for block_list in block_lists:
-            for i,question in enumerate(block_list):                                    # The JSON structure has another layer of nesting
-                print('Q'+str(i+1)+'\n\n')                                              # Printing for demo purposes only
-                for j,par in enumerate(question):                                       # Question content is composed of multiple elements (paragraphs, maths, lists, etc.)
-                    if par['t']=='Para':                                                # Normal paragraphs i.e. for master content                               
-                        output = content_extractor(par)                                 # 
-                        print(output)                                                   # Write to JSON master content here
-                    elif par['t']=='OrderedList':
-                        par_lists = par['c'][1:]                                        # List in a list for parts of a questions (part (a), (b), etc.)
-                        for par_list in par_lists:
-                            for k,part in enumerate(par_list):
-                                print('Q'+str(i+1)+'('+chr(k+ord('a'))+')\n\n')
-                                output = content_extractor(part[0])
-                                print(output)                                           # Write to JSON part content here
-                                print('\n\n')
+def main():
+    # Loop through the blocks in the content until an 'orderedlist' is found. This is specific to the way the example latex file is created, using \begin{enumerate}
+    for block in parsed_data['blocks']:
+        if block['t']=='OrderedList':
+            block_lists = block['c'][1:]                                                    # Ignore [0] as a header, go from [1] onwards
+            for block_list in block_lists:
+                for i,question in enumerate(block_list):                                    # The JSON structure has another layer of nesting
+                    print('Q'+str(i+1)+'\n\n')                                              # Printing for demo purposes only
+                    for j,par in enumerate(question):                                       # Question content is composed of multiple elements (paragraphs, maths, lists, etc.)
+                        if par['t']=='Para':                                                # Normal paragraphs i.e. for master content                               
+                            output = content_extractor(par)                                 # 
+                            print(output)                                                   # Write to JSON master content here
+                        elif par['t']=='OrderedList':
+                            par_lists = par['c'][1:]                                        # List in a list for parts of a questions (part (a), (b), etc.)
+                            for par_list in par_lists:
+                                for k,part in enumerate(par_list):
+                                    print('Q'+str(i+1)+'('+chr(k+ord('a'))+')\n\n')
+                                    output = content_extractor(part[0])
+                                    print(output)                                           # Write to JSON part content here
+                                    print('\n\n')
 
 
+if __name__ == '__main__':
+    main()
