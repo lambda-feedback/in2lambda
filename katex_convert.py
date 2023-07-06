@@ -18,15 +18,21 @@ def replace_incompatible_functions(latex_string):
         #replace with nothing
         r'\\label{.*?}': r'', #delete label and argument
         r'\\ref': r'', #delete ref and argument
+        r'\\eqref': r'',
         r'\\begin{figure}': r'', #delete centerline and argument
         r'\\end{figure}': r'', #delete centerline and argument
+        r'\\begin{enumerate}': r'',
+        r'\\end{enumerate}': r'',
+        r'\\item':r'',
+
         r'\\caption{.*?}': r'', #delete caption and argument 
         r'\\centerline': r'', #delete centerline and argument 
+
 
         r'\\bigskip': r'',
         r'\\medskip': r'',
         r'\\smallskip': r'', #skipping functions are unsupported
-        
+        r'\\noindent': r'',
         r'\\vrulefill': r'',
         r'\\vfill': r'',
         r'\\vfil': r'',
@@ -36,7 +42,14 @@ def replace_incompatible_functions(latex_string):
         r'\\hline': r'',
         r'\\vline': r'',
         r'\\setlength{.*?}': r'',
-
+        r'\\hskip': r'',
+        r'\\vskip': r'',
+        r'\\[h]': r'',
+        r'\\[t]': r'',
+        r'\\[b]': r'',
+        r'\\[p]': r'',
+        r'\\[!]': r'', #remove alignments
+        r'\\[H]': r'',
         r'-[0-9]*pt':'', #removes digits followed by pt
         r'[0-9]*pt':'', 
         #r'-[0-9]*in':'',
@@ -46,7 +59,8 @@ def replace_incompatible_functions(latex_string):
         #replace with something
         r'\\begin{eqnarray}': r'\\begin{align}', #KaTeX does not support eqn array: replace with align
         r'\\end{eqnarray}': r'\\end{align}',
-    
+        r'\\begin{eqnarray*}': r'\\begin{align*}', #KaTeX does not support eqn array: replace with align
+        r'\\end{eqnarray*}': r'\\end{align*}',
             
     }
 
