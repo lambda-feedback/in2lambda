@@ -51,7 +51,7 @@ def replace_incompatible_functions(latex_string):
         r'\[!\]': r'', #remove alignments
         r'\[H\]': r'',
         r'-[0-9]*pt':'', #removes digits followed by pt
-        r'[0-9]*pt':'', 
+        r'[+-]?(\d*\.)?\d+pt':'',  # Matches ints or decimals followed by pt
         #r'-[0-9]*in':'',
         #r'[0-9]*in':'',  NOTE: GETS RID OF ALL in
         r'\{}':'', #removes lone {} brackets
