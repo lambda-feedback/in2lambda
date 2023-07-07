@@ -44,12 +44,12 @@ def replace_incompatible_functions(latex_string):
         r'\\setlength{.*?}': r'',
         r'\\hskip': r'',
         r'\\vskip': r'',
-        r'\\[h]': r'',
-        r'\\[t]': r'',
-        r'\\[b]': r'',
-        r'\\[p]': r'',
-        r'\\[!]': r'', #remove alignments
-        r'\\[H]': r'',
+        r'\[h\]': r'',
+        r'\[t\]': r'',
+        r'\[b\]': r'',
+        r'\[p\]': r'',
+        r'\[!\]': r'', #remove alignments
+        r'\[H\]': r'',
         r'-[0-9]*pt':'', #removes digits followed by pt
         r'[0-9]*pt':'', 
         #r'-[0-9]*in':'',
