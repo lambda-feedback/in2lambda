@@ -1,6 +1,6 @@
 import json
 import pprint
-from functools import cache
+from pathlib import Path
 from typing import Any, Literal, Optional, Tuple, TypedDict, cast
 
 import pypandoc
@@ -65,6 +65,28 @@ class File:
                             len("\graphicspath{") : -1
                         ].split(",")
                     ]
+        return None
+
+    def image_path(self, image_name: str) -> Optional[str]:
+        """Determines the path to an image referenced in the given file.
+
+        Note that this is either relative or absolute depending on what's set in
+        ``graphicspath`
+
+        Args:
+            image_name: The file name of the image e.g. example.png
+
+        Returns:
+            The path to the image if it exists within `graphicspath`. If not, it returns None.
+        """
+        if self.image_directories is None:
+            return None
+        for directory in self.image_directories:
+            if directory[-1] != "/":
+                directory += "/"
+            filename = directory + image_name
+            if Path(filename).is_file():
+                return filename
         return None
 
     def __repr__(self) -> str:
