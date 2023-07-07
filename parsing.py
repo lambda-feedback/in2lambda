@@ -1,8 +1,10 @@
 import json
 import pprint
-from typing import Any, Literal, Tuple, TypedDict, cast
+from functools import cache
+from typing import Any, Literal, Optional, Tuple, TypedDict, cast
 
 import pypandoc
+
 from katex_convert import latex_to_katex
 
 FILENAME = "problemsA_v2.7.tex"
@@ -17,6 +19,7 @@ class Part(TypedDict):
 
 
 class Question(TypedDict):
+    Title: str
     MainText: str
     Parts: list[Part]
 
@@ -43,6 +46,31 @@ class MathBlock(TypedDict):
     c: Tuple[MathTypes, MathExpression]
 
 
+class File:
+    def __init__(self, filename: str):
+        self.filename = filename
+        self.image_directories = self.__image_directories()
+        self.json: list[MainBlock] = json.loads(
+            pypandoc.convert_file(self.filename, "json")
+        )["blocks"]
+
+    def __image_directories(self) -> Optional[list[str]]:
+        with open(self.filename, "r") as file:
+            for line in file:
+                # Assumes line is in the format \graphicspath{ {...}, {...}, ...}
+                if "graphicspath" in line:
+                    return [
+                        i.strip("{").rstrip("}")
+                        for i in line.replace(" ", "")[
+                            len("\graphicspath{") : -1
+                        ].split(",")
+                    ]
+        return None
+
+    def __repr__(self) -> str:
+        return f"File({self.filename})"
+
+
 def determine_question_part(
     precedingBlock: MainBlock, currentBlock: MainBlock
 ) -> Literal["Main", "Part", "Solution", "Other"]:
@@ -53,14 +81,6 @@ def determine_question_part(
     if currentBlock["t"] == "Div" and currentBlock["c"][0][1][0] == "solution":
         return "Solution"
     return "Other"
-
-
-def generate_json(filename: str) -> list[MainBlock]:
-    """Produces Pandoc AST/JSON based on a LaTeX file."""
-    # Retrieves only the blocks, and casts it to a list of blocks
-    return cast(
-        list[MainBlock], json.loads(pypandoc.convert_file(filename, "json"))["blocks"]
-    )
 
 
 # Takes in the contents part (remove the t type beforehand)
@@ -104,14 +124,16 @@ if __name__ == "__main__":
     pp = pprint.PrettyPrinter(indent=4)
 
     questions: list[Question] = []
-    parsed_data = generate_json(FILENAME)
-    for blockId, block in enumerate(parsed_data):
+    file = File(FILENAME)
+
+    for blockId, block in enumerate(file.json):
         if blockId != 0:
-            match determine_question_part(parsed_data[blockId - 1], block):
+            match determine_question_part(file.json[blockId - 1], block):
                 case "Main":
                     # Add the main question text as a part
                     questions.append(
                         Question(
+                            Title="",
                             MainText="",
                             Parts=[Part(Text=extract_para_text(block["c"]), Answer="")],
                         )
