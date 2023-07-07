@@ -6,13 +6,13 @@ Created on Wed Jul  5 19:13:28 2023
 """
 import re
 
-def latex_to_katex(latex_string):
+def latex_to_katex(latex_string: str) -> str:
     # Replace incompatible LaTeX functions with KaTeX compatible equivalents
     katex_string = replace_incompatible_functions(latex_string)
 
     return katex_string 
 
-def replace_incompatible_functions(latex_string):
+def replace_incompatible_functions(latex_string: str) -> str:
     #dictionary of LaTeX functions to replace
     replacements = {
         #replace with nothing
