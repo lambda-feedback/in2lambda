@@ -7,34 +7,45 @@ import pypandoc
 
 from katex_convert import latex_to_katex
 
-FILENAME = "problemsA_v2.7.tex"
+FILENAME = "./problemsA_v2.7.tex"
+"""Path to the TeX file to parse."""
 
 ORDERED_LIST_PART_INDEX = 1
 """Index of the list of parts within ordered list content."""
 
 
 class Part(TypedDict):
+    """A part of a question as represented on Lambda Feedback."""
+
     Text: str
     Answer: str
 
 
 class Question(TypedDict):
+    """A full question as represented on Lambda Feedback."""
+
     Title: str
     MainText: str
     Parts: list[Part]
 
 
 class MainBlock(TypedDict):
+    """The overarching top-level block type as produced by Pandoc."""
+
     t: Literal["Header", "Para", "OrderedList", "Div"]
     c: Any
 
 
 class ParaBlock(TypedDict):
+    """A paragraph block as produced by Pandoc."""
+
     t: Literal["Str", "Space", "Math"]
     c: Any
 
 
 class MathTypes(TypedDict):
+    """The possible types of maths equations."""
+
     t: Literal["DisplayMath", "InlineMath"]
 
 
@@ -42,19 +53,38 @@ MathExpression = str
 
 
 class MathBlock(TypedDict):
+    """A maths block as produced by Pandoc."""
+
     t: Literal["Math"]
     c: Tuple[MathTypes, MathExpression]
 
 
 class File:
+    """Represents a TeX file as passed in by a user."""
+
     def __init__(self, filename: str):
+        """Detemines the image directories referenced by the file and it's Pandoc JSON format.
+
+        Args:
+            filename: The path to the TeX file.
+        """
         self.filename = filename
+        """The path to the TeX file."""
+
         self.image_directories = self.__image_directories()
+        """A list of image directories referenced by the file as denoted by `graphicspath`."""
+
         self.json: list[MainBlock] = json.loads(
             pypandoc.convert_file(self.filename, "json")
         )["blocks"]
+        """The Pandoc-parsed version of the file."""
 
     def __image_directories(self) -> Optional[list[str]]:
+        """Private function to determine the directories of images referenced in `graphicspath`.
+
+        Returns:
+            A list of directories referenced by `graphicspath`, or None if there aren't any.
+        """
         with open(self.filename, "r") as file:
             for line in file:
                 # Assumes line is in the format \graphicspath{ {...}, {...}, ...}
@@ -90,12 +120,27 @@ class File:
         return None
 
     def __repr__(self) -> str:
+        """A human-readable expression for a File object."""
         return f"File({self.filename})"
 
 
 def determine_question_part(
-    precedingBlock: MainBlock, currentBlock: MainBlock
+    currentBlock: MainBlock, precedingBlock: MainBlock
 ) -> Literal["Main", "Part", "Solution", "Other"]:
+    """Determines whether a Pandoc block denotes a section as specified by Lambda FeedBack.
+
+    Args:
+        currentBlock: A top-level Pandoc block.
+        precedingBlock: The top-level Pandoc block before the current block.
+
+    Returns:
+        A string denoting what Lambda Feedback section the block is part of.
+
+        Main: The text body of the question.
+        Part: An individual question part.
+        Solution: The solution to the question.
+        Other: An unknown or not relevant section.
+    """
     if precedingBlock["t"] == "Header" and currentBlock["t"] == "Para":
         return "Main"
     if precedingBlock["t"] == "Para" and currentBlock["t"] == "OrderedList":
@@ -105,8 +150,17 @@ def determine_question_part(
     return "Other"
 
 
-# Takes in the contents part (remove the t type beforehand)
 def extract_para_text(contents: list[ParaBlock]) -> str:
+    """Parses a list of Pandoc paragraph content.
+
+    Make sure to remove the `para` t type beforehand, this only handles the contents list.
+
+    Args:
+        contents: A list of Pandoc paragraph contents, excluding the `para` type.
+
+    Returns:
+        A string representing the LaTeX's paragraph contents.
+    """
     result = ""
     for item in contents:
         match item["t"]:
@@ -120,14 +174,20 @@ def extract_para_text(contents: list[ParaBlock]) -> str:
                 result += (
                     "$" + expression + "$"
                     if item["c"][0]["t"] == "InlineMath"
-                    else "$$" + expression + "$$"
+                    else "\n\n$$\n" + expression + "\n\n$$\n\n"
                 )
     return result
 
 
-# A list of parts, where each part is in its own singleton list
-# Returns a list of parts with an empty solution
 def extract_parts(parts: list[list[ParaBlock]]) -> list[Part]:
+    """Extracts the parts from a list of Pandoc paragraph blocks.
+
+    Args:
+        parts: A list of parts denoted by paragraph blocks, where each part is in its own singleton list.
+
+    Returns:
+        A list of parts with an empty solution.
+    """
     result = []
     for part in parts:
         result.append(Part(Text=extract_para_text(part[0]["c"]), Answer=""))
@@ -135,6 +195,15 @@ def extract_parts(parts: list[list[ParaBlock]]) -> list[Part]:
 
 
 def extract_answer(answer_parts: list[MainBlock]) -> str:
+    """Takes a list of top-level Pandoc blocks and returns the contents of any paragraph blocks.
+
+    Args:
+        answer_parts: A list ot top-level Pandoc blocks that denotes an answer.
+            For example, it could be a list of paragraph blocks.
+
+    Returns:
+        A string representing the LaTeX answer contents.
+    """
     result = ""
     for answer_part in answer_parts:
         if answer_part["t"] == "Para":
@@ -150,7 +219,7 @@ if __name__ == "__main__":
 
     for blockId, block in enumerate(file.json):
         if blockId != 0:
-            match determine_question_part(file.json[blockId - 1], block):
+            match determine_question_part(block, file.json[blockId - 1]):
                 case "Main":
                     # Add the main question text as a part
                     questions.append(
