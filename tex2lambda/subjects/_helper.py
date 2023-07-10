@@ -5,9 +5,10 @@ They are specifically to handle Math and Image handling.
 
 from functools import cache
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional, Union
 
 import panflute as pf
+from rich_click import echo
 
 from tex2lambda.katex_convert import latex_to_katex
 from tex2lambda.question import Questions
@@ -72,38 +73,59 @@ def image_path(image_name: str, tex_file: str) -> Optional[str]:
     return None
 
 
-def math(elem: pf.Math) -> pf.Str:
-    """Converts a given LaTeX Math element to its Lambda Feedback readable KaTeX form.
+filter_func_type = Callable[
+    [Union[pf.Element, pf.Math, pf.Image], pf.elements.Doc, Questions, str],
+    Optional[pf.Str],
+]
+
+
+def filter(func: filter_func_type) -> filter_func_type:
+    """Python decorator to make generic LaTeX elements Lambda Feedback readable.
+
+    Currently, this involves putting dollar signs around maths expressions and
+    using markdown syntax for images.
 
     Args:
-        elem: A Pandoc AST math element, either inline or display.
-
-    Returns:
-        A Pandoc AST string element representing the Lambda Feedback readable KaTeX form.
+        func: The pandoc filter for a given subject.
     """
-    expression = latex_to_katex(elem.text)
-    return pf.Str(
-        f"${expression}$"
-        if elem.format == "InlineMath"
-        else f"\n\n$$\n{expression}\n\n$$\n\n"
-    )
 
+    def handle_math_image(
+        elem: Union[pf.Element, pf.Math, pf.Image],
+        doc: pf.elements.Doc,
+        questions: Questions,
+        tex_file: str,
+    ) -> Optional[pf.Str]:
+        """Handles math and image elements within the filter, before calling the original function.
 
-def image(elem: pf.Image, questions: Questions, tex_file: str) -> pf.Str:
-    """Processes images to make them Lambda Feedback readable.
+        Args:
+            elem: The current TeX element being processed. This could be a paragraph,
+                ordered list, etc.
+            doc: A Pandoc document container - essentially the Pandoc AST.
+            questions: The Python API that is used to store the result after processing
+                the TeX file.
+            tex_file: The absolute path to the TeX file being parsed.
 
-    Args:
-        elem: A Pandoc AST image element.
-        questions: Python API representing the list of questions parsed so far.
-        tex_file: The absolutte path to the TeX file being processed.
+        Returns:
+            Converted TeX elements for the AST where required
+        """
+        match type(elem):
+            case pf.Math:
+                expression = latex_to_katex(elem.text)
+                return pf.Str(
+                    f"${expression}$"
+                    if elem.format == "InlineMath"
+                    else f"\n\n$$\n{expression}\n\n$$\n\n"
+                )
 
-    Returns:
-        A markdown string representing the image.
-    """
-    # TODO: Handle "pdf images" and svg files.
-    path = image_path(elem.url, tex_file)
-    if path is None:
-        print(f"Warning: Couldn't find {elem.url}")
-    else:
-        questions.add_image(path)
-    return pf.Str(f"![pictureTag]({elem.url})")
+            case pf.Image:
+                # TODO: Handle "pdf images" and svg files.
+                path = image_path(elem.url, tex_file)
+                if path is None:
+                    echo(f"Warning: Couldn't find {elem.url}")
+                else:
+                    questions.add_image(path)
+                return pf.Str(f"![pictureTag]({elem.url})")
+
+        return func(elem, doc, questions, tex_file)
+
+    return handle_math_image
