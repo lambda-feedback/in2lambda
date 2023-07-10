@@ -17,18 +17,51 @@ def latex_to_katex(latex_string: str) -> str:
 def replace_incompatible_functions(latex_string: str) -> str:
     # dictionary of LaTeX functions to replace
     replacements = {
-        # replace with nothing
+        
+        #delete page formatting functions:
+        #these are in-place if a user inserts their entire document into the converter.
+
+        r"\\usepackage\{.*?}": r"", #delete package imports
+        r"\\lhead\{.*?}": r"", #adds text to header. in future, text should be passed out
+        r"\\pagestyle\{.*?}": r"",
+        r"\\setcounter\{.*?}+{.*?}": r"",
+        r"\\documentclass\[.*?]+{.*?}": "", #delete document class and arguments   
+        
+        #delete references:
+
         r"\\label{.*?}": r"",  # delete label and argument
-        r"\\ref": r"",  # delete ref and argument
-        r"\\eqref": r"",
+        r"\\ref": r"",  # delete ref but leave name
+        r"\\eqref": r"", # delete ref but leave name
+        r"\\caption{.*?}": r"",  # delete caption and argument
+        
+        #begin functions: either deleted or replaced with alternative: 
+
         r"\\begin{figure}": r"",  # delete centerline and argument
+        r"\\begin{document}": r"", 
+        r"\\end{document}": r"",  
         r"\\end{figure}": r"",  # delete centerline and argument
         r"\\begin{center}": r"",  # delete centerline and argument
         r"\\end{center}": r"",  # delete centerline and argument
         r"\\begin{enumerate}": r"",
         r"\\end{enumerate}": r"",
         r"\\item": r"",
-        r"\\caption{.*?}": r"",  # delete caption and argument
+        r"\\begin{problem}": r"",  #may need an alternative
+        r"\\end{problem}": r"",  #may need an alternative
+        r"\\begin{tabular}": r"",
+        r"\\end{tabular}": r"",  
+        r"\\begin{flushright}+(.*?)": r"",
+        r"\\end{flushright}+(.*?)": r"",
+        r"\\begin{eqnarray}": r"\\begin{align}",  # KaTeX does not support eqn array: replace with align
+        r"\\end{eqnarray}": r"\\end{align}",
+        r"\\begin{eqnarray\*}": r"\\begin{align*}",  # KaTeX does not support eqn array: replace with align
+        r"\\end{eqnarray\*}": r"\\end{align*}",
+        r"\\begin{eqalign}": r"\\begin{align}",
+        r"\\end{eqalign}": r"\\end{align}",
+        r"\\begin{align\*}": r"\\begin{align*}",
+        r"\\end{eqalign\*}": r"\\end{align*}",
+        
+        #deleting unsupported formatters:
+    
         r"\\centerline": r"",  # delete centerline and argument
         r"\\bigskip": r"",
         r"\\medskip": r"",
@@ -42,6 +75,8 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\\hfil": r"",
         r"\\hline": r"",
         r"\\vline": r"",
+        #r"\\vspace\{.*?}": r"",
+        #r"\\hspace\{.*?}": r"",
         r"\\setlength{.*?}": r"",
         r"\[h(!)?\]": r"", # remove alignments
         r"\[ht(!)?\]": r"",
@@ -52,245 +87,292 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\[H(!)?\]": r"",
         r"\{l+\}": r"",
         # r"[+-]?(\d*\.)?\d+pt": "",  # Matches ints or decimals followed by pt
-        r"\{}": "",  # removes lone {} brackets
-        # replace with something
-        r"\\begin{eqnarray}": r"\\begin{align}",  # KaTeX does not support eqn array: replace with align
-        r"\\end{eqnarray}": r"\\end{align}",
-        r"\\begin{eqnarray*}": r"\\begin{align*}",  # KaTeX does not support eqn array: replace with align
-        r"\\end{eqnarray*}": r"\\end{align*}",
+        r"\{}": "",  # removes lone {} brackets  
+
+        #delete delims:
+        r"\\abovewithdelims": r"",
+        r"\\atopwithdelims": r"",
+        r"\\overwithdelims": r"",
+
+        #exhaustive dictionary of unsupported functions, either deleted or replaced with an alternative.
+        #some functions are followed by arguments; all arguments are deleted.
+        #we were not able to identify all functions with associated arguments due to a lack of LaTeX documentation
+        #mostly alphabetical !
+        r"\\and": r"",
+        r"\\ang": r"\\angle",
+        r"\\array": r"",
+        r"\\Arrowvert": r"\\Vert",
+        r"\\arrowvert": r"\\vert",
+        r"\\bbox": r"",
+        r"\\bfseries": r"\\textbf", #replace bfseries with textbf
+        r"\\bigominus": r"", #may be supported in future
+        r"\\bigoslash": r"", #may be supported in future
+        r"\\bigsqcap": r"", #may be supported in future
+        r"\\bracevert": r"",
+        r"\\buildrel": r"",
+        r"\\C": r"",
+        r"\\cancelto": r"",
+        r"\\cases": r"",
+        r"\\cee": r"",
+        r"\\cf": r"",
+        r"\\class": r"", #may be supported in future
+        r"\\cline": r"", #may be supported in future
+        r"\\Coppa": r"",
+        r"\\coppa": r"",
+        r"\\cssld": r"",
+        r"\\dddot": r"",
+        r"\\ddddot": r"",
+        r"\\DeclareMathOperator(\*)?\{.*?}+{.*?}": r"", #removes 2 associated arguments
+        r"\\definecolor(\*)?\{.*?}+{.*?}+{.*?}": r"", #may be supported in future
+        r"\\Digamma": r"",
+        r"\\else": r"", #may be supported in future
+        r"\\em": r"",
+        r"\\emph": r"",
+        r"\\enclose\{.*?}+\[.*?]+{.*?}": r"",
+        r"\\euro": r"",
+        r"\\euro": r"€",
+        r"\\idotint": r"", #may be supported in future
+        r"\\iddots": r"", #may be supported in future
+        r"\\if": r"", #may be supported in future
+        r"\\fi": r"",
+        r"\\ifmode": r"",
+        r"\\ifx": r"",
+        r"\\iiiint": r"", #only integrals up to triple int supported
+        r"\\itshape": r"",
+        r"\\Koppa": r"",
+        r"\\koppa": r"",
+        r"\\LeftArrow": r"\\leftarrow",
+        r"\\leftroot": r"",
+        r"\\leqalignno": r"",
+        r"\\lower": r"",
+        r"\\mathtip": r"",
+        r"\\mit": r"\\mathit",
+        r"\\mbox": r"",
+        r"\\md": r"",
+        r"\\mdseries": r"",
+        r"\\mmltoken": r"",
+        r"\\moveleft": r"",
+        r"\\moveright": r"",
+        r"\\mspace": r"",
+        r"\\multicolumn(\*)?\{.*?}+{.*?}+{.*?}": r"", #removes all 3 arguments
+        r"{multiline}": r"",
+        r"\\Newextarrow": r"",
+        r"\\newcounter\{.*?}": r"",
+        r"\\newenvironment\{.*?}?+\[.*?]+{.*?}+{.*?}": "",
+        r"\\addtocounter\{.*?}+{.*?}": r"",
+        r"\\normalfont": r"",
+        r"\\oldstyle": r"",
+        r"\\or": r"",
+        r"\\overbracket": r"",
+        r"\\pagecolor": r"",
+        r"\\part": r"",
+        r"\\Q": r"",
+        r"\\newtheorem\{.*?}+{.*?}": r"",
+        r"\\raise": r"",
+        r"\\raisebox": r"",
+        r"\\require\{.*?}": r"",
+        r"\\root": r"",
+        r"\\rule": r"\\Rule",
+        r"\\newtheorem\{\}": r"",
+        r"\\overparen": r"\\overgroup",
+        r"\\Sampi": r"",
+        r"\\sampi": r"",
+        r"\\sc": r"", #may be supported in the future
+        r"\\scalebox\{.*?}": r"",
+        r"\\scr": r"\\mathscr",
+        r"\\Space": r"\\space",
+        r"\\setlength\{.*?}+{.*?}": r"", #may be supported in the future
+        r"\\shoveleft": r"",
+        r"\\shoveright": r"",
+        r"\\sideset\{.*?}+{.*?}": r"",
+        r"\\SI": r"",
+        r"\\unit": r"",
+        r"\\skew": r"",
+        r"\\skip": r"",
+        r"\\sl": r"",
+        r"\\smiley": r"",
+        r"\\Stigma": r"",
+        r"\\stigma": r"",
+        r"\\strut": r"",
+        r"\\style": r"",
+        r"\{subarray}": r"",
+        r"\\textsl": r"",
+        r"\\texttip": r"",
+        r"\\textvisiblespace": r"",
+        r"\\Tiny": r"\\tiny",
+        r"\\toggle": r"",
+        r"\\unicode": r"",
+        r"\\up": r"",
+        r"\\uproot": r"",
+        r"\\upshape": r"",
+        r"\\underparen": r"\\undergroup",
+        r"\\overparen": r"\\overgroup",
+        r"\\overbracket": r"\\overbrace", #overbracket not supporte, replace with brace
+        r"\\underbracket": r"\\underbrace",
+        r"\\varcoppa": r"",
+        r"\\varstigma": r"",
+        r"\\wideparen": r"", #may be supported in the future
+
     }
 
     # replace the incompatible functions with their KaTeX equivalents using re.sub
     for old, new in replacements.items():
         latex_string = re.sub(old, new, latex_string)
 
+    # Remove extra outer curly brackets if the first character is a curly bracket
     while latex_string.startswith("{") and latex_string.endswith("}"):
         latex_string = latex_string[1:-1]  # Remove the first and last characters
 
     return latex_string
 
-    # Remove extra outer curly brackets if the first character is a curly bracket
+    
 
 
 if __name__ == "__main__":
-    latex_input = r"""\documentclass[12pt]{article}
+    latex_input = r"""\documentclass[a4paper,11pt]{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{eurosym}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{german}
+\usepackage{fancyhdr}
 
-\input{../../Shared/header}
+\usepackage[scale=.75]{geometry}
 
-\pagestyle{empty}
-\setlength{\textheight}{9.6in}  \setlength{\textwidth}{6.5in}
-\setlength{\oddsidemargin}{-0.15in} \setlength{\evensidemargin}{0.2in}
-\setlength{\topmargin}{-50pt}
+\newcommand{\ig}[1]{\includegraphics[keepaspectratio=true, width=.7\textwidth]{#1}}
+\newenvironment{amatrix}[1]{%
+  \left(\begin{array}{@{}*{#1}{c}|c@{}}
+}{%
+  \end{array}\right)
+}
+\newcommand{\rr}{\mathbb{R}}
+\newcommand{\rrn}{\mathbb{R}^{n}}
+\newcommand{\nn}{\mathbb{N}}
+\newcommand{\qq}{\mathbb{Q}}
+\newcommand{\cc}{\mathbb{C}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ii}{\mathrm{i}}
 
-\setlength{\arraycolsep}{2pt}
-\setlength{\parskip}{0pt}
-\setlength{\parindent}{0pt}
+%definition for scalar product and norm
+\newcommand{\scal}[2]{\left\langle #1,#2 \right\rangle}
+\newcommand{\norm}[1]{\left\|#1\right\|}
 
+%definition of averages
+\newcommand{\averageh}[1]{\left\langle#1\right\rangle}
+\newcommand{\averaget}[1]{\overline{ #1}}
+
+%definition calculus
+\newcommand{\grad}{\operatorname{grad}}
+\renewcommand{\div}{\operatorname{div}}
+\newcommand{\rot}{\operatorname{rot}}
+\newcommand{\Ra}{\Rightarrow}
+
+\newtheorem{example}{Example}
+\newtheorem{definition}{Definition}
+\newtheorem{method}{Method}
+\newtheorem{theorem}{Theorem}
+%
+\newcounter{problemnumber}
+\newenvironment{problem}[1][]{
+\begin{trivlist} \item[\hskip \labelsep {\bfseries{Problem \arabic{problemnumber} :}\,\emph{#1}}] \item[]
+}
+{
+\end{trivlist}
+\addtocounter{problemnumber}{1}
+}
+
+\newcommand{\lsg}[1]{{\bf Answer: \\} {#1}}
+\lhead{{\bf Problems with an asterisk $*$ will not be the primary focus of the tutorial}
+}
 \begin{document}
+\pagestyle{empty}
+\renewcommand{\lsg}[1]{}
+\setcounter{problemnumber}{1}
+\begin{center}
+{\Large EART40013: Mathematical Methods II} \\
+\vspace{.25cm}
+{\Large Spring Term 2023} \\
+\vspace{.25cm}
+{\Large Coursework Assignment 1 (due 09:00:00 06/02/2023)}
+\end{center}
+%
+\begin{problem}
 
-\centerline{\Large Complex Numbers, Functions and Ordinary Differential Equations}
-\bigskip\bigskip
+Given $z=2+3i$ and $w=1-2i$ calculate the following complex numbers (without using polar representations) and in each case write the solution in the form $a+ib$:
 
+\begin{tabular}{lll}
+a) $z+w$ & b) $z-w$ & c) $zw$ \\
+d) $z\bar{w}$ & e) $\bar{z}\bar{w}$ & f) $zw^{-1}$ \\
+\end{tabular}
 
+\begin{flushright}(\textit{2 marks each})\end{flushright}
 
-\noindent
-Solutions to Problem Sheet 1\hfill 2023
+\end{problem}
 
-\vskip-9pt\hrulefill
+\begin{problem}
 
-%\subsubsection*{Homework}
+Find $x$ and $y$ for $z=x+iy$ (where $x$ and $y$ are real numbers) satisfying
 
-\begin{enumerate}
+\begin{center}
+ \begin{equation*}
+  \frac{2z}{3-i}+\frac{3z}{2i}-4(z+i)=\frac{5i}{2}
+ \end{equation*}
+\end{center}
 
-\item For a complex number $a+i\,b$, in which $a$ and $b$ are real, the real and imaginary parts
-are given by ${\rm Re}(a+i\,b)=a$ and ${\rm Im}(a+i\,b)=b$, respectively.  Thus,
+\begin{flushright}(\textit{8 marks})\end{flushright}
 
-$
-\begin{array}[h!]{l}
-{\rm (a)}\hskip5pt {\rm Re}(8+3\,i)=8\, ,\qquad{\rm Im}(8+3\,i)=3\, .\\
-\noalign{\vskip12pt}
-{\rm (b)}\hskip5pt {\rm Re}(4-15\,i)=4\, ,\qquad {\rm Im}(4-15\,i)=-15\, .\\
-\noalign{\vskip12pt}
-{\rm (c)}\hskip5pt {\rm Re}(\cos\theta-i\,\sin\theta)=\cos\theta\, ,\qquad {\rm
-Im}(\cos\theta-i\,\sin\theta)=-\sin\theta\, .\\
-\noalign{\vskip12pt}
-{\rm (d)}\hskip5pt i^2=-1.\quad  {\rm Re}(i^2)=-1\, ,\qquad {\rm Im}(i^2)=0\, .\\
-\noalign{\vskip12pt}
-{\rm (e)}\hskip5pt i\,(2-5\,i)=5+2\,i.\qquad  {\rm Re}(5+2\,i)=5\, ,\qquad {\rm Im}(5+2\,i)=2\, .\\
-\noalign{\vskip12pt}
-{\rm (f)}\hskip5pt (1+2\,i)(2-3\,i)=2-3\,i+4\,i+6=8+i\, .\qquad {\rm Re}(8+i)=8\, ,\qquad {\rm
-Im}(8+i)=1\, .
-\end{array}
-$
+\end{problem}
 
-\item Applying the rules for the multiplication and division of
-  complex numbers yields:
+\begin{problem}
 
-$
-\begin{array}[h!]{lll}
-{\rm (a)}\hskip5pt (5-i)(2+3\,i)=10+15\,i-2\,i+3=13+13\,i\, .\\
-\noalign{\vskip12pt}
-{\rm (b)}\hskip5pt (3-4\,i)(3+4\,i)=9+12\,i-12\,i+16=25\, .\\
-\noalign{\vskip12pt}
-{\rm (c)}\hskip5pt (1+2\,i)^2=(1+2\,i)(1+2\,i)=1+2\,i+2\,i-4=-3+4\,i\, .\\
-\noalign{\vskip12pt}
-{\rm (d)}\hskip5pt \displaystyle{{10\over4-2\,i}={10\over4-2\,i}\times{4+2\,i\over4+2\,i}=
-{40+20\,i\over16+8\,i-8\,i+4}={40+20\,i\over20}=2+i\, .}\\
-\noalign{\vskip12pt}
-{\rm (e)}\hskip5pt \displaystyle{{3-i\over4+3\,i}={3-i\over4+3\,i}\times{4-3\,i\over4-3\,i}=
-{12-9\,i-4\,i-3\over16-12\,i+12\,i+9}={9-13\,i\over25}={9\over25}-i\,{13\over25}\, .}\\
-\noalign{\vskip12pt}
-{\rm (f)}\hskip5pt \displaystyle{{1\over i}={1\over i}\times{-i\over-i}=-i\, .}
-\end{array}
-$
+The two complex numbers $z=1+4i$ and $w=3-i$ can be written in the polar form $z=re^{i\theta}$ and $w=\rho e^{i\alpha}$.
 
-\item We have that $z=(5+7\,i)(5+b\,i)=25+5b\,i+35\,i-7b$.
+a) Find $r$ and $\theta$
 
-$
-\begin{array}[h!]{l}
-{\rm (a)}\hskip5pt {\rm If}\ b\ {\rm and}\ z\ {\rm are\ both\ real},\ {\rm then\ the \ imaginary\
-parts\ of\ both\ quantities\ vanish.}\ {\rm Thus,}\\
-\noalign{\vskip12pt}
-\hskip20pt {\rm Im}(z)=35+5b=0, {\rm so}\ b=-7.\\
-\noalign{\vskip12pt}
-{\rm (b)}\hskip5pt {\rm If}\ {\rm Im}(b)={4\over5},\ {\rm and}\ z\ {\rm is\ pure\ imaginary,}\
-{\rm then\ the\ real\ part\ of}\ z\ {\rm vanishes\!:}\\
-\noalign{\vskip12pt}
-\hskip20pt{\rm Re}(z)=25+5\bigl[i\,{\rm Im}(b)\bigr]i-7\,{\rm Re}(b)=25-4-7\,{\rm Re}(b)=21-7\,{\rm
-Re}(b)=0,\\
-\noalign{\vskip12pt}
-\hskip20pt{\rm so}\ {\rm Re}(b)=3.
-\end{array}
-$
+b) Find $\rho$ and $\alpha$
 
+\begin{flushright}(\textit{3 marks each})\end{flushright}
+ 
+\end{problem}
 
-\item The graphical representation of the complex number $z=x+i\,y$ is
-  the point $(x,y)$ on a set of axes where the $x$-axis corresponds to
-  the real part of the complex number and the $y$-axis the imaginary
-  part. The required points are
+\begin{problem}
 
-  \begin{center}
-    \includegraphics[width=8cm]{PS1-2}
-  \end{center}
+Using the polar form of $z$ and $w$ of the complex numbers from problem 1, calculate each of the following complex numbers:
 
-\item For a complex number $z=x+i\,y$, the polar form is $z=r\,e^{i\theta}$, where
-\begin{equation*}
-r=\sqrt{x^2+y^2}\, ,\qquad
-\theta={\rm tan}^{-1}\biggl({y\over x}\biggr)\, .
-\end{equation*}
+\begin{tabular}{lll}
+a) $\bar{z}$ & b) $\bar{w}$ & c) $zw$ \\
+d) $z\bar{w}$ & e) $\bar{z}\bar{w}$ & f) $zw^{-1}$ \\
+\end{tabular}
 
-$\begin{array}[h!]{l}
-{\rm (a)}\hskip5pt z=i.\  {\rm We\ have\ that}\ x=0\ {\rm and}\ y=1,\ {\rm so}\ r=1,\ {\rm and}\
-\theta={1\over2}\pi.\ {\rm Thus}\ i=e^{i\,\pi/2}.\\
-\noalign{\vskip12pt}
-{\rm (b)}\hskip5pt z=-i.\ {\rm We\ have\ that}\ x=0\ {\rm and}\ y=-1,\ {\rm so}\ r=1,\ {\rm and}\
-\theta={3\over2}\pi.\ {\rm Thus}\ -i=e^{3i\,\pi/2}.\\
-\noalign{\vskip12pt}
-{\rm (c)}\hskip5pt z=1+i.\ {\rm We\ have\ that}\ x=1\ {\rm and}\ y=1,\ {\rm so}\ r=\sqrt{2},\ {\rm
-and}\ \theta={1\over4}\pi.\\
-\noalign{\vskip12pt}
-\hskip20pt{\rm Thus}\ 1+i=\sqrt{2}\,e^{i\,\pi/4}.\\
-\noalign{\vskip12pt}
-{\rm (d)}\hskip5pt z=1-i\,\sqrt{3}.\ {\rm We\ have\ that}\ x=1\ {\rm and}\ y=-\sqrt{3},\ {\rm so}\
-r=2,\ {\rm and}\\
-\noalign{\vskip12pt}
-\hskip20pt\theta={\rm tan}^{-1}(-\sqrt{3})=-{1\over3}\pi.\ {\rm Thus}\
-1-i\,\sqrt{3}=2\,e^{-i\,\pi/3}.
-\end{array}
-$
+\begin{flushright}(\textit{2 marks each})\end{flushright}
 
+For parts c) - f) verify the results are the same those of problem 1 c) - f).
 
-\item A complex number $z=r\,e^{i\,\theta}$ can be written as
-  $z=r\cos\theta+i\,r\sin\theta$.  Thus,
+\begin{flushright}(\textit{1 marks each})\end{flushright}
 
+\end{problem}
 
-$\begin{array}[h!]{l}
-{\rm (a)}\hskip5pt e^{-3\pi i/4}=\cos\bigl({3\over4}\pi\bigr)-i\,\sin\bigl({3\over4}\pi\bigr)=
-\displaystyle{-{1+i\over\sqrt{2}}}=-{1\over2}\sqrt{2}-i\,{1\over2}\sqrt{2}\, .\\
-\noalign{\vskip12pt}
-{\rm (b)}\hskip5pt e^{5\pi i/4}=\cos\bigl({5\over4}\pi\bigr)+i\,\sin\bigl({5\over4}\pi\bigr)=
-\displaystyle{-{1+i\over\sqrt{2}}}=-{1\over2}\sqrt{2}-i\,{1\over2}\sqrt{2}\, .\\
-\noalign{\vskip12pt}
-{\rm (c)}\hskip5pt 3\,e^{i}=3\cos 1+i\,\sin 1\, .\\
-\noalign{\vskip12pt}
-{\rm (d)}\hskip5pt \displaystyle{{1\over\sqrt{3}\,e^{\pi i/3}}=
-{\sqrt{3}\over3}\,e^{-\pi i/3}=
-{\sqrt{3}\over3}\cos\bigl({\textstyle{1\over3}}\pi\bigr)-
-{i\,\sqrt{3}\over3}\sin\bigl({\textstyle{1\over3}}\pi\bigr)=
-{\sqrt{3}\over6}-{i\over2}}\, .
-\end{array}
-$
+\begin{problem}
 
-%\end{enumerate}
+Use de Moivre's theorem to find an expression for $\sin^{4}\theta$ in terms of $\cos m\theta$.
 
-%\subsubsection*{Tutorial}
+\begin{flushright}(\textit{6 marks})\end{flushright}
 
+\end{problem}
 
-\item Given that $z=r\,e^{i\,\theta}$, we have
-\begin{eqnarray*}
-(z^2)^\ast=\bigl[\bigl(r\,e^{i\,\theta}\bigr)^2\bigr]^\ast=\bigl(r^2\,e^{2i\,\theta}\bigr)^\ast=r^2\,e^{-2i\,\theta}=\bigl(r\,e^{-i\,\theta}\bigr)^2=
-(z^\ast)^2\, .
-\end{eqnarray*}
+\begin{problem}
 
-\item
-\begin{enumerate}
-\item Suppose $z_0$ is a solution of $az^2+bz+c=0$, and therefore also of $z^2+b'z+c'=0$ where $b'=b/a$ and $c'=c/a$ and $a\ne0$. Given that  $z_0^\ast$ is also a solution implies that
-\[
-(z-z_0)(z-z_0^\ast)=0~,
-\]
-or
-\[
-z^2-(z_0+z_0^\ast)z+|z_0|^2=0~,
-\]
-showing that $b'$ and $c'$ must be real. Conversely, if $a$, $b$, and $c$ are real, and $z_0$ is a solution of $az^2+bz+c=0$, then $az_0^2+bz_0+c=0$, and taking the conjugate yields
-\[
-a(z_0^2)^\ast+bz_0^\ast+c=0~,
-\]
-or
-\[
-a(z_0^\ast)^2+bz_0^\ast+c=0~,
-\]
-showing that $z_0^\ast$ is also a solution.
+Given $z = 8(1-i)$, evaluate $z^{\frac{1}{3}}$ and express the solution in polar form and in the form $x+iy$. Display the roots on an Argand diagram.
 
-\item The roots of the polynomial are
-  \[
-  z_{\pm} = \frac{1}{2t} \left( -1 \pm \sqrt{1 - 4t} \right)
-  \]
-  which for $t>\frac{1}{4}$ has complex roots,
-  \[
-  z_{\pm} = - \frac{1}{2t} \pm i\, \frac{1}{2t}\sqrt{4t - 1} \, .
-  \]
-  The solutions will map out a circle centered at $z=-1$ in the complex plane.
-  (To see this either show that $x={\rm Re}(z), y={\rm Im}(z)$ satisfies $(x+1)^2+y^2=1$,
-  or that $|z+1|^2=1$.)
-  \begin{center}
-    \includegraphics[width=8cm]{PS1-1}
-  \end{center}
+\begin{flushright}(\textit{12 marks})\end{flushright}
 
-\item Rotating the figure through $90^\circ$ is equivalent to multiplying both
-  solutions by $e^{i\pi/2} = i$, thus
-  \begin{align}
-    z_{\pm} & = i \left( - \frac{1}{2t} \pm i\, \frac{1}{2t}\sqrt{4t - 1} \right)
-    \nonumber \\
-      & = \pm \frac{1}{2t}\sqrt{4t - 1} - \frac{i}{2t} \, . \nonumber
-  \end{align}
-  Forming the polynomial by multiplying together the two solutions gives
-  \begin{align}
-    p & =\left(z-z_+\right)\left(z-z_-\right)\nonumber\\
-      &=
-    \left( z - \frac{1}{2t}\sqrt{4t - 1} + \frac{i}{2t} \right)
-    \left( z + \frac{1}{2t}\sqrt{4t - 1} + \frac{i}{2t} \right)
-    \nonumber \\
-     & = -\frac{1}{t}(-t z^2 - i\,z  + 1) \nonumber \, ,
-  \end{align}
-  thus reducing $p=0$ to $-t z^2 - i\,z + 1=0$.
-  %It can be seen that this is just the original polynomial with $z$ substituted with $iz=e^{i\pi/2}z$.
-  So one solution is $a(t)=-t$, $b=-i$ and $c=1$. All other solutions are multiples of this set. The solutions that were conjugate pairs for the original equation are not conjugate pairs for the new equation as the coefficients of the latter are no longer real.
-  An arbitrary rotation of angle $\theta$ can be made by substituting $z_{\pm}$ with $e^{i\theta}z_{\pm}$.
-\end{enumerate}
-\end{enumerate}
+\end{problem}
 
-
+\begin{center}
+ (Total \textit{60 marks})
+\end{center}
 
 \end{document}
 """

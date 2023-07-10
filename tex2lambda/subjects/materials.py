@@ -10,9 +10,10 @@ from typing import Optional, Union
 import panflute as pf
 
 from tex2lambda.question import Questions
-from tex2lambda.subjects._helper import image, math
+from tex2lambda.subjects._helper import filter
 
 
+@filter
 def pandoc_filter(
     elem: Union[pf.Element, pf.Math, pf.Image],
     doc: pf.elements.Doc,
@@ -52,11 +53,5 @@ def pandoc_filter(
         case pf.Div:
             if pf.stringify(elem.content[0].content) == "Solution":
                 questions.add_solution_all_parts(pf.stringify(elem)[len("Solution") :])
-
-        case pf.Math:
-            return math(elem)
-
-        case pf.Image:
-            return image(elem, questions, tex_file)
 
     return None
