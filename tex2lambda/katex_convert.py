@@ -168,7 +168,8 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\\part": r"",
         r"\\Q": r"",
         r"\\newtheorem\{.*?}+{.*?}": r"",
-        r"\\raise": r"\\raisebox",
+        r"\\raise": r"",
+        r"\\raisebox": r"",
         r"\\require\{.*?}": r"",
         r"\\root": r"",
         r"\\rule": r"\\Rule",
@@ -211,7 +212,7 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\\varcoppa": r"",
         r"\\varstigma": r"",
         r"\\wideparen": r"", #may be supported in the future
-        
+
     }
 
     # replace the incompatible functions with their KaTeX equivalents using re.sub
