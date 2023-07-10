@@ -9,19 +9,17 @@ MINIMAL_TEMPLATE = "minimal_template.json"
 
 def converter(template, ListQuestions, output_dir):
     # Create output by copying template
-    output = deepcopy(template)
-
+    
     os.makedirs(output_dir, exist_ok=True)
 
-    # counter for number of loops
-    count = 1
+    for i in range(len(ListQuestions)):
+        output = deepcopy(template)
 
-    for i in range(0, len(ListQuestions)):
         # add title to the question file
         if ListQuestions[i]["Title"] != "":
             output["title"] = ListQuestions[i]["Title"]
         else:
-            output["title"] = "Question " + str(count)
+            output["title"] = "Question " + str(i+1)
 
         # add main text to the question file
         output["masterContent"]["blocks"][0]["data"] = ListQuestions[i]["MainText"]
@@ -43,13 +41,12 @@ def converter(template, ListQuestions, output_dir):
             ] = ListQuestions[i]["Parts"][j]["Answer"]
 
         # Output file
-        filename = "Question " + str(count)
+        filename = "Question " + str(i+1)
         with open(f"{output_dir}/{filename}.json", "w") as file:
             json.dump(output, file)
         with zipfile.ZipFile(f"{output_dir}/{filename}.zip", "w") as zipf:
             zipf.write(f"{output_dir}/{filename}.json", arcname=filename + ".json")
-        # increase counter
-        count = count + 1
+       
 
 
 def main(questions, output_dir):
