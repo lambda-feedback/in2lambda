@@ -3,6 +3,7 @@ import os
 import zipfile
 from copy import deepcopy
 from pathlib import Path
+import shutil
 
 MINIMAL_TEMPLATE = "minimal_template.json"
 
@@ -10,7 +11,7 @@ MINIMAL_TEMPLATE = "minimal_template.json"
 def converter(template, ListQuestions, output_dir):
     # Create output by copying template
     
-    os.makedirs(output_dir, exist_ok=True)
+   
 
     for i in range(len(ListQuestions)):
         output = deepcopy(template)
@@ -40,13 +41,32 @@ def converter(template, ListQuestions, output_dir):
                 "data"
             ] = ListQuestions[i]["Parts"][j]["Answer"]
 
-        # Output file
+        # Output file)
         filename = "Question " + str(i+1)
-        with open(f"{output_dir}/{filename}.json", "w") as file:
+
+        #create directory to put the questions
+        os.makedirs(output_dir, exist_ok=True)
+        output_question=os.path.join(output_dir,filename)
+        os.makedirs(output_question,exist_ok=True)
+
+        #create directory to put image
+        output_image=os.path.join(output_question,'media')
+        os.makedirs(output_image,exist_ok=True)
+      
+
+        #write questions into directory
+        with open(f"{output_question}/{filename}.json", "w") as file:
             json.dump(output, file)
-        with zipfile.ZipFile(f"{output_dir}/{filename}.zip", "w") as zipf:
-            zipf.write(f"{output_dir}/{filename}.json", arcname=filename + ".json")
-       
+
+        #write image into directory 
+        for k in range(len(ListQuestions[i]['Images'])):
+            image_path=os.path.abspath(ListQuestions[i]['Images'][k]) #converts computer path into python path
+            shutil.copy(image_path,output_image) #copies image into the directory
+    
+        #output zip file in destination folder
+        shutil.make_archive(output_question, 'zip', output_question) 
+        
+      
 
 
 def main(questions, output_dir):
