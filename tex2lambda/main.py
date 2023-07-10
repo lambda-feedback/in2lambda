@@ -9,7 +9,7 @@ from tex2lambda import question
 from tex2lambda.json_convert import json_convert
 
 
-def main(tex_file: str, subject: str, output_dir: str = "out") -> question.Questions:
+def runner(tex_file: str, subject: str, output_dir: str = "out") -> question.Questions:
     """Takes in a TeX file for a given subject and produces Lambda Feedback compatible json/zip files.
 
     Args:
@@ -51,7 +51,9 @@ def main(tex_file: str, subject: str, output_dir: str = "out") -> question.Quest
 @click.argument(  # Use resolve_path to get absolute path
     "tex_file", type=click.Path(exists=True, readable=True, resolve_path=True)
 )
-@click.argument("subject")
+@click.argument(
+    "subject"
+)  # TODO: Add error checking via click if subject not supported
 @click.option(
     "--out",
     "-o",
@@ -60,11 +62,11 @@ def main(tex_file: str, subject: str, output_dir: str = "out") -> question.Quest
     help="Directory to output json/zip files to.",
     type=click.Path(resolve_path=True),
 )
-def click(tex_file: str, subject: str, output_dir: str) -> None:
+def cli(tex_file: str, subject: str, output_dir: str) -> None:
     """Takes in a TEX_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
     # main() is made separate from click() so that it can be easily imported as part of a library.
-    main(tex_file, subject, output_dir)
+    runner(tex_file, subject, output_dir)
 
 
 if __name__ == "__main__":
-    click()
+    cli()
