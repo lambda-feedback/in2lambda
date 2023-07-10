@@ -51,9 +51,7 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\[!\]": r"",  
         r"\[H(!)?\]": r"",
         r"\{l+\}": r"",
-        r"[+-]?(\d*\.)?\d+pt": "",  # Matches ints or decimals followed by pt
-        # r'-[0-9]*in':'',
-        # r'[0-9]*in':'',  NOTE: GETS RID OF ALL in
+        # r"[+-]?(\d*\.)?\d+pt": "",  # Matches ints or decimals followed by pt
         r"\{}": "",  # removes lone {} brackets
         # replace with something
         r"\\begin{eqnarray}": r"\\begin{align}",  # KaTeX does not support eqn array: replace with align
