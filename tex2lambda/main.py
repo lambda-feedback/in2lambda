@@ -1,6 +1,7 @@
 """The main input for tex2lambda, defining both the CLT and main library function."""
 
 import importlib
+from typing import Optional
 
 import panflute as pf
 import rich_click as click
@@ -9,17 +10,20 @@ from tex2lambda import question
 from tex2lambda.json_convert import json_convert
 
 
-def runner(tex_file: str, subject: str, output_dir: str = "out") -> question.Questions:
-    """Takes in a TeX file for a given subject and produces Lambda Feedback compatible json/zip files.
+def runner(
+    tex_file: str, subject: str, output_dir: Optional[str] = None
+) -> question.Questions:
+    """Takes in a TeX file for a given subject and outputs how it's broken down within Lambda Feedback.
 
     Args:
         tex_file: The absolute path to a TeX file.
         subject: The subject which the TeX file contains questions for.
-        output_dir: An optional argument for where to output the json/zip files. Defaults to `./out`
+        output_dir: An optional argument for where to output the Lambda Feedback compatible json/zip files.
 
     Returns:
         A list of questions and how they would be broken down into different Lambda Feedback sections
-        in a Python-readable format.
+        in a Python-readable format. If `output_dir` is specified, the corresponding json/zip files are
+        produced.
     """
     # The list of questions for Lambda Feedback as a Python API.
     # See `tex2lambda.question` for the full structure of Questions()
@@ -40,7 +44,8 @@ def runner(tex_file: str, subject: str, output_dir: str = "out") -> question.Que
     )
 
     # Read the Python API format and convert to JSON.
-    json_convert.main(questions.questions, output_dir)
+    if output_dir is not None:
+        json_convert.main(questions.questions, output_dir)
 
     return questions
 
@@ -58,7 +63,8 @@ def runner(tex_file: str, subject: str, output_dir: str = "out") -> question.Que
     "--out",
     "-o",
     "output_dir",
-    default="out",
+    default="./out",
+    show_default=True,
     help="Directory to output json/zip files to.",
     type=click.Path(resolve_path=True),
 )
