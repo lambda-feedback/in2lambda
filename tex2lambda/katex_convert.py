@@ -23,6 +23,8 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\\eqref": r"",
         r"\\begin{figure}": r"",  # delete centerline and argument
         r"\\end{figure}": r"",  # delete centerline and argument
+        r"\\begin{center}": r"",  # delete centerline and argument
+        r"\\end{center}": r"",  # delete centerline and argument
         r"\\begin{enumerate}": r"",
         r"\\end{enumerate}": r"",
         r"\\item": r"",
@@ -41,18 +43,15 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\\hline": r"",
         r"\\vline": r"",
         r"\\setlength{.*?}": r"",
-        r"\\hskip": r"",
-        r"\\vskip": r"",
-        r"\[h\]": r"",
-        r"\[t\]": r"",
-        r"\[b\]": r"",
-        r"\[p\]": r"",
-        r"\[!\]": r"",  # remove alignments
-        r"\[H\]": r"",
-        r"-[0-9]*pt": "",  # removes digits followed by pt
-        r"[+-]?(\d*\.)?\d+pt": "",  # Matches ints or decimals followed by pt
-        # r'-[0-9]*in':'',
-        # r'[0-9]*in':'',  NOTE: GETS RID OF ALL in
+        r"\[h(!)?\]": r"", # remove alignments
+        r"\[ht(!)?\]": r"",
+        r"\[t(!)?\]": r"",
+        r"\[b(!)?\]": r"",
+        r"\[p(!)?\]": r"",
+        r"\[!\]": r"",  
+        r"\[H(!)?\]": r"",
+        r"\{l+\}": r"",
+        # r"[+-]?(\d*\.)?\d+pt": "",  # Matches ints or decimals followed by pt
         r"\{}": "",  # removes lone {} brackets
         # replace with something
         r"\\begin{eqnarray}": r"\\begin{align}",  # KaTeX does not support eqn array: replace with align
@@ -74,167 +73,227 @@ def replace_incompatible_functions(latex_string: str) -> str:
 
 
 if __name__ == "__main__":
-    latex_input_ = r"""\begin{document}
+    latex_input = r"""\documentclass[12pt]{article}
 
-    \centerline{\Large Complex Numbers, Functions and Ordinary Differential Equations}
-    \bigskip\bigskip
+\input{../../Shared/header}
 
+\pagestyle{empty}
+\setlength{\textheight}{9.6in}  \setlength{\textwidth}{6.5in}
+\setlength{\oddsidemargin}{-0.15in} \setlength{\evensidemargin}{0.2in}
+\setlength{\topmargin}{-50pt}
 
-    \noindent
-    Problem sheet 4\hfill 2023
+\setlength{\arraycolsep}{2pt}
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{0pt}
 
-    \vskip-9pt\hrulefill
+\begin{document}
 
-    \bigskip
-
-    %\subsubsection*{For tutorials}
-
-    \begin{enumerate}
-    \item When you do the Vector Fields and Electricity and Magnetism module next term, you will encounter the Lorentz force law for a charge $q$ of mass $m$ moving in a magnetic field $\bf B$:
-        \begin{equation}
-        m \frac{d{\bf v}}{dt} = q{\bf v}\times {\bf B}\, .
-        \end{equation}
-        \begin{enumerate}
-    \item Show that for a charge moving in the $x$-$y$ plane under the influence of a magnetic field ${\bf B}=B{\bf k}$ the equations of motion are
-    \begin{equation}
-    m\frac{dv_x}{dt} = qv_yB,~~~m\frac{dv_y}{dt} = -qv_xB~.
-    \label{eq:mag40b}
-    \end{equation}
-    \item By introducing the complex variable ${\tilde v}=v_x+iv_y$, show that Eqs. \eqref{eq:mag40b} may be written as
-    \begin{equation}
-    d{\tilde v}/{dt}=-i\omega_c {\tilde v}\, ,
-    \end{equation}
-    where $\omega_c = \frac{qB}{m}$.
-    \item By solving this equation show that the general solution to Eqs. \eqref{eq:mag40b} is
-    \begin{align}
-    v_x(t)=\frac{dx}{dt} &= v_x(0)\cos\omega_ct+v_y(0)\sin\omega_ct,\nonumber\\
-    v_y(t)=\frac{dy}{dt} &= -v_x(0)\sin\omega_ct+v_y(0)\cos\omega_ct,\label{eq:mag40g}
-    \end{align}
-    where $v_x(0)$ and $v_y(0)$ are the charge's initial velocity components.
-    \item Integrate these equations again to show that the trajectory of the charge is given by
-    \begin{align}
-    x(t)&=  x(0)+\omega_c^{-1}\left[v_x(0)\sin\omega_ct+v_y(0)(1-\cos\omega_ct)\right],\nonumber\\
-    y(t)&=  y(0)+\omega_c^{-1}\left[v_y(0)\sin\omega_ct-v_x(0)(1-\cos\omega_ct)\right]~,\label{eq:mag40h}
-    \end{align}
-    where $x(0)$ and $y(0)$ are the coordinates of the charge's initial position.
-    \item Show that the last two equations can be recast as
-    \begin{equation}
-    \left[x-x(0)-v_y(0)/\omega_c\right]^2 + \left[y-y(0)+v_x(0)/\omega_c\right]^2 = v^2/\omega_c^{2},
-    \label{eq:mag40i}
-    \end{equation}
-    where $v^2=v^2_x(0)+v^2_y(0)$.
-    \item Using the above two equations, describe the motion of the charge. What meaning can you assign to a change in sign of $\omega_0$ induced by a change in sign of the charge, $q$?
-    \end{enumerate}
-
-    \item This question addresses the following: is it easier to balance a snooker cue on its tip (Fig. \ref{fig:cue}(a)) or on its base (Fig. \ref{fig:cue} (b))?
-    \begin{figure}
-    /{\includegraphics[width=9cm]{SnookerCueB}}
-    \caption{\label{fig:cue}(a) Balancing cue on tip, (b) Balancing cue on base.}
-    \end{figure}
-    The equation we will need is
-    \begin{equation}
-    I\frac{d^2\theta}{dt^2}=r \sin \theta Mg~,
-    \label{thetaeq}
-    \end{equation}
-    where $I$ is called the {\em moment of inertia}, and $r$ is the distance from the pivot point to the cue's centre of mass. The centre of mass is located at $3L/4$ from the tip of the cue, where $L$ is the cue's length. For (a) $I\approx 3ML^2/5$, while for (b) $I \approx ML^2/10$.
-    \begin{enumerate}
-    \item Show that for {\em small} angles the equation of motion can be written as
-    \begin{equation}
-    \frac{d^2\theta}{dt^2}\approx p^2 \theta~,
-    \label{thetaeqB}
-    \end{equation}
-    writing down an expression for $p$ for the two cases.
-    \item Write down the general solution to Eq. \eqref{thetaeqB} in terms of exponential functions.
-    \item Show that if the cue starts at rest with a very small angular deflection $\delta\theta_0$, the solution becomes
-    \[\theta(t)=\delta\theta_0\cosh pt~.\]
-    \item On the same axes sketch $\theta(t)$ for the two cases.
-    \item Bearing in mind that our solution is only valid for small angles, is it easier to balance a cue on its tip or its base?
-    \end{enumerate}
-
-    \item
-    A Foucault pendulum consists of a mass suspended
-    from a cord of length $l$ suspended vertically (the $z$ direction)
-    at latitude $\lambda$, the rotation plane being free to move in
-    the $x$-$y$ plane (see Figure \ref{Fig:McCall9_8}).
-    \begin{figure}[h]
-    \centerline{\includegraphics[width=7cm]{Foucault}}
-    \caption{\label{Fig:McCall9_8}Foucault's pendulum.}
-    \end{figure}
-    For small amplitude swings the equations of motion are
-    \begin{eqnarray}
-    {\ddot x} - 2\Omega {\dot y} + \omega_0^2x&=&0~, \nonumber\\
-    {\ddot y} + 2\Omega {\dot x} + \omega_0^2y&=&0~,\nonumber
-    \end{eqnarray}
-    where $\omega_0^2=g/l, \Omega = \omega\sin\lambda$ and $\omega$ is the angular rate of the earth's rotation. Note that $\omega_0 \gg \Omega$.
-    \begin{enumerate}
-
-    \item By defining a {\em complex} displacement $z=x+iy$, show that the above equations can be written as the single complex equation
-    \[
-    {\ddot z}+2i\Omega {\dot z} +\omega_0^2 z =0~.
-    \]
-    \item Show that the roots of the characteristic equation are
-    \[
-    m = i\left[-\Omega \pm \left(\Omega^2+\omega_0^2\right)^{1/2}\right]\approx i\left(-\Omega \pm \omega_0\right)~,
-    \]
-    and that the general solution is therefore
-    \[
-    z(t) \approx \left[z_+e^{i\omega_0 t}+z_-e^{-i\omega_0t}\right]e^{-i\Omega t}~,
-    \]
-    where $z_{\pm}$ are complex constants determined by the initial conditions.
+\centerline{\Large Complex Numbers, Functions and Ordinary Differential Equations}
+\bigskip\bigskip
 
 
-    \item Using the above approximate solution, show that if the pendulum starts from rest ${\dot z}(0)=0$, with  displacement $z(0)=a$ (i.e. real), then (hint: remember $\Omega \ll \omega_0$)
-    \[
-    z_+ \approx z_- \approx \frac{a}{2}~.
-    \]
 
-    \item By taking the real and imaginary parts of the complex solution show that
-    \begin{eqnarray*}
-    x(t) & \approx &  a\cos\omega_0 t\cos\Omega t~,\label{Foucaultx}\\
-    y(t) & \approx & -a\cos\omega_0 t\sin\Omega t~.\label{Foucaulty}
-    \end{eqnarray*}
+\noindent
+Solutions to Problem Sheet 1\hfill 2023
 
-    \item Use the above solution to make a sketch of the pendulum's motion in the $x$-$y$ plane.
-    For a more detailed analysis (in which the approximations made here are lifted) - see MWM p.207.
+\vskip-9pt\hrulefill
 
-    \end{enumerate}
+%\subsubsection*{Homework}
+
+\begin{enumerate}
+
+\item For a complex number $a+i\,b$, in which $a$ and $b$ are real, the real and imaginary parts
+are given by ${\rm Re}(a+i\,b)=a$ and ${\rm Im}(a+i\,b)=b$, respectively.  Thus,
+
+$
+\begin{array}[h!]{l}
+{\rm (a)}\hskip5pt {\rm Re}(8+3\,i)=8\, ,\qquad{\rm Im}(8+3\,i)=3\, .\\
+\noalign{\vskip12pt}
+{\rm (b)}\hskip5pt {\rm Re}(4-15\,i)=4\, ,\qquad {\rm Im}(4-15\,i)=-15\, .\\
+\noalign{\vskip12pt}
+{\rm (c)}\hskip5pt {\rm Re}(\cos\theta-i\,\sin\theta)=\cos\theta\, ,\qquad {\rm
+Im}(\cos\theta-i\,\sin\theta)=-\sin\theta\, .\\
+\noalign{\vskip12pt}
+{\rm (d)}\hskip5pt i^2=-1.\quad  {\rm Re}(i^2)=-1\, ,\qquad {\rm Im}(i^2)=0\, .\\
+\noalign{\vskip12pt}
+{\rm (e)}\hskip5pt i\,(2-5\,i)=5+2\,i.\qquad  {\rm Re}(5+2\,i)=5\, ,\qquad {\rm Im}(5+2\,i)=2\, .\\
+\noalign{\vskip12pt}
+{\rm (f)}\hskip5pt (1+2\,i)(2-3\,i)=2-3\,i+4\,i+6=8+i\, .\qquad {\rm Re}(8+i)=8\, ,\qquad {\rm
+Im}(8+i)=1\, .
+\end{array}
+$
+
+\item Applying the rules for the multiplication and division of
+  complex numbers yields:
+
+$
+\begin{array}[h!]{lll}
+{\rm (a)}\hskip5pt (5-i)(2+3\,i)=10+15\,i-2\,i+3=13+13\,i\, .\\
+\noalign{\vskip12pt}
+{\rm (b)}\hskip5pt (3-4\,i)(3+4\,i)=9+12\,i-12\,i+16=25\, .\\
+\noalign{\vskip12pt}
+{\rm (c)}\hskip5pt (1+2\,i)^2=(1+2\,i)(1+2\,i)=1+2\,i+2\,i-4=-3+4\,i\, .\\
+\noalign{\vskip12pt}
+{\rm (d)}\hskip5pt \displaystyle{{10\over4-2\,i}={10\over4-2\,i}\times{4+2\,i\over4+2\,i}=
+{40+20\,i\over16+8\,i-8\,i+4}={40+20\,i\over20}=2+i\, .}\\
+\noalign{\vskip12pt}
+{\rm (e)}\hskip5pt \displaystyle{{3-i\over4+3\,i}={3-i\over4+3\,i}\times{4-3\,i\over4-3\,i}=
+{12-9\,i-4\,i-3\over16-12\,i+12\,i+9}={9-13\,i\over25}={9\over25}-i\,{13\over25}\, .}\\
+\noalign{\vskip12pt}
+{\rm (f)}\hskip5pt \displaystyle{{1\over i}={1\over i}\times{-i\over-i}=-i\, .}
+\end{array}
+$
+
+\item We have that $z=(5+7\,i)(5+b\,i)=25+5b\,i+35\,i-7b$.
+
+$
+\begin{array}[h!]{l}
+{\rm (a)}\hskip5pt {\rm If}\ b\ {\rm and}\ z\ {\rm are\ both\ real},\ {\rm then\ the \ imaginary\
+parts\ of\ both\ quantities\ vanish.}\ {\rm Thus,}\\
+\noalign{\vskip12pt}
+\hskip20pt {\rm Im}(z)=35+5b=0, {\rm so}\ b=-7.\\
+\noalign{\vskip12pt}
+{\rm (b)}\hskip5pt {\rm If}\ {\rm Im}(b)={4\over5},\ {\rm and}\ z\ {\rm is\ pure\ imaginary,}\
+{\rm then\ the\ real\ part\ of}\ z\ {\rm vanishes\!:}\\
+\noalign{\vskip12pt}
+\hskip20pt{\rm Re}(z)=25+5\bigl[i\,{\rm Im}(b)\bigr]i-7\,{\rm Re}(b)=25-4-7\,{\rm Re}(b)=21-7\,{\rm
+Re}(b)=0,\\
+\noalign{\vskip12pt}
+\hskip20pt{\rm so}\ {\rm Re}(b)=3.
+\end{array}
+$
 
 
-    \item Every rigid body (e.g. a brick - see Fig. \ref{Fig:brick})
-    \begin{figure}[h]
-    \centerline{\includegraphics[width=9cm]{Brick}}
-    \caption{\label{Fig:brick}A rotating body has 3 principal axes}
-    \end{figure}
-    has three {\em principal axes} to which there are associated three {\em principal moments of inertia}, $I_{1,2,3}$. In this problem we will assume that all three principal moments are distinct $I_1 \ne I_2 \ne I_3$.  When the body spins its  {\em angular velocity} considered as a vector $\boldsymbol \omega$, has components $(\omega_1,\omega_2,\omega_3)$ for rotations around the three  principal axes respectively. In the absence of any external torque the equations of motion are (known as Euler's equations)
-        \begin{eqnarray}
-    I_1\frac{d\omega_1}{dt} &=& \omega_2\omega_3\left(I_2-I_3\right)~,\label{Euler1}\\
-    I_2\frac{d\omega_2}{dt} &=& \omega_3\omega_1\left(I_3-I_1\right)~,\label{Euler2}\\
-    I_3\frac{d\omega_3}{dt} &=& \omega_1\omega_2\left(I_1-I_2\right)~,\label{Euler3}
-    \end{eqnarray}
-    \begin{enumerate}
-    \item Imagine the body is rotating mainly about principal axis 3, so that ${\boldsymbol \omega} = \omega(\delta_1,\delta_2,1)$ where $|\delta_1|,|\delta_2| \ll 1$. Keeping terms to first order in $\delta_{1,2}$, show that the equations of motion reduce to (approximately)
-        \begin{eqnarray}
-    I_1\frac{d\delta_1}{dt} &\approx& \left(I_2-I_3\right)\omega \delta_2~,\label{Euler1perturb}\\
-    I_2\frac{d\delta_2}{dt} &\approx& \left(I_3-I_1\right)\omega \delta_1~.\label{Euler2perturb}
-    \end{eqnarray}
-    \item Hence show that
-    \begin{eqnarray}
-    \frac{d^2\delta_1}{dt^2} - q^2 \delta_1  &=& 0~,\label{Euler1perturbA}\\
-    \frac{d^2\delta_2}{dt^2} - q^2 \delta_2  &=& 0~,\label{Euler2perturbB}
-    \end{eqnarray}
-    where
-    \begin{equation}
-    q^2 = \frac{\left(I_3-I_1\right)\left(I_2-I_3\right)}{I_1I_2}\omega^2~.
-    \end{equation}
-    \item Using what you know about the nature of solutions to equations \eqref{Euler1perturbA} and \eqref{Euler2perturbB} for different signs of $q^2$ deduce that the motion is {\em stable} (i.e. $\delta_{1,2}$ do not grow exponentially) if either $I_3 < I_{1,2}$, or $I_3 > I_{1,2}$, and is {\em unstable} (i.e. $\delta_{1,2}$ do grow exponentially) if $I_3$ lies between the other two principal moments, i.e. $I_1 < I_3 < I_2$ say.
+\item The graphical representation of the complex number $z=x+i\,y$ is
+  the point $(x,y)$ on a set of axes where the $x$-axis corresponds to
+  the real part of the complex number and the $y$-axis the imaginary
+  part. The required points are
 
-    \item Try it with a matchbox!
-    \end{enumerate}
-    \end{enumerate}
+  \begin{center}
+    \includegraphics[width=8cm]{PS1-2}
+  \end{center}
+
+\item For a complex number $z=x+i\,y$, the polar form is $z=r\,e^{i\theta}$, where
+\begin{equation*}
+r=\sqrt{x^2+y^2}\, ,\qquad
+\theta={\rm tan}^{-1}\biggl({y\over x}\biggr)\, .
+\end{equation*}
+
+$\begin{array}[h!]{l}
+{\rm (a)}\hskip5pt z=i.\  {\rm We\ have\ that}\ x=0\ {\rm and}\ y=1,\ {\rm so}\ r=1,\ {\rm and}\
+\theta={1\over2}\pi.\ {\rm Thus}\ i=e^{i\,\pi/2}.\\
+\noalign{\vskip12pt}
+{\rm (b)}\hskip5pt z=-i.\ {\rm We\ have\ that}\ x=0\ {\rm and}\ y=-1,\ {\rm so}\ r=1,\ {\rm and}\
+\theta={3\over2}\pi.\ {\rm Thus}\ -i=e^{3i\,\pi/2}.\\
+\noalign{\vskip12pt}
+{\rm (c)}\hskip5pt z=1+i.\ {\rm We\ have\ that}\ x=1\ {\rm and}\ y=1,\ {\rm so}\ r=\sqrt{2},\ {\rm
+and}\ \theta={1\over4}\pi.\\
+\noalign{\vskip12pt}
+\hskip20pt{\rm Thus}\ 1+i=\sqrt{2}\,e^{i\,\pi/4}.\\
+\noalign{\vskip12pt}
+{\rm (d)}\hskip5pt z=1-i\,\sqrt{3}.\ {\rm We\ have\ that}\ x=1\ {\rm and}\ y=-\sqrt{3},\ {\rm so}\
+r=2,\ {\rm and}\\
+\noalign{\vskip12pt}
+\hskip20pt\theta={\rm tan}^{-1}(-\sqrt{3})=-{1\over3}\pi.\ {\rm Thus}\
+1-i\,\sqrt{3}=2\,e^{-i\,\pi/3}.
+\end{array}
+$
 
 
-    \end{document}"""
+\item A complex number $z=r\,e^{i\,\theta}$ can be written as
+  $z=r\cos\theta+i\,r\sin\theta$.  Thus,
 
-    # print(latex_input_)
-    katex_output = latex_to_katex(latex_input_)
+
+$\begin{array}[h!]{l}
+{\rm (a)}\hskip5pt e^{-3\pi i/4}=\cos\bigl({3\over4}\pi\bigr)-i\,\sin\bigl({3\over4}\pi\bigr)=
+\displaystyle{-{1+i\over\sqrt{2}}}=-{1\over2}\sqrt{2}-i\,{1\over2}\sqrt{2}\, .\\
+\noalign{\vskip12pt}
+{\rm (b)}\hskip5pt e^{5\pi i/4}=\cos\bigl({5\over4}\pi\bigr)+i\,\sin\bigl({5\over4}\pi\bigr)=
+\displaystyle{-{1+i\over\sqrt{2}}}=-{1\over2}\sqrt{2}-i\,{1\over2}\sqrt{2}\, .\\
+\noalign{\vskip12pt}
+{\rm (c)}\hskip5pt 3\,e^{i}=3\cos 1+i\,\sin 1\, .\\
+\noalign{\vskip12pt}
+{\rm (d)}\hskip5pt \displaystyle{{1\over\sqrt{3}\,e^{\pi i/3}}=
+{\sqrt{3}\over3}\,e^{-\pi i/3}=
+{\sqrt{3}\over3}\cos\bigl({\textstyle{1\over3}}\pi\bigr)-
+{i\,\sqrt{3}\over3}\sin\bigl({\textstyle{1\over3}}\pi\bigr)=
+{\sqrt{3}\over6}-{i\over2}}\, .
+\end{array}
+$
+
+%\end{enumerate}
+
+%\subsubsection*{Tutorial}
+
+
+\item Given that $z=r\,e^{i\,\theta}$, we have
+\begin{eqnarray*}
+(z^2)^\ast=\bigl[\bigl(r\,e^{i\,\theta}\bigr)^2\bigr]^\ast=\bigl(r^2\,e^{2i\,\theta}\bigr)^\ast=r^2\,e^{-2i\,\theta}=\bigl(r\,e^{-i\,\theta}\bigr)^2=
+(z^\ast)^2\, .
+\end{eqnarray*}
+
+\item
+\begin{enumerate}
+\item Suppose $z_0$ is a solution of $az^2+bz+c=0$, and therefore also of $z^2+b'z+c'=0$ where $b'=b/a$ and $c'=c/a$ and $a\ne0$. Given that  $z_0^\ast$ is also a solution implies that
+\[
+(z-z_0)(z-z_0^\ast)=0~,
+\]
+or
+\[
+z^2-(z_0+z_0^\ast)z+|z_0|^2=0~,
+\]
+showing that $b'$ and $c'$ must be real. Conversely, if $a$, $b$, and $c$ are real, and $z_0$ is a solution of $az^2+bz+c=0$, then $az_0^2+bz_0+c=0$, and taking the conjugate yields
+\[
+a(z_0^2)^\ast+bz_0^\ast+c=0~,
+\]
+or
+\[
+a(z_0^\ast)^2+bz_0^\ast+c=0~,
+\]
+showing that $z_0^\ast$ is also a solution.
+
+\item The roots of the polynomial are
+  \[
+  z_{\pm} = \frac{1}{2t} \left( -1 \pm \sqrt{1 - 4t} \right)
+  \]
+  which for $t>\frac{1}{4}$ has complex roots,
+  \[
+  z_{\pm} = - \frac{1}{2t} \pm i\, \frac{1}{2t}\sqrt{4t - 1} \, .
+  \]
+  The solutions will map out a circle centered at $z=-1$ in the complex plane.
+  (To see this either show that $x={\rm Re}(z), y={\rm Im}(z)$ satisfies $(x+1)^2+y^2=1$,
+  or that $|z+1|^2=1$.)
+  \begin{center}
+    \includegraphics[width=8cm]{PS1-1}
+  \end{center}
+
+\item Rotating the figure through $90^\circ$ is equivalent to multiplying both
+  solutions by $e^{i\pi/2} = i$, thus
+  \begin{align}
+    z_{\pm} & = i \left( - \frac{1}{2t} \pm i\, \frac{1}{2t}\sqrt{4t - 1} \right)
+    \nonumber \\
+      & = \pm \frac{1}{2t}\sqrt{4t - 1} - \frac{i}{2t} \, . \nonumber
+  \end{align}
+  Forming the polynomial by multiplying together the two solutions gives
+  \begin{align}
+    p & =\left(z-z_+\right)\left(z-z_-\right)\nonumber\\
+      &=
+    \left( z - \frac{1}{2t}\sqrt{4t - 1} + \frac{i}{2t} \right)
+    \left( z + \frac{1}{2t}\sqrt{4t - 1} + \frac{i}{2t} \right)
+    \nonumber \\
+     & = -\frac{1}{t}(-t z^2 - i\,z  + 1) \nonumber \, ,
+  \end{align}
+  thus reducing $p=0$ to $-t z^2 - i\,z + 1=0$.
+  %It can be seen that this is just the original polynomial with $z$ substituted with $iz=e^{i\pi/2}z$.
+  So one solution is $a(t)=-t$, $b=-i$ and $c=1$. All other solutions are multiples of this set. The solutions that were conjugate pairs for the original equation are not conjugate pairs for the new equation as the coefficients of the latter are no longer real.
+  An arbitrary rotation of angle $\theta$ can be made by substituting $z_{\pm}$ with $e^{i\theta}z_{\pm}$.
+\end{enumerate}
+\end{enumerate}
+
+
+
+\end{document}
+"""
+
+    katex_output = latex_to_katex(latex_input)
     print(katex_output)
