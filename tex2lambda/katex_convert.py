@@ -97,7 +97,7 @@ def replace_incompatible_functions(latex_string: str) -> str:
         #exhaustive dictionary of unsupported functions, either deleted or replaced with an alternative.
         #some functions are followed by arguments; all arguments are deleted.
         #we were not able to identify all functions with associated arguments due to a lack of LaTeX documentation
-        #mostly alphabetical 
+        #mostly alphabetical !
         r"\\and": r"",
         r"\\ang": r"\\angle",
         r"\\array": r"",
@@ -211,6 +211,7 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\\varcoppa": r"",
         r"\\varstigma": r"",
         r"\\wideparen": r"", #may be supported in the future
+        
     }
 
     # replace the incompatible functions with their KaTeX equivalents using re.sub
