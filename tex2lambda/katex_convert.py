@@ -185,8 +185,8 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\\shoveleft": r"",
         r"\\shoveright": r"",
         r"\\sideset\{.*?}+{.*?}": r"",
-        r"\\SI": r""
-        r"\\unit": r""
+        r"\\SI": r"",
+        r"\\unit": r"",
         r"\\skew": r"",
         r"\\skip": r"",
         r"\\sl": r"",
