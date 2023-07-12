@@ -56,9 +56,11 @@ def runner(
 @click.argument(  # Use resolve_path to get absolute path
     "tex_file", type=click.Path(exists=True, readable=True, resolve_path=True)
 )
+# TODO: Automate argument generation
 @click.argument(
-    "subject"
-)  # TODO: Add error checking via click if subject not supported
+    "subject",
+    type=click.Choice(["Materials"], case_sensitive=False),
+)
 @click.option(
     "--out",
     "-o",
