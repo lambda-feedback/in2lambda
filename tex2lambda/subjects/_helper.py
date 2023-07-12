@@ -10,7 +10,7 @@ from typing import Callable, Optional, Union
 import panflute as pf
 from rich_click import echo
 
-from tex2lambda.katex_convert import latex_to_katex
+from tex2lambda.katex_convert.katex_convert import latex_to_katex
 from tex2lambda.question import Questions
 
 
