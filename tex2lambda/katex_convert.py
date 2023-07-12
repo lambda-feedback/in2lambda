@@ -10,7 +10,7 @@ import re
 def latex_to_katex(latex_string: str) -> str:
     # Replace incompatible LaTeX functions with KaTeX compatible equivalents
     katex_string = replace_incompatible_functions(latex_string)
-
+    
     return katex_string
 
 
@@ -126,8 +126,7 @@ def replace_incompatible_functions(latex_string: str) -> str:
         r"\\definecolor(\*)?\{.*?}+{.*?}+{.*?}": r"", #may be supported in future
         r"\\Digamma": r"",
         r"\\else": r"", #may be supported in future
-        r"\\em": r"",
-        r"\\emph": r"",
+        r"\\emph": r"\\textit",
         r"\\enclose\{.*?}+\[.*?]+{.*?}": r"",
         r"\\euro": r"",
         r"\\euro": r"€",
@@ -218,10 +217,7 @@ def replace_incompatible_functions(latex_string: str) -> str:
     # replace the incompatible functions with their KaTeX equivalents using re.sub
     for old, new in replacements.items():
         latex_string = re.sub(old, new, latex_string)
-
-    # Remove extra outer curly brackets if the first character is a curly bracket
-    while latex_string.startswith("{") and latex_string.endswith("}"):
-        latex_string = latex_string[1:-1]  # Remove the first and last characters
+        
 
     return latex_string
 
@@ -229,153 +225,12 @@ def replace_incompatible_functions(latex_string: str) -> str:
 
 
 if __name__ == "__main__":
-    latex_input = r"""\documentclass[a4paper,11pt]{article}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{eurosym}
-\usepackage{graphicx}
-\usepackage{subfig}
-\usepackage{german}
-\usepackage{fancyhdr}
-
-\usepackage[scale=.75]{geometry}
-
-\newcommand{\ig}[1]{\includegraphics[keepaspectratio=true, width=.7\textwidth]{#1}}
-\newenvironment{amatrix}[1]{%
-  \left(\begin{array}{@{}*{#1}{c}|c@{}}
-}{%
-  \end{array}\right)
-}
-\newcommand{\rr}{\mathbb{R}}
-\newcommand{\rrn}{\mathbb{R}^{n}}
-\newcommand{\nn}{\mathbb{N}}
-\newcommand{\qq}{\mathbb{Q}}
-\newcommand{\cc}{\mathbb{C}}
-\newcommand{\dd}{\mathrm{d}}
-\newcommand{\ii}{\mathrm{i}}
-
-%definition for scalar product and norm
-\newcommand{\scal}[2]{\left\langle #1,#2 \right\rangle}
-\newcommand{\norm}[1]{\left\|#1\right\|}
-
-%definition of averages
-\newcommand{\averageh}[1]{\left\langle#1\right\rangle}
-\newcommand{\averaget}[1]{\overline{ #1}}
-
-%definition calculus
-\newcommand{\grad}{\operatorname{grad}}
-\renewcommand{\div}{\operatorname{div}}
-\newcommand{\rot}{\operatorname{rot}}
-\newcommand{\Ra}{\Rightarrow}
-
-\newtheorem{example}{Example}
-\newtheorem{definition}{Definition}
-\newtheorem{method}{Method}
-\newtheorem{theorem}{Theorem}
-%
-\newcounter{problemnumber}
-\newenvironment{problem}[1][]{
-\begin{trivlist} \item[\hskip \labelsep {\bfseries{Problem \arabic{problemnumber} :}\,\emph{#1}}] \item[]
-}
-{
-\end{trivlist}
-\addtocounter{problemnumber}{1}
-}
-
-\newcommand{\lsg}[1]{{\bf Answer: \\} {#1}}
-\lhead{{\bf Problems with an asterisk $*$ will not be the primary focus of the tutorial}
-}
-\begin{document}
-\pagestyle{empty}
-\renewcommand{\lsg}[1]{}
-\setcounter{problemnumber}{1}
-\begin{center}
-{\Large EART40013: Mathematical Methods II} \\
-\vspace{.25cm}
-{\Large Spring Term 2023} \\
-\vspace{.25cm}
-{\Large Coursework Assignment 1 (due 09:00:00 06/02/2023)}
-\end{center}
-%
-\begin{problem}
-
-Given $z=2+3i$ and $w=1-2i$ calculate the following complex numbers (without using polar representations) and in each case write the solution in the form $a+ib$:
-
-\begin{tabular}{lll}
-a) $z+w$ & b) $z-w$ & c) $zw$ \\
-d) $z\bar{w}$ & e) $\bar{z}\bar{w}$ & f) $zw^{-1}$ \\
-\end{tabular}
-
-\begin{flushright}(\textit{2 marks each})\end{flushright}
-
-\end{problem}
-
-\begin{problem}
-
-Find $x$ and $y$ for $z=x+iy$ (where $x$ and $y$ are real numbers) satisfying
-
-\begin{center}
- \begin{equation*}
-  \frac{2z}{3-i}+\frac{3z}{2i}-4(z+i)=\frac{5i}{2}
- \end{equation*}
-\end{center}
-
-\begin{flushright}(\textit{8 marks})\end{flushright}
-
-\end{problem}
-
-\begin{problem}
-
-The two complex numbers $z=1+4i$ and $w=3-i$ can be written in the polar form $z=re^{i\theta}$ and $w=\rho e^{i\alpha}$.
-
-a) Find $r$ and $\theta$
-
-b) Find $\rho$ and $\alpha$
-
-\begin{flushright}(\textit{3 marks each})\end{flushright}
- 
-\end{problem}
-
-\begin{problem}
-
-Using the polar form of $z$ and $w$ of the complex numbers from problem 1, calculate each of the following complex numbers:
-
-\begin{tabular}{lll}
-a) $\bar{z}$ & b) $\bar{w}$ & c) $zw$ \\
-d) $z\bar{w}$ & e) $\bar{z}\bar{w}$ & f) $zw^{-1}$ \\
-\end{tabular}
-
-\begin{flushright}(\textit{2 marks each})\end{flushright}
-
-For parts c) - f) verify the results are the same those of problem 1 c) - f).
-
-\begin{flushright}(\textit{1 marks each})\end{flushright}
-
-\end{problem}
-
-\begin{problem}
-
-Use de Moivre's theorem to find an expression for $\sin^{4}\theta$ in terms of $\cos m\theta$.
-
-\begin{flushright}(\textit{6 marks})\end{flushright}
-
-\end{problem}
-
-\begin{problem}
-
-Given $z = 8(1-i)$, evaluate $z^{\frac{1}{3}}$ and express the solution in polar form and in the form $x+iy$. Display the roots on an Argand diagram.
-
-\begin{flushright}(\textit{12 marks})\end{flushright}
-
-\end{problem}
-
-\begin{center}
- (Total \textit{60 marks})
-\end{center}
-
-\end{document}
+    latex_input = r"""\begin{eqnarray}
+$x^2+x+2=0$
+\emph{Solve this equation}
+\end{align}
 """
+
 
     katex_output = latex_to_katex(latex_input)
     print(katex_output)
