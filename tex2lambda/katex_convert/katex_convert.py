@@ -52,7 +52,7 @@ def delete_functions(latex_string: str) -> str:
 
                 if latex_string[end_index]=="{":
                     latex_string = brace_remover(latex_string, end_index)
-                latex_string = latex_string[:start_index-1] + latex_string[end_index:]
+                latex_string = latex_string[:start_index] + latex_string[end_index:]
 
 
     return latex_string
