@@ -72,6 +72,13 @@ def replace_functions(latex_string: str) -> str:
             key = key.strip()
             value = value.strip()
             # Adding the formatted key-value pair to the dictionary
+
+            pattern = re.compile(key)
+            match = pattern.search(value)
+
+            if match:
+                key = key + r'(?![a-zA-Z])'
+    
             replacement_dict[key] = value
 
     logger.info("")
