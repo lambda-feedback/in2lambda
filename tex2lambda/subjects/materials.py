@@ -5,17 +5,17 @@
 See https://pandoc.org/filters.html for more information.
 """
 
-from typing import Optional, Union
+from typing import Optional
 
 import panflute as pf
 
 from tex2lambda.question import Questions
-from tex2lambda.subjects._helper import filter
+from tex2lambda.subjects._markdown import filter
 
 
 @filter
 def pandoc_filter(
-    elem: Union[pf.Element, pf.Math, pf.Image],
+    elem: pf.Element,
     doc: pf.elements.Doc,
     questions: Questions,
     tex_file: str,

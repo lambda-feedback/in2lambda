@@ -1,11 +1,8 @@
-"""Various generic helper functions used during the Pandoc filter stage.
-
-They are specifically to handle Math and Image handling.
-"""
+"""Generic helper functions used during the Pandoc filter stage for markdown conversion."""
 
 from functools import cache
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 import panflute as pf
 from rich_click import echo
@@ -74,28 +71,28 @@ def image_path(image_name: str, tex_file: str) -> Optional[str]:
 
 
 filter_func_type = Callable[
-    [Union[pf.Element, pf.Math, pf.Image], pf.elements.Doc, Questions, str],
+    [pf.Element, pf.elements.Doc, Questions, str],
     Optional[pf.Str],
 ]
 
 
 def filter(func: filter_func_type) -> filter_func_type:
-    """Python decorator to make generic LaTeX elements Lambda Feedback readable.
+    """Python decorator to make generic LaTeX elements markdown readable.
 
-    Currently, this involves putting dollar signs around maths expressions and
-    using markdown syntax for images.
+    As an example, part of the process involves putting dollar signs around maths
+    expressions and using markdown syntax for images.
 
     Args:
         func: The pandoc filter for a given subject.
     """
 
-    def handle_math_image(
-        elem: Union[pf.Element, pf.Math, pf.Image],
+    def markdown_converter(
+        elem: pf.Element,
         doc: pf.elements.Doc,
         questions: Questions,
         tex_file: str,
     ) -> Optional[pf.Str]:
-        """Handles math and image elements within the filter, before calling the original function.
+        """Handles LaTeX elements within the filter, before calling the original function.
 
         Args:
             elem: The current TeX element being processed. This could be a paragraph,
@@ -126,6 +123,12 @@ def filter(func: filter_func_type) -> filter_func_type:
                     questions.add_image(path)
                 return pf.Str(f"![pictureTag]({elem.url})")
 
+            case pf.Strong:
+                return pf.Str(f"**{pf.stringify(elem)}**")
+
+            case pf.Emph:
+                return pf.Str(f"*{pf.stringify(elem)}*")
+
         return func(elem, doc, questions, tex_file)
 
-    return handle_math_image
+    return markdown_converter
