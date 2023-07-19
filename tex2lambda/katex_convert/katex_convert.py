@@ -92,8 +92,9 @@ def replace_functions(latex_string: str) -> str:
                 latex_string = re.sub(old, new, latex_string)       
     return latex_string
 
-def brace_remover(latex_string, brace_start_index):
-    index_count = brace_start_index+1
+
+def brace_remover(latex_string: str, brace_start_index: int) -> str:
+    index_count = brace_start_index + 1
     level_count = 0
 
     while level_count >= 0:

@@ -4,11 +4,14 @@ import zipfile
 from copy import deepcopy
 from pathlib import Path
 import shutil
+from typing import Any
 
 MINIMAL_TEMPLATE = "minimal_template.json"
 
 
-def converter(template, ListQuestions, output_dir):
+def converter(
+    template: dict[str, Any], ListQuestions: list[Question], output_dir: str
+) -> None:
     # Create output by copying template
     
    
@@ -69,7 +72,7 @@ def converter(template, ListQuestions, output_dir):
       
 
 
-def main(questions, output_dir):
+def main(questions: list[Question], output_dir: str) -> None:
     # Use path so minimal template can be found regardless of where the user is running python from.
     with open(Path(__file__).with_name(MINIMAL_TEMPLATE), "r") as file:
         template = json.load(file)
