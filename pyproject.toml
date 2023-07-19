@@ -5,6 +5,7 @@ description = ""
 authors = []
 license = "MIT"
 readme = "README.md"
+include = ["tex2lambda/py.typed"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
