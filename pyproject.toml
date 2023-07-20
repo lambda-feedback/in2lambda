@@ -22,7 +22,8 @@ mypy = "^1.4.1"
 pydocstyle = "^6.3.0"
 
 [tool.mypy]
-mypy_path = "$MYPY_CONFIG_FILE_DIR/stubs"
+# panflute is missing type hints
+ignore_missing_imports = true
 
 [build-system]
 requires = ["poetry-core"]
