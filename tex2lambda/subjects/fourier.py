@@ -5,7 +5,7 @@
 See https://pandoc.org/filters.html for more information.
 """
 
-from typing import Optional
+from typing import Iterator, Optional
 
 import panflute as pf
 
@@ -35,16 +35,20 @@ def pandoc_filter(
         e.g. replaces math equations so that they are surrounded by $.
     """
 
+    # Top level ordered list (not nested parts list)
     if isinstance(elem.parent, pf.Doc) and isinstance(elem, pf.OrderedList):
         for numbered_part in elem.content:
-            blurb = []
-            parts = []
+            # For each numbered question, extract blurb and parts
+            blurb: list[str] = []
+            parts: Iterator[str] = iter(())
             for section in numbered_part.content:
-                if isinstance(section, pf.Para):
-                    blurb.append(pf.stringify(section))
-                elif isinstance(section, pf.OrderedList):
-                    parts = [pf.stringify(item) for item in section.content]
+                match type(section):
+                    case pf.Para:
+                        blurb.append(pf.stringify(section))
+                    case pf.OrderedList:
+                        parts = (pf.stringify(item) for item in section.content)
 
+            # Use spaces hack to add newlines between blurb paragraphs
             questions.add_question("\n&#x20;&#x20;\n".join(blurb))
             for part in parts:
                 questions.add_part(part)
