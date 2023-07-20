@@ -59,7 +59,7 @@ def runner(
 # TODO: Automate argument generation
 @click.argument(
     "subject",
-    type=click.Choice(["Materials"], case_sensitive=False),
+    type=click.Choice(["Materials", "Fourier"], case_sensitive=False),
 )
 @click.option(
     "--out",
