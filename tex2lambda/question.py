@@ -113,3 +113,7 @@ class Questions:
         The is useful if adding question text first and answers later.
         """
         self._current_question_index += 1
+        # Circle back round to first question to prevent index errors
+        # Useful when iterating through all questions and then coming back with answers
+        # if self._current_question_index == len(self.questions):
+        #     self._current_question_index = 0

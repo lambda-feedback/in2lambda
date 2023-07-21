@@ -40,10 +40,11 @@ def runner(
 
     # Parse the Pandoc AST using the relevant panflute filter.
     pf.run_filter(
-        subject_module.question_filter,
+        subject_module.pandoc_filter,
         doc=pf.convert_text(text, input_format="latex", standalone=True),
         questions=questions,
         tex_file=tex_file,
+        parsing_answers=False,
     )
 
     # If separate answer TeX file provided, parse that as well.
@@ -52,10 +53,11 @@ def runner(
             answer_text = file.read()
 
         pf.run_filter(
-            subject_module.answer_filter,
+            subject_module.pandoc_filter,
             doc=pf.convert_text(answer_text, input_format="latex", standalone=True),
             questions=questions,
-            tex_file=answer_file,
+            tex_file=tex_file,
+            parsing_answers=True,
         )
 
     # Read the Python API format and convert to JSON.

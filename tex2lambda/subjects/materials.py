@@ -14,11 +14,11 @@ from tex2lambda.subjects._markdown import filter
 
 
 @filter
-def question_filter(
+def pandoc_filter(
     elem: pf.Element,
     doc: pf.elements.Doc,
     questions: Questions,
-    tex_file: str,
+    parsing_answers: bool,
 ) -> Optional[pf.Str]:
     """A Pandoc filter that parses and translates various TeX elements.
 
@@ -28,7 +28,7 @@ def question_filter(
         doc: A Pandoc document container - essentially the Pandoc AST.
         questions: The Python API that is used to store the result after processing
             the TeX file.
-        tex_file: The absolute path to the TeX file being parsed.
+        parsing_answers: Whether an answers-only document is currently being parsed.
 
     Returns:
         Converted TeX elements for the AST where required

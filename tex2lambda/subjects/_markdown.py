@@ -2,9 +2,9 @@
 
 from functools import cache
 from pathlib import Path
-from typing import Callable, Optional
 
 import panflute as pf
+from beartype.typing import Callable, Optional
 from rich_click import echo
 
 from tex2lambda.katex_convert.katex_convert import latex_to_katex
@@ -70,13 +70,12 @@ def image_path(image_name: str, tex_file: str) -> Optional[str]:
     return None
 
 
-filter_func_type = Callable[
-    [pf.Element, pf.elements.Doc, Questions, str],
-    Optional[pf.Str],
-]
-
-
-def filter(func: filter_func_type) -> filter_func_type:
+def filter(
+    func: Callable[
+        [pf.Element, pf.elements.Doc, Questions, bool],
+        Optional[pf.Str],
+    ]
+) -> Callable[[pf.Element, pf.elements.Doc, Questions, str, bool], Optional[pf.Str],]:
     """Python decorator to make generic LaTeX elements markdown readable.
 
     As an example, part of the process involves putting dollar signs around maths
@@ -91,8 +90,12 @@ def filter(func: filter_func_type) -> filter_func_type:
         doc: pf.elements.Doc,
         questions: Questions,
         tex_file: str,
+        parsing_answers: bool,
     ) -> Optional[pf.Str]:
         """Handles LaTeX elements within the filter, before calling the original function.
+
+        N.B. tex_file is required to determine where the relative image directory is.
+        The argument is not passed to functions that utilise the decorator.
 
         Args:
             elem: The current TeX element being processed. This could be a paragraph,
@@ -101,6 +104,7 @@ def filter(func: filter_func_type) -> filter_func_type:
             questions: The Python API that is used to store the result after processing
                 the TeX file.
             tex_file: The absolute path to the TeX file being parsed.
+            parsing_answers: Whether an answers-only document is currently being parsed.
 
         Returns:
             Converted TeX elements for the AST where required
@@ -129,6 +133,6 @@ def filter(func: filter_func_type) -> filter_func_type:
             case pf.Emph:
                 return pf.Str(f"*{pf.stringify(elem)}*")
 
-        return func(elem, doc, questions, tex_file)
+        return func(elem, doc, questions, parsing_answers)
 
     return markdown_converter
