@@ -14,7 +14,7 @@ from tex2lambda.subjects._markdown import filter
 
 
 @filter
-def pandoc_filter(
+def question_filter(
     elem: pf.Element,
     doc: pf.elements.Doc,
     questions: Questions,
