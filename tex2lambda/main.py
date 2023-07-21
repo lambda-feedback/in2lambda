@@ -1,11 +1,13 @@
 """The main input for tex2lambda, defining both the CLT and main library function."""
 
 import importlib
+import pkgutil
 from typing import Optional
 
 import panflute as pf
 import rich_click as click
 
+import tex2lambda.subjects
 from tex2lambda import question
 from tex2lambda.json_convert import json_convert
 
@@ -73,10 +75,17 @@ def runner(
 @click.argument(  # Use resolve_path to get absolute path
     "tex_file", type=click.Path(exists=True, readable=True, resolve_path=True)
 )
-# TODO: Automate argument generation
+# Python files in the subjects directory
 @click.argument(
     "subject",
-    type=click.Choice(["Materials", "Fourier"], case_sensitive=False),
+    type=click.Choice(
+        [
+            i.name.capitalize()
+            for i in pkgutil.iter_modules(tex2lambda.subjects.__path__)
+            if i.name[0] != "_"
+        ],
+        case_sensitive=False,
+    ),
 )
 @click.option(
     "--out",
