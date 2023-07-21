@@ -133,6 +133,11 @@ def filter(
             case pf.Emph:
                 return pf.Str(f"*{pf.stringify(elem)}*")
 
+            # Replace siunitx no-break space with narrow no-break space
+            # This should be the space between the number and the units
+            case pf.Str:
+                return pf.Str(elem.text.replace("\u00a0", "\u202f"))
+
         return func(elem, doc, questions, parsing_answers)
 
     return markdown_converter
