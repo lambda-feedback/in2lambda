@@ -27,6 +27,8 @@ class Questions:
     def __init__(self) -> None:
         """Initialises an empty list of questions."""
         self._questions: list[Question] = []
+        self._current_question_index = -1
+        """The current question being modified. Defaults to -1 (the last question)"""
 
     @property
     def questions(self) -> list[Question]:
@@ -55,15 +57,15 @@ class Questions:
         Args:
             text: The text body of the new question part.
         """
-        latest_question = self._questions[-1]
+        current_question = self._questions[self._current_question_index]
 
         # If there are no parts yet, take the main question text previously added as a part
         # and insert it as the header question text.
-        if latest_question["MainText"] == "":
-            latest_question["MainText"] = latest_question["Parts"][0]["Text"]
-            latest_question["Parts"] = []
+        if current_question["MainText"] == "":
+            current_question["MainText"] = current_question["Parts"][0]["Text"]
+            current_question["Parts"] = []
 
-        latest_question["Parts"].append(Part(Text=text, Answer=""))
+        current_question["Parts"].append(Part(Text=text, Answer=""))
 
     def add_image(self, location: str) -> None:
         """Indicates that the most recently added question requires a given image.
@@ -71,8 +73,8 @@ class Questions:
         Args:
             location: The absolute path to an image.
         """
-        latest_question = self._questions[-1]
-        latest_question["Images"].append(location)
+        current_question = self._questions[self._current_question_index]
+        current_question["Images"].append(location)
 
     def add_solution_all_parts(self, text: str) -> None:
         """Adds a solution to all parts of a question.
@@ -82,7 +84,32 @@ class Questions:
         Args:
             text: The text body of the solution.
         """
-        latest_question = self._questions[-1]
+        current_question = self._questions[self._current_question_index]
 
-        for part in latest_question["Parts"]:
+        for part in current_question["Parts"]:
             part["Answer"] = text
+
+    def add_solution_part(self, text: str) -> None:
+        """Adds a solution to the first question part lacking a solution.
+
+        If all parts already have a solution, no changes are made.
+
+        Args:
+            text: The text body of the solution.
+        """
+        current_question = self._questions[self._current_question_index]
+
+        for part in current_question["Parts"]:
+            if not part["Answer"]:
+                part["Answer"] = text
+                break
+
+    def increment_current_question(self) -> None:
+        """Manually overrides the current question being modified.
+
+        The default (-1) indicates the last question added. Incrementing for the
+        first time sets to 0 i.e. the first question.
+
+        The is useful if adding question text first and answers later.
+        """
+        self._current_question_index += 1

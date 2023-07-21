@@ -11,7 +11,10 @@ from tex2lambda.json_convert import json_convert
 
 
 def runner(
-    tex_file: str, subject: str, output_dir: Optional[str] = None
+    tex_file: str,
+    subject: str,
+    output_dir: Optional[str] = None,
+    answer_file: Optional[str] = None,
 ) -> question.Questions:
     """Takes in a TeX file for a given subject and outputs how it's broken down within Lambda Feedback.
 
@@ -37,11 +40,23 @@ def runner(
 
     # Parse the Pandoc AST using the relevant panflute filter.
     pf.run_filter(
-        subject_module.pandoc_filter,
+        subject_module.question_filter,
         doc=pf.convert_text(text, input_format="latex", standalone=True),
         questions=questions,
         tex_file=tex_file,
     )
+
+    # If separate answer TeX file provided, parse that as well.
+    if answer_file:
+        with open(answer_file, "r", encoding="utf-8") as file:
+            answer_text = file.read()
+
+        pf.run_filter(
+            subject_module.answer_filter,
+            doc=pf.convert_text(answer_text, input_format="latex", standalone=True),
+            questions=questions,
+            tex_file=answer_file,
+        )
 
     # Read the Python API format and convert to JSON.
     if output_dir is not None:
@@ -70,10 +85,20 @@ def runner(
     help="Directory to output json/zip files to.",
     type=click.Path(resolve_path=True),
 )
-def cli(tex_file: str, subject: str, output_dir: str) -> None:
+@click.option(
+    "--answers",
+    "-a",
+    "answer_file",
+    default=None,
+    help="File containing solutions for TEX_FILE.",
+    type=click.Path(resolve_path=True, exists=True, dir_okay=False),
+)
+def cli(
+    tex_file: str, subject: str, output_dir: str, answer_file: Optional[str]
+) -> None:
     """Takes in a TEX_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
     # main() is made separate from click() so that it can be easily imported as part of a library.
-    runner(tex_file, subject, output_dir)
+    runner(tex_file, subject, output_dir, answer_file)
 
 
 if __name__ == "__main__":
