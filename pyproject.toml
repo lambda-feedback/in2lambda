@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "tex2lambda"
+name = "content-conversion"
 version = "0.1.0"
 description = ""
 authors = []
 license = "MIT"
 readme = "README.md"
-include = ["tex2lambda/py.typed"]
+include = ["app/py.typed"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -13,7 +13,7 @@ panflute = "^2.3.0"
 rich-click = "^1.6.1"
 
 [tool.poetry.scripts]
-tex2lambda = "tex2lambda.main:cli"
+app = "app.main:cli"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
