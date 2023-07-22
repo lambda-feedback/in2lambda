@@ -65,7 +65,7 @@
               {
                 "__typename": "TextContentBlock",
                 "id": "N/A",
-                "data": "",
+                "data": "Hint 1",
                 "type": "MILKDOWN"
               }
             ]
@@ -78,7 +78,7 @@
               {
                 "__typename": "TextContentBlock",
                 "id": "N/A",
-                "data": "",
+                "data": "Hint 2",
                 "type": "MILKDOWN"
               }
             ]

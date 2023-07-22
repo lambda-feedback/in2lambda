@@ -1,9 +1,10 @@
 import json
 import pypandoc
 import zipfile
+import os
 
 # Import a latex file with pandoc
-input_data = pypandoc.convert_file('example.tex', 'json')
+input_data = pypandoc.convert_file('data/example.tex', 'json')
 
 # Parse the pandoc JSON output into Python
 parsed_data=json.loads(input_data)
@@ -22,8 +23,8 @@ def extract_math_content(elem):
 # Function that processes normal content
 def content_extractor(par):
     markdown = ''
-    if par['c'][0]['t'] == 'Str':
-        content = par['c']
+    if par['c'][0]['t'] == 'Str':                   
+        content = par['c']                        
         for elem in content:
             if elem['t'] == 'Str':
                 markdown += elem['c']
@@ -33,7 +34,7 @@ def content_extractor(par):
                 markdown += ' '
         converted = pypandoc.convert_text(markdown, 'markdown', format='markdown')
         return converted
-    elif par['c'][0]['t'] == 'Math':
+    elif par['c'][0]['t'] == 'Math':                      
         content = par['c']
         markdown = '$$' + par['c'][0]['c'][1] + '$$'
         converted = pypandoc.convert_text(markdown, 'markdown', format='markdown')
@@ -52,7 +53,7 @@ def converter(template):
                     lambda_output=template
                     output = ''
                     for j,par in enumerate(question):                                       # Question content is composed of multiple elements (paragraphs, maths, lists, etc.)
-                        if par['t']=='Para':                                                # Normal paragraphs i.e. for master content
+                        if par['t']=='Para':                                                # Normal paragraphs i.e. for master content                               
                             output += content_extractor(par)  # Write to JSON master content here
                         elif par['t']=='OrderedList':
                             par_lists = par['c'][1:]                                        # List in a list for parts of a questions (part (a), (b), etc.)
@@ -66,15 +67,18 @@ def converter(template):
                                     #print(output)                                           # Write to JSON part content here
                                     #print('\n\n')
                     lambda_output['masterContent']['blocks'][0]['data']=output
-                    filename='Q'+str(i+1)
-                    with open(filename+'.json','w') as file:
-                        json.dump(lambda_output,file)
-                    with zipfile.ZipFile(filename+'.zip', "w") as zipf:
-                        zipf.write(filename+'.json', arcname=filename+'.json')
+                    subdir='outputs'
+                    os.makedirs(subdir, exist_ok=True)
+                    filepath_j=os.path.join(subdir,'Q'+str(i+1)+'.json')
+                    filepath_z=os.path.join(subdir,'Q'+str(i+1)+'.zip')
+                    with open(filepath_j,'w') as file:
+                        json.dump(lambda_output,file) 
+                    with zipfile.ZipFile(filepath_z, "w") as zipf:
+                        zipf.write(filepath_j, arcname=filepath_j)
 
 # Main code
 def main():
-    with open("tex2lambda/json_convert/minimal_template.json", "r") as file:
+    with open("data/minimal_template.json", "r") as file:
         template = json.load(file)
     converter(template)
 
