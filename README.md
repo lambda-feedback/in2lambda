@@ -8,4 +8,4 @@ Install Docker, then build the container locally:
 
 Then run the container from a folder where you want the data to be dumped:
 
-docker run -v ${PWD}/app:/app <container-name>
+`docker run -v ${PWD}/app:/app <container-name>`
