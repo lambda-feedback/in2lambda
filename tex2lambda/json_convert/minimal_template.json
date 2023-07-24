@@ -39,7 +39,7 @@
               {
                 "__typename": "TextContentBlock",
                 "id": "N/A",
-                "data": "Solution step 1\n***\nSolution step 2\n***\nSolution step 3\n",
+                "data": "",
                 "type": "MILKDOWN"
               }
             ]
@@ -51,7 +51,7 @@
           {
             "__typename": "TextContentBlock",
             "id": "N/A",
-            "data": "Final answer here\n",
+            "data": "",
             "type": "MILKDOWN"
           }
         ]
