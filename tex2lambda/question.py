@@ -117,3 +117,17 @@ class Questions:
         # Useful when iterating through all questions and then coming back with answers
         # if self._current_question_index == len(self.questions):
         #     self._current_question_index = 0
+
+    def __repr__(self) -> str:
+        """String representation of a Questions object.
+
+        See: https://docs.python.org/3/reference/datamodel.html#object.__repr__
+        """
+        parts_with_answers = sum(
+            1 for q in self._questions for part in q["Parts"] if part["Answer"]
+        )
+        parts_without_answers = (
+            sum(len(q["Parts"]) for q in self._questions) - parts_with_answers
+        )
+
+        return f"Questions: {len(self._questions)}, Parts with answers: {parts_with_answers}, Parts without answers: {parts_without_answers}"
