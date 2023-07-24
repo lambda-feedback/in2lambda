@@ -43,8 +43,10 @@ def converter(
                 "data"
             ] = ListQuestions[i]["Parts"][j]["Answer"]
 
-        # Output file)
+        # Output file
         filename = "Question " + str(i + 1)
+
+      
 
         # create directory to put the questions
         os.makedirs(output_dir, exist_ok=True)
@@ -74,4 +76,11 @@ def main(questions: list[Question], output_dir: str) -> None:
     # Use path so minimal template can be found regardless of where the user is running python from.
     with open(Path(__file__).with_name(MINIMAL_TEMPLATE), "r") as file:
         template = json.load(file)
+        
+    # check if directory exists in file
+    if os.path.isdir(output_dir):
+        try:
+            shutil.rmtree(output_dir)
+        except OSError as e:
+            print("Error: %s : %s" % (output_dir, e.strerror))
     converter(template, questions, output_dir)
