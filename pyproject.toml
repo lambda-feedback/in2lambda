@@ -11,8 +11,7 @@ include = ["tex2lambda/py.typed"]
 python = "^3.10"
 panflute = "^2.3.0"
 rich-click = "^1.6.1"
-# Waiting for 0.15.0 for beartype claw (https://github.com/beartype/beartype/issues/43)
-beartype = {git = "https://github.com/beartype/beartype.git", rev = "42cec96814be12c73ea347d3e36c6c0ea87dd770"}
+beartype = "^0.15.0"
 
 [tool.poetry.scripts]
 tex2lambda = "tex2lambda.main:cli"
