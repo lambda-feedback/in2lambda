@@ -61,7 +61,7 @@ def pandoc_filter(
                         )
 
             # Use spaces hack to add newlines between blurb paragraphs
-            spaced_blurb = "\n&#x20;&#x20;\n".join(blurb)
+            spaced_blurb = "\n&#x20;&#x20;\n".join(blurb if blurb else " ")
 
             # Answers for questions with no parts
             if parsing_answers and not lettered_parts:
