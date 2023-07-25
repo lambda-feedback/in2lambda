@@ -47,13 +47,14 @@ def delete_functions(latex_string: str) -> str:
             if match:
                 start_index = match.start()
                 end_index = match.end()
-
-                # Log the deletion of the function
-                logger.info(f"Deleted {latex_string[start_index:end_index]}")
-
-                if latex_string[end_index] == "{":
-                    latex_string = brace_remover(latex_string, end_index)
-                latex_string = latex_string[:start_index] + latex_string[end_index:]
+                if not latex_string[end_index].isalpha():
+                    logger.info(f"Deleted {latex_string[start_index:end_index]}")
+                    
+                    if latex_string[end_index] == "{":
+                        latex_string = brace_remover(latex_string, end_index)
+                    latex_string = latex_string[:start_index] + latex_string[end_index:]
+                else:
+                    item=item+"(?![a-zA-Z])"
 
     return latex_string
 
@@ -76,7 +77,7 @@ def replace_functions(latex_string: str) -> str:
             match = pattern.search(value)
 
             if match:
-                key = key + r"(?![a-zA-Z])"
+                key = key + "(?![a-zA-Z])"
 
             replacement_dict[key] = value
 
@@ -112,14 +113,7 @@ def brace_remover(latex_string: str, brace_start_index: int) -> str:
 
 
 if __name__ == "__main__":
-    latex_input = r"""
-    2x^2
-    \newcounter{sdjn}
-    \mit
-    \scr
-    \eqref
-    3x
-"""
-
+    latex_input = "This is a \part{\part{hello\part}} not a \partial, \part, \part, \partial"
+    latex_input = latex_input + " "
     katex_output = latex_to_katex(latex_input)
     print(katex_output)

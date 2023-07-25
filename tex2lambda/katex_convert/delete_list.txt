@@ -103,7 +103,7 @@ multiline
 \\normalfont
 \\oldstyle
 \\o,
-\\pagecolo,
+\\pagecolor,
 \\part
 \\Q
 \\newtheorem\{.*?}+{.*?}
