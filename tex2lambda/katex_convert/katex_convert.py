@@ -39,8 +39,8 @@ def delete_functions(latex_string: str) -> str:
         for line in file:
             line = line.strip()
             if line:
-                raw_line = r"{}".format(line)
-                delete_list.append(raw_line)
+                delete_list.append(line)
+
     for item in delete_list:
         while re.search(item, latex_string):
             match = re.search(item, latex_string)
@@ -113,7 +113,6 @@ def brace_remover(latex_string: str, brace_start_index: int) -> str:
 
 
 if __name__ == "__main__":
-    latex_input = "This is a \part{\part{hello\part}} not a \partial, \part, \part, \partial"
-    latex_input = latex_input + " "
+    latex_input = "B"
     katex_output = latex_to_katex(latex_input)
     print(katex_output)

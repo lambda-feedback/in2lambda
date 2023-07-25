@@ -22,3 +22,4 @@
 \\Tiny: \\tiny
 \\underparen: \\undergroup
 \\underbracket: \\underbrace
+\\conv: *
