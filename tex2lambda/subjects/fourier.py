@@ -52,6 +52,13 @@ def pandoc_filter(
                         lettered_parts.extend(
                             pf.stringify(item) for item in section.content
                         )
+                    case pf.DefinitionList:  # \item[TERM] DEFINITION
+                        lettered_parts.extend(
+                            f"**{pf.stringify(item.term[0])}**"
+                            + "\n"
+                            + "\n".join(pf.stringify(i) for i in item.definitions)
+                            for item in section.content
+                        )
 
             # Use spaces hack to add newlines between blurb paragraphs
             spaced_blurb = "\n&#x20;&#x20;\n".join(blurb)
