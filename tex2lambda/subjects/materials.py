@@ -45,9 +45,14 @@ def pandoc_filter(
 
         # Parts are denoted via ordered lists
         case pf.OrderedList:
+            if (
+                isinstance(elem.prev, pf.Header)
+                and pf.stringify(elem.prev) != "Solution"
+            ):  # If it's a list of parts without a top level blurb
+                # Space is removed by Lambda but tex2lambda treats it as blurb
+                questions.add_question(" ")
             for item in elem.content:
-                if isinstance(item, pf.ListItem):
-                    questions.add_part(pf.stringify(item))
+                questions.add_part(pf.stringify(item))
 
         # Solution is in a Div with nested content being "Solution"
         case pf.Div:
