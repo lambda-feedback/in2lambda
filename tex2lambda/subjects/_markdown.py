@@ -115,7 +115,7 @@ def filter(
                 return pf.Str(
                     f"${expression}$"
                     if elem.format == "InlineMath"
-                    else f"\n\n$$\n{expression}\n\n$$\n\n"
+                    else f"\n\n$$\n{expression}\n$$\n\n"
                 )
 
             case pf.Image:
