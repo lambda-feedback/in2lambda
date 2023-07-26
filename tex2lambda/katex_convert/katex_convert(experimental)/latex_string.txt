@@ -1,0 +1,4 @@
+\begin{eqnarray}
+\intertext{Hello}
+f(x) = x^2 \conv 5x + 3 \bigskip
+\end{eqnarray}

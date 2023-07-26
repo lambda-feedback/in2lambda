@@ -1,0 +1,4 @@
+Make this LaTeX compatible with KaTeX. 
+I want you to keep \begin and \end statements, but sometimes the argument, e.g., eqnarray, is unsupported. Look for a suitable replacement. 
+Remember to remove the left-over braces from a deleted command. 
+LaTeX string:
