@@ -1,4 +1,3 @@
-\begin{eqnarray}
-\intertext{Hello}
-f(x) = x^2 \conv 5x + 3 \bigskip
-\end{eqnarray}
+\vec{a}=2\,\norm{i}+3\,
+\norm{k}\, ,\qquad \vec{b}=\norm{i}-2\,\norm{j}-
+\norm{k}\ 

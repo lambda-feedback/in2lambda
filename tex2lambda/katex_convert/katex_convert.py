@@ -54,7 +54,7 @@ def delete_functions(latex_string: str) -> str:
                         latex_string = brace_remover(latex_string, end_index)
                     latex_string = latex_string[:start_index] + latex_string[end_index:]
                 else:
-                    item=item+"(?![a-zA-Z])"
+                    item=item + "(?![a-zA-Z])"
 
     return latex_string
 
@@ -64,14 +64,11 @@ def replace_functions(latex_string: str) -> str:
 
     with open(Path(__file__).with_name("replace_list.txt"), "r") as file:
         for line in file:
-            # Removing leading/trailing whitespaces, newlines, and commas
             line = line.strip().replace(",", "")
-            # Splitting the line into key and value based on the colon
             key, value = line.split(":", 1)
-            # Removing leading/trailing whitespaces from the key and value
             key = key.strip()
             value = value.strip()
-            # Adding the formatted key-value pair to the dictionary
+
 
             pattern = re.compile(key)
             match = pattern.search(value)
@@ -113,6 +110,7 @@ def brace_remover(latex_string: str, brace_start_index: int) -> str:
 
 
 if __name__ == "__main__":
-    latex_input = "B"
+    latex_input = """ \\textbf{Vector Algebra:} for two vectors $\\vec{a}$ and $\\vec{b}$ in $\\mathbb{R}^3$ given by \\norm{a}"""
+
     katex_output = latex_to_katex(latex_input)
     print(katex_output)
