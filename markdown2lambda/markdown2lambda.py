@@ -237,7 +237,7 @@ def main():
         f.close()
            
         #copy media folder into folder for question, only if media file is there
-        if os.path.exists(os.path.join(folderPath, r'media'):
+        if os.path.existsos.path.join(folderPath, r'media'):
             shutil.copytree(os.path.join(folderPath, r'media'), os.path.join(newFolder, r'media'))
         #zip folder        
         shutil.make_archive(newFolder, 'zip', newFolder)
