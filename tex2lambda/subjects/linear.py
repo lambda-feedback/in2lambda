@@ -34,7 +34,6 @@ def pandoc_filter(
         Converted TeX elements for the AST where required
         e.g. replaces math equations so that they are surrounded by $.
     """
-
     # Question text (ListItem -> List -> Doc)
     if isinstance(elem.ancestor(3), pf.Doc):
         match type(elem):
@@ -49,7 +48,7 @@ def pandoc_filter(
                     pandoc_filter.parts.append(pf.stringify(item))
 
     # Solutions are in a Div
-    elif isinstance(elem, pf.Div):
+    if isinstance(elem, pf.Div):
         questions.add_question("\n".join(pandoc_filter.question))
         if hasattr(pandoc_filter, "parts"):
             for part in pandoc_filter.parts:
