@@ -39,15 +39,16 @@ class Questions:
         """
         return self._questions
 
-    def add_question(self, text: str) -> None:
-        """Initialises a new question, adding the question text as a part with no answer.
+    def add_question(self, text: str = "", title: str = "") -> None:
+        """Initialises a new empty question with a single part and no answers.
 
         Args:
-           text: The text body of a question.
+           text: The text body of part a.
+           title: The title for the question.
         """
         self._questions.append(
             Question(
-                Title="", MainText="", Parts=[Part(Text=text, Answer="")], Images=[]
+                Title=title, MainText="", Parts=[Part(Text=text, Answer="")], Images=[]
             )
         )
 
