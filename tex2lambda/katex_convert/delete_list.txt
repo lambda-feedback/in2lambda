@@ -73,6 +73,7 @@
 \\Digamma
 \\else
 \\enclose\\{.*?}+\\[.*?]+{.*?}
+\\ensuremath
 \\idotint
 \\iddots
 \\if
