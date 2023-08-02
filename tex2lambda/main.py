@@ -8,7 +8,7 @@ import panflute as pf
 import rich_click as click
 
 import tex2lambda.subjects
-from tex2lambda import question
+from tex2lambda.api.module import Module
 from tex2lambda.json_convert import json_convert
 
 
@@ -17,7 +17,7 @@ def runner(
     subject: str,
     output_dir: Optional[str] = None,
     answer_file: Optional[str] = None,
-) -> question.Questions:
+) -> Module:
     """Takes in a TeX file for a given subject and outputs how it's broken down within Lambda Feedback.
 
     Args:
@@ -33,8 +33,7 @@ def runner(
         produced.
     """
     # The list of questions for Lambda Feedback as a Python API.
-    # See `tex2lambda.question` for the full structure of Questions()
-    questions = question.Questions()
+    module = Module()
 
     # Dynamically import the correct pandoc filter depending on the subject.
     subject_module = importlib.import_module(f"tex2lambda.subjects.{subject.lower()}")
@@ -46,7 +45,7 @@ def runner(
     pf.run_filter(
         subject_module.pandoc_filter,
         doc=pf.convert_text(text, input_format="latex", standalone=True),
-        questions=questions,
+        module=module,
         tex_file=question_file,
         parsing_answers=False,
     )
@@ -59,16 +58,16 @@ def runner(
         pf.run_filter(
             subject_module.pandoc_filter,
             doc=pf.convert_text(answer_text, input_format="latex", standalone=True),
-            questions=questions,
+            module=module,
             tex_file=answer_file,
             parsing_answers=True,
         )
 
     # Read the Python API format and convert to JSON.
     if output_dir is not None:
-        json_convert.main(questions.questions, output_dir)
+        json_convert.main(module.questions, output_dir)
 
-    return questions
+    return module
 
 
 @click.command(

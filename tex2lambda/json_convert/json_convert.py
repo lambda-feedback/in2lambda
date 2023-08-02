@@ -5,7 +5,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from tex2lambda.question import Question
+from tex2lambda.api.question import Question
 
 MINIMAL_TEMPLATE = "minimal_template.json"
 
@@ -19,34 +19,33 @@ def converter(
         output = deepcopy(template)
 
         # add title to the question file
-        if ListQuestions[i]["Title"] != "":
-            output["title"] = ListQuestions[i]["Title"]
+        if ListQuestions[i].title != "":
+            output["title"] = ListQuestions[i].title
         else:
             output["title"] = "Question " + str(i + 1)
 
         # add main text to the question file
-        output["masterContent"]["blocks"][0]["data"] = ListQuestions[i]["MainText"]
+        output["masterContent"]["blocks"][0]["data"] = ListQuestions[i].main_text
 
         # add parts to the question file
-        output["parts"][0]["content"]["blocks"][0]["data"] = ListQuestions[i]["Parts"][
-            0
-        ]["Text"]
-        output["parts"][0]["workedSolution"][0]["content"]["blocks"][0][
-            "data"
-        ] = ListQuestions[i]["Parts"][0]["Answer"]
-        for j in range(1, len(ListQuestions[i]["Parts"])):
-            output["parts"].append(deepcopy(template["parts"][0]))
-            output["parts"][j]["content"]["blocks"][0]["data"] = ListQuestions[i][
-                "Parts"
-            ][j]["Text"]
-            output["parts"][j]["workedSolution"][0]["content"]["blocks"][0][
-                "data"
-            ] = ListQuestions[i]["Parts"][j]["Answer"]
+        if ListQuestions[i].parts:
+            output["parts"][0]["content"]["blocks"][0]["data"] = (
+                ListQuestions[i].parts[0].text
+            )
+            output["parts"][0]["workedSolution"][0]["content"]["blocks"][0]["data"] = (
+                ListQuestions[i].parts[0].worked_solution
+            )
+            for j in range(1, len(ListQuestions[i].parts)):
+                output["parts"].append(deepcopy(template["parts"][0]))
+                output["parts"][j]["content"]["blocks"][0]["data"] = (
+                    ListQuestions[i].parts[j].text
+                )
+                output["parts"][j]["workedSolution"][0]["content"]["blocks"][0][
+                    "data"
+                ] = (ListQuestions[i].parts[j].worked_solution)
 
         # Output file
         filename = "Question " + str(i + 1)
-
-      
 
         # create directory to put the questions
         os.makedirs(output_dir, exist_ok=True)
@@ -62,9 +61,9 @@ def converter(
             json.dump(output, file)
 
         # write image into directory
-        for k in range(len(ListQuestions[i]["Images"])):
+        for k in range(len(ListQuestions[i].images)):
             image_path = os.path.abspath(
-                ListQuestions[i]["Images"][k]
+                ListQuestions[i].images[k]
             )  # converts computer path into python path
             shutil.copy(image_path, output_image)  # copies image into the directory
 
@@ -76,7 +75,7 @@ def main(questions: list[Question], output_dir: str) -> None:
     # Use path so minimal template can be found regardless of where the user is running python from.
     with open(Path(__file__).with_name(MINIMAL_TEMPLATE), "r") as file:
         template = json.load(file)
-        
+
     # check if directory exists in file
     if os.path.isdir(output_dir):
         try:
