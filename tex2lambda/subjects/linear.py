@@ -9,7 +9,7 @@ from typing import Optional
 
 import panflute as pf
 
-from tex2lambda.question import Questions
+from tex2lambda.api.module import Module
 from tex2lambda.subjects._markdown import filter
 
 
@@ -17,7 +17,7 @@ from tex2lambda.subjects._markdown import filter
 def pandoc_filter(
     elem: pf.Element,
     doc: pf.elements.Doc,
-    questions: Questions,
+    module: Module,
     parsing_answers: bool,
 ) -> Optional[pf.Str]:
     """A Pandoc filter that parses and translates various TeX elements.
@@ -26,7 +26,7 @@ def pandoc_filter(
         elem: The current TeX element being processed. This could be a paragraph,
             ordered list, etc.
         doc: A Pandoc document container - essentially the Pandoc AST.
-        questions: The Python API that is used to store the result after processing
+        module: The Python API that is used to store the result after processing
             the TeX file.
         parsing_answers: Whether an answers-only document is currently being parsed.
 
@@ -49,10 +49,10 @@ def pandoc_filter(
 
     # Solutions are in a Div
     if isinstance(elem, pf.Div):
-        questions.add_question("\n".join(pandoc_filter.question))
+        module.add_question(main_text="\n".join(pandoc_filter.question))
         if hasattr(pandoc_filter, "parts"):
             for part in pandoc_filter.parts:
-                questions.add_part(part)
+                module.current_question.add_part_text(part)
         pandoc_filter.question = []
         pandoc_filter.parts = []
 
@@ -61,8 +61,8 @@ def pandoc_filter(
         match type(first_answer_part := elem.content[0]):
             case pf.OrderedList:
                 for item in first_answer_part.content:
-                    questions.add_solution_part(pf.stringify(item))
+                    module.current_question.add_solution(pf.stringify(item))
             case pf.Para:
-                questions.add_solution_all_parts(pf.stringify(elem))
+                module.current_question.add_solution(pf.stringify(elem))
 
     return None

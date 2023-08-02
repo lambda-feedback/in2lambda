@@ -5,20 +5,20 @@
 See https://pandoc.org/filters.html for more information.
 """
 
+from collections import deque
 from typing import Optional
 
 import panflute as pf
 
-from tex2lambda.question import Questions
+from tex2lambda.api.module import Module
 from tex2lambda.subjects._markdown import filter
-from collections import deque
 
 
 @filter
 def pandoc_filter(
     elem: pf.Element,
     doc: pf.elements.Doc,
-    questions: Questions,
+    module: Module,
     parsing_answers: bool,
 ) -> Optional[pf.Str]:
     """A Pandoc filter that parses and translates various TeX elements.
@@ -27,7 +27,7 @@ def pandoc_filter(
         elem: The current TeX element being processed. This could be a paragraph,
             ordered list, etc.
         doc: A Pandoc document container - essentially the Pandoc AST.
-        questions: The Python API that is used to store the result after processing
+        module: The Python API that is used to store the result after processing
             the TeX file.
         parsing_answers: Whether an answers-only document is currently being parsed.
 
@@ -52,13 +52,15 @@ def pandoc_filter(
                         for item in listItem.content
                         if not isinstance(item, pf.Div)
                     ]
-                    questions.add_part("\n".join(part))
-                    questions.add_solution_part(pandoc_filter.solutions.popleft())
+                    module.current_question.add_part_text("\n".join(part))
+                    module.current_question.add_solution(
+                        pandoc_filter.solutions.popleft()
+                    )
 
     if isinstance(elem, pf.Div):
         pandoc_filter.solutions.append(pf.stringify(elem))
         if pandoc_filter.question:
-            questions.add_question("\n".join(pandoc_filter.question))
-            questions.add_solution_part(pf.stringify(elem))
+            module.add_question(main_text="\n".join(pandoc_filter.question))
+            module.current_question.add_solution(pf.stringify(elem))
         pandoc_filter.question = []
     return None

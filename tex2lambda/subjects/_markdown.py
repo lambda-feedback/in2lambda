@@ -7,8 +7,8 @@ import panflute as pf
 from beartype.typing import Callable, Optional
 from rich_click import echo
 
+from tex2lambda.api.module import Module
 from tex2lambda.katex_convert.katex_convert import latex_to_katex
-from tex2lambda.question import Questions
 
 
 @cache
@@ -72,10 +72,10 @@ def image_path(image_name: str, tex_file: str) -> Optional[str]:
 
 def filter(
     func: Callable[
-        [pf.Element, pf.elements.Doc, Questions, bool],
+        [pf.Element, pf.elements.Doc, Module, bool],
         Optional[pf.Str],
     ]
-) -> Callable[[pf.Element, pf.elements.Doc, Questions, str, bool], Optional[pf.Str],]:
+) -> Callable[[pf.Element, pf.elements.Doc, Module, str, bool], Optional[pf.Str],]:
     """Python decorator to make generic LaTeX elements markdown readable.
 
     As an example, part of the process involves putting dollar signs around maths
@@ -88,7 +88,7 @@ def filter(
     def markdown_converter(
         elem: pf.Element,
         doc: pf.elements.Doc,
-        questions: Questions,
+        module: Module,
         tex_file: str,
         parsing_answers: bool,
     ) -> Optional[pf.Str]:
@@ -101,7 +101,7 @@ def filter(
             elem: The current TeX element being processed. This could be a paragraph,
                 ordered list, etc.
             doc: A Pandoc document container - essentially the Pandoc AST.
-            questions: The Python API that is used to store the result after processing
+            module: The Python API that is used to store the result after processing
                 the TeX file.
             tex_file: The absolute path to the TeX file being parsed.
             parsing_answers: Whether an answers-only document is currently being parsed.
@@ -124,7 +124,7 @@ def filter(
                 if path is None:
                     echo(f"Warning: Couldn't find {elem.url}")
                 else:
-                    questions.add_image(path)
+                    module.current_question.images.append(path)
                 return pf.Str(f"![pictureTag]({elem.url})")
 
             case pf.Strong:
@@ -138,6 +138,6 @@ def filter(
             case pf.Str:
                 return pf.Str(elem.text.replace("\u00a0", "\u202f"))
 
-        return func(elem, doc, questions, parsing_answers)
+        return func(elem, doc, module, parsing_answers)
 
     return markdown_converter

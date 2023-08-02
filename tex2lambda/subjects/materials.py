@@ -9,7 +9,7 @@ from typing import Optional
 
 import panflute as pf
 
-from tex2lambda.question import Questions
+from tex2lambda.api.module import Module
 from tex2lambda.subjects._markdown import filter
 
 
@@ -17,7 +17,7 @@ from tex2lambda.subjects._markdown import filter
 def pandoc_filter(
     elem: pf.Element,
     doc: pf.elements.Doc,
-    questions: Questions,
+    module: Module,
     parsing_answers: bool,
 ) -> Optional[pf.Str]:
     """A Pandoc filter that parses and translates various TeX elements.
@@ -26,7 +26,7 @@ def pandoc_filter(
         elem: The current TeX element being processed. This could be a paragraph,
             ordered list, etc.
         doc: A Pandoc document container - essentially the Pandoc AST.
-        questions: The Python API that is used to store the result after processing
+        module: The Python API that is used to store the result after processing
             the TeX file.
         parsing_answers: Whether an answers-only document is currently being parsed.
 
@@ -41,22 +41,18 @@ def pandoc_filter(
                 isinstance(elem.prev, pf.Header)
                 and pf.stringify(elem.prev) != "Solution"
             ):
-                questions.add_question(pf.stringify(elem))
+                module.add_question(main_text=elem)
 
         # Parts are denoted via ordered lists
         case pf.OrderedList:
-            if (
-                isinstance(elem.prev, pf.Header)
-                and pf.stringify(elem.prev) != "Solution"
-            ):  # If it's a list of parts without a top level blurb
-                # Space is removed by Lambda but tex2lambda treats it as blurb
-                questions.add_question(" ")
             for item in elem.content:
-                questions.add_part(pf.stringify(item))
+                module.current_question.add_part_text(item)
 
         # Solution is in a Div with nested content being "Solution"
         case pf.Div:
             if pf.stringify(elem.content[0].content) == "Solution":
-                questions.add_solution_all_parts(pf.stringify(elem)[len("Solution") :])
+                module.current_question.add_solution(
+                    pf.stringify(elem)[len("Solution") :]
+                )
 
     return None
