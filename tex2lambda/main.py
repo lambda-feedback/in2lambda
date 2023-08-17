@@ -7,7 +7,7 @@ from typing import Optional
 import panflute as pf
 import rich_click as click
 
-import tex2lambda.subjects
+import tex2lambda.filters
 from tex2lambda.api.module import Module
 from tex2lambda.json_convert import json_convert
 
@@ -36,7 +36,7 @@ def runner(
     module = Module()
 
     # Dynamically import the correct pandoc filter depending on the subject.
-    subject_module = importlib.import_module(f"tex2lambda.subjects.{subject.lower()}")
+    subject_module = importlib.import_module(f"tex2lambda.filters.{subject.lower()}")
 
     with open(question_file, "r", encoding="utf-8") as file:
         text = file.read()
@@ -82,7 +82,7 @@ def runner(
     type=click.Choice(
         [
             i.name.capitalize()
-            for i in pkgutil.iter_modules(tex2lambda.subjects.__path__)
+            for i in pkgutil.iter_modules(tex2lambda.filters.__path__)
             if i.name[0] != "_"
         ],
         case_sensitive=False,

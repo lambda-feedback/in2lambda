@@ -10,7 +10,7 @@ from typing import Optional
 import panflute as pf
 
 from tex2lambda.api.module import Module
-from tex2lambda.subjects._markdown import filter
+from tex2lambda.filters._markdown import filter
 
 
 @filter
