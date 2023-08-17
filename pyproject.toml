@@ -20,6 +20,18 @@ tex2lambda = "tex2lambda.main:cli"
 black = "^23.7.0"
 isort = "^5.12.0"
 pydocstyle = "^6.3.0"
+mypy = "^1.4.1"
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+sphinx = "^7.1.2"
+furo = "^2023.7.26"
+sphinx-click = "^4.4.0"
+pytest-sugar = "^0.9.7"
+mkdocs-material = "^9.1.21"
+myst-parser = "^2.0.0"
+sphinxext-opengraph = "^0.8.2"
+sphinx-copybutton = "^0.5.2"
+sphinx-design = "^0.5.0"
 
 [tool.mypy]
 # panflute is missing type hints
