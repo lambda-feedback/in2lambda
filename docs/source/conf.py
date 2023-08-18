@@ -39,9 +39,9 @@ autosummary_generate = True
 myst_enable_extensions = ["colon_fence"]
 
 ogp_site_url = "https://lambda-feedback.github.io/tex2lambda/"
-ogp_image = "./_static/logo.png"
+ogp_image = "./_static/social.png"
 ogp_social_cards = {
-    "image": "./_static/logo.png",
+    "image": "./_static/social.png",
 }
 
 templates_path = ["_templates"]

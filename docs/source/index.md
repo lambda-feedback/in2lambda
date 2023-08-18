@@ -1,3 +1,7 @@
+---
+og:title: tex2lambda
+---
+
 ::::{grid} 1 2 2 2
 
 :::{grid-item}
