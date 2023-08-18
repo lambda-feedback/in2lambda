@@ -20,18 +20,18 @@ tex2lambda = "tex2lambda.main:cli"
 black = "^23.7.0"
 isort = "^5.12.0"
 pydocstyle = "^6.3.0"
-mypy = "^1.4.1"
+mypy = "^1.5.1"
 pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
 pytest-sugar = "^0.9.7"
 
 [tool.poetry.group.docs.dependencies]
-furo = "^2023.7.26"
+furo = "^2023.8.17"
 myst-parser = "^2.0.0"
-sphinx = "^7.1.2"
+sphinx = "^7.2.2"
 sphinx-copybutton = "^0.5.2"
 sphinx-design = "^0.5.0"
-sphinx-click = "^4.4.0"
+sphinx-click = "^5.0.1"
 sphinxext-opengraph = "^0.8.2"
 
 [tool.mypy]
