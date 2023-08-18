@@ -38,6 +38,12 @@ autosummary_generate = True
 
 myst_enable_extensions = ["colon_fence"]
 
+ogp_site_url = "https://lambda-feedback.github.io/tex2lambda/"
+ogp_image = "./_static/logo.png"
+ogp_social_cards = {
+    "image": "./_static/logo.png",
+}
+
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 source_suffix = [".rst", ".md"]
@@ -48,6 +54,7 @@ source_suffix = [".rst", ".md"]
 
 html_title = "tex2lambda"
 html_theme = "furo"
+html_favicon = "./_static/favicon.png"
 html_theme_options = {
     "light_logo": "logo-light-mode.svg",
     "dark_logo": "logo-dark-mode.svg",
