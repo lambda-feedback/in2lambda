@@ -1,9 +1,9 @@
 """Python library and CLT for converting LaTeX documents into Lambda Feedback compatible JSON/ZIP files."""
 
+import beartype
 import click
 import panflute
 import rich_click
-import beartype
 from beartype.claw import beartype_this_package
 from rich.traceback import install
 

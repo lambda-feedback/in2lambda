@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-"""Pandoc filter for Fourier files (specifically by Carlo).
-
-See https://pandoc.org/filters.html for more information.
-"""
+"""A filter that parses files where solutions are in a separate file. Questions are denoted with lists, with parts in sublists."""
 
 from typing import Optional
 

@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
-"""Pandoc filter for Physics Linear Algebra.
+"""A filter that parses files where a soltution follows each individual part."""
 
-See https://pandoc.org/filters.html for more information.
-"""
-
+from collections import deque
 from typing import Optional
 
 import panflute as pf
@@ -34,35 +32,32 @@ def pandoc_filter(
         Converted TeX elements for the AST where required
         e.g. replaces math equations so that they are surrounded by $.
     """
+
     # Question text (ListItem -> List -> Doc)
     if isinstance(elem.ancestor(3), pf.Doc):
         match type(elem):
             case pf.Para:
+                pandoc_filter.solutions = deque()
                 if hasattr(pandoc_filter, "question"):
                     pandoc_filter.question.append(pf.stringify(elem))
                 else:
                     pandoc_filter.question = [pf.stringify(elem)]
             case pf.OrderedList:
-                pandoc_filter.parts = []
-                for item in elem.content:
-                    pandoc_filter.parts.append(pf.stringify(item))
+                for listItem in elem.content:
+                    part = [
+                        pf.stringify(item)
+                        for item in listItem.content
+                        if not isinstance(item, pf.Div)
+                    ]
+                    module.current_question.add_part_text("\n".join(part))
+                    module.current_question.add_solution(
+                        pandoc_filter.solutions.popleft()
+                    )
 
-    # Solutions are in a Div
     if isinstance(elem, pf.Div):
-        module.add_question(main_text="\n".join(pandoc_filter.question))
-        if hasattr(pandoc_filter, "parts"):
-            for part in pandoc_filter.parts:
-                module.current_question.add_part_text(part)
+        pandoc_filter.solutions.append(pf.stringify(elem))
+        if pandoc_filter.question:
+            module.add_question(main_text="\n".join(pandoc_filter.question))
+            module.current_question.add_solution(pf.stringify(elem))
         pandoc_filter.question = []
-        pandoc_filter.parts = []
-
-        # If the first part of the div is an ordered list, assume part answers
-        # If paragraph, extract all paragraphs as total answer
-        match type(first_answer_part := elem.content[0]):
-            case pf.OrderedList:
-                for item in first_answer_part.content:
-                    module.current_question.add_solution(pf.stringify(item))
-            case pf.Para:
-                module.current_question.add_solution(pf.stringify(elem))
-
     return None

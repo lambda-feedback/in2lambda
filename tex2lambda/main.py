@@ -14,7 +14,7 @@ from tex2lambda.json_convert import json_convert
 
 def runner(
     question_file: str,
-    subject: str,
+    chosen_filter: str,
     output_dir: Optional[str] = None,
     answer_file: Optional[str] = None,
 ) -> Module:
@@ -22,7 +22,7 @@ def runner(
 
     Args:
         question_file: The absolute path to a TeX question file.
-        subject: The subject which the TeX file contains questions for.
+        chosen_filter: The filter chosen to parse the TeX file.
         output_dir: An optional argument for where to output the Lambda Feedback compatible json/zip files.
         answer_file: The absolute path to a TeX answer file.
 
@@ -36,14 +36,16 @@ def runner(
     module = Module()
 
     # Dynamically import the correct pandoc filter depending on the subject.
-    subject_module = importlib.import_module(f"tex2lambda.filters.{subject.lower()}")
+    filter_module = importlib.import_module(
+        f"tex2lambda.filters.{chosen_filter}.filter"
+    )
 
     with open(question_file, "r", encoding="utf-8") as file:
         text = file.read()
 
     # Parse the Pandoc AST using the relevant panflute filter.
     pf.run_filter(
-        subject_module.pandoc_filter,
+        filter_module.pandoc_filter,
         doc=pf.convert_text(text, input_format="latex", standalone=True),
         module=module,
         tex_file=question_file,
@@ -56,7 +58,7 @@ def runner(
             answer_text = file.read()
 
         pf.run_filter(
-            subject_module.pandoc_filter,
+            filter_module.pandoc_filter,
             doc=pf.convert_text(answer_text, input_format="latex", standalone=True),
             module=module,
             tex_file=answer_file,
@@ -78,10 +80,10 @@ def runner(
 )
 # Python files in the subjects directory
 @click.argument(
-    "subject",
+    "chosen_filter",
     type=click.Choice(
         [
-            i.name.capitalize()
+            i.name
             for i in pkgutil.iter_modules(tex2lambda.filters.__path__)
             if i.name[0] != "_"
         ],
@@ -106,11 +108,11 @@ def runner(
     type=click.Path(resolve_path=True, exists=True, dir_okay=False),
 )
 def cli(
-    question_file: str, subject: str, output_dir: str, answer_file: Optional[str]
+    question_file: str, chosen_filter: str, output_dir: str, answer_file: Optional[str]
 ) -> None:
     """Takes in a QUESTION_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
     # main() is made separate from click() so that it can be easily imported as part of a library.
-    runner(question_file, subject, output_dir, answer_file)
+    runner(question_file, chosen_filter, output_dir, answer_file)
 
 
 if __name__ == "__main__":

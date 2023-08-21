@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-"""Pandoc filter for Materials files (specifically by Jonathan Rackham).
-
-See https://pandoc.org/filters.html for more information.
-"""
+"""A filter that parses files where solutions are denoted by beginning with the paragraph text 'Solution'. The solutions don't break down by part."""
 
 from typing import Optional
 
@@ -36,6 +33,7 @@ def pandoc_filter(
     """
     match type(elem):
         # Question text is stored in paragraph blocks where the preceding block is a section header.
+        # TODO: This doesn't work if the question has more than one paragraph
         case pf.Para:
             if (
                 isinstance(elem.prev, pf.Header)
