@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-"""A filter that parses files where solutions are in a separate file. Questions are denoted with lists, with parts in sublists."""
+"""A filter that parses files where solutions are in a separate file. Questions are denoted with lists, with parts in sublists.
+
+Any answer files provided are expected to follow the same format as the question file.
+"""
 
 from typing import Optional
 

@@ -1,6 +1,10 @@
 \documentclass[12pt]{article}
 
-\newenvironment{AnyName}{}{}
+\usepackage{comment}
+
+% This is a common method for including/excluding solutions from the PDF.
+\includecomment{solution}
+%\excludecomment{solution}
 
 \begin{document}
 
@@ -15,8 +19,7 @@ Here is some preliminary question information that might be useful.
     \item The filter still works even if there aren't any parts
 \end{enumerate}
 
-\begin{AnyName}
-    \paragraph{Solution}
+\begin{solution}
 
     This is the final answer. It contains the solutions for all parts without breaking them up.
 
@@ -26,14 +29,14 @@ Here is some preliminary question information that might be useful.
 
     The solution is copied across all parts.
 
-\end{AnyName}
+\end{solution}
 
 \subsection{}
 
 This is question 2.
 
-\begin{AnyName}
-    \paragraph{Solution} And here's the solution
-\end{AnyName}
+\begin{solution}
+    And here's the solution
+\end{solution}
 
 \end{document}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""A filter that parses files where solutions are denoted by beginning with the paragraph text 'Solution'. The solutions don't break down by part."""
+"""A filter that supports questions (with parts) where the solution is at the end of a question and isn't broken down explicitly by part."""
 
 from typing import Optional
 
@@ -50,7 +50,7 @@ def pandoc_filter(
         case pf.Div:
             if pf.stringify(elem.content[0].content) == "Solution":
                 module.current_question.add_solution(
-                    pf.stringify(elem)[len("Solution") :]
+                    pf.stringify(elem)  # [len("Solution") :] - For Jon Rackham
                 )
 
     return None

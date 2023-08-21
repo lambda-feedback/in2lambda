@@ -59,5 +59,6 @@ def pandoc_filter(
         if pandoc_filter.question:
             module.add_question(main_text="\n".join(pandoc_filter.question))
             module.current_question.add_solution(pf.stringify(elem))
+            module.current_question._last_part["solution"] -= 1
         pandoc_filter.question = []
     return None
