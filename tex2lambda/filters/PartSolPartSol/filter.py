@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""A filter that parses files where a soltution follows each individual part."""
+"""A solution appears after each individual part."""
 
 from collections import deque
 from typing import Optional

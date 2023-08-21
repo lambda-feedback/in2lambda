@@ -43,6 +43,7 @@ extensions = [
     "sphinx_design",
     "sphinxcontrib.pdfembed",
     "sphinxcontrib.programoutput",
+    "sphinx_togglebutton",
     "myst_parser",
 ]
 autosummary_generate = True

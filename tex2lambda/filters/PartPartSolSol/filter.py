@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-"""A filter that parses files where solutions come after the whole question and are broken down by part.
-
-i.e. Parts follow each other, and solutions for those parts follow next.
-"""
+"""Question parts appear one after another, and solutions for those parts come next."""
 
 from typing import Optional
 

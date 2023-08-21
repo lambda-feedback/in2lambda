@@ -47,6 +47,7 @@ sphinx-click = "^5.0.1"
 sphinxext-opengraph = "^0.8.2"
 sphinxcontrib-pdfembed = {git = "https://github.com/SuperKogito/sphinxcontrib-pdfembed.git"}
 sphinxcontrib-programoutput = "^0.17"
+sphinx-togglebutton = "^0.3.2"
 
 [tool.mypy]
 # panflute is missing type hints

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-"""A filter that supports questions (with parts) where the solution is at the end of a question and isn't broken down explicitly by part."""
+"""The solution appears after the question but is not explicitly broken down by part.
+
+If a question does have parts, the same solution is added to each part on Lambda Feedback.
+"""
 
 from typing import Optional
 
