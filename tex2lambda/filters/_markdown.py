@@ -111,7 +111,10 @@ def filter(
         """
         match type(elem):
             case pf.Math:
-                expression = latex_to_katex(elem.text)
+                try:
+                    expression = latex_to_katex(elem.text)
+                except:
+                    expression = elem.text
                 return pf.Str(
                     f"${expression}$"
                     if elem.format == "InlineMath"
