@@ -28,14 +28,20 @@ Get Started
 ::::{grid} 1 3 3 3
 
 :::{grid-item-card} {octicon}`tools;1.5em` Highly Configurable
+:link: filters/index
+:link-type: doc
 Can be used to process numerous file formats with a variety of different structures by using [pandoc filters](https://pandoc.org/filters.html).
 :::
 
 :::{grid-item-card} {octicon}`terminal;1.5em` Accessible Command Line Tool
+:link: reference/command-line
+:link-type: doc
 Just provide the question file and select one of the in-built file parsers.
 :::
 
 :::{grid-item-card} {octicon}`gear;1.5em` Powerful API
+:link: reference/library
+:link-type: doc
 A fully type-annotated extensively documented Python library is available for those that need a bit more control.
 :::
 
@@ -46,6 +52,7 @@ A fully type-annotated extensively documented Python library is available for th
 
 🔎 Overview <self>
 quickstart
+filters/index
 ```
 
 ```{toctree}
