@@ -42,6 +42,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "sphinxcontrib.pdfembed",
+    "sphinxcontrib.programoutput",
     "myst_parser",
 ]
 autosummary_generate = True
@@ -49,9 +50,9 @@ autosummary_generate = True
 myst_enable_extensions = ["colon_fence"]
 
 ogp_site_url = "https://lambda-feedback.github.io/tex2lambda/"
-ogp_image = "./_static/social.png"
+ogp_image = "./_static/icons/social.png"
 ogp_social_cards = {
-    "image": "./_static/social.png",
+    "image": "./_static/icons/social.png",
 }
 
 templates_path = ["_templates"]
@@ -64,10 +65,10 @@ source_suffix = [".rst", ".md"]
 
 html_title = "tex2lambda"
 html_theme = "furo"
-html_favicon = "./_static/favicon.png"
+html_favicon = "./_static/icons/favicon.png"
 html_theme_options = {
-    "light_logo": "logo-light-mode.svg",
-    "dark_logo": "logo-dark-mode.svg",
+    "light_logo": "icons/logo-light-mode.svg",
+    "dark_logo": "icons/logo-dark-mode.svg",
     "sidebar_hide_name": True,
     "footer_icons": [
         {
