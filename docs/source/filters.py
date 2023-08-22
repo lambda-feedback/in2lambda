@@ -1,5 +1,6 @@
 import importlib
 import os
+import shutil
 import pkgutil
 from pathlib import Path
 
@@ -37,9 +38,13 @@ def generate_filters_docs():
         filter_file = f"{relative_directory}/filter.py"
         tex_file = f"{relative_directory}/example.tex"
 
-        os.system(
-            f"pdflatex -output-directory={static_pdf_directory} -jobname={filter_name} {tex_file}"
-        )
+        if shutil.which("pdflatex"):
+            os.system(
+                f"pdflatex -output-directory={static_pdf_directory} -jobname={filter_name} -interaction=nonstopmode {tex_file}"
+            )
+
+            if not os.path.exists(f"{static_pdf_directory}/{filter_name}.pdf"):
+                raise RuntimeError("PDF output not found")
 
         rst_content = f"""\
 {filter_name}

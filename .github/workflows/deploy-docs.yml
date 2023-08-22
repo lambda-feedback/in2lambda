@@ -37,3 +37,4 @@ jobs:
         documentation_path: ./docs/source
         python_version: ${{ env.PYTHON_VERSION }}
         checkout: false
+        sphinx_build_options: '-b dirhtml'

@@ -4,7 +4,9 @@ This page gives a quick overview of how to get started with tex2lambda to quickl
 
 ## 1. Installation
 
-![PyPI - Version](https://img.shields.io/pypi/v/tex2lambda?logo=pypi&logoColor=white&color=blue)
+[![PyPI - Version](https://img.shields.io/pypi/v/tex2lambda?logo=pypi&logoColor=white&color=blue&style=flat-square)](https://pypi.org/project/tex2lambda/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tex2lambda?style=flat-square&logo=python&logoColor=white)](https://pypi.org/project/tex2lambda/)
+
 
 :::{important}
 Ensure that [pandoc](https://pandoc.org/installing.html) is already installed.

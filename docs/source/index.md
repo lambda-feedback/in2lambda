@@ -56,18 +56,18 @@ filters/index
 ```
 
 ```{toctree}
-:caption: 🔨 Development
+:caption: 🔨 Contributing
 :hidden:
 
-development/installation
-development/high_level
-development/documentation
+contributing/installation
+contributing/high_level
+contributing/documentation
 ```
 
 ```{toctree}
 :caption: 📖 Reference
 :hidden:
+:glob:
 
-reference/command-line
-reference/library
+reference/*
 ```
