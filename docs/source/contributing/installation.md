@@ -1,7 +1,6 @@
 # Installation
 
-:::{admonition} Important
-:class: warning
+:::{important}
 The standard installation method can be found in the [Quickstart](../quickstart). These instructions are for development purposes.
 :::
 

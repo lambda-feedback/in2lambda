@@ -5,7 +5,7 @@ The documentation is found in `docs/source` and can be written in either Markdow
 ## Building Locally
 
 :::{note}
-To generate the minimal example PDFs that are embedded into the [filters pages](../filters/index), `pdflatex` is required to be available in PATH. You can still build the docs without it however.
+`pdflatex` and `graphviz` are optional but recommended docs dependencies that are required to build the minimal example PDFs and certain diagrams respectively. The documentation can still be built without them however.
 :::
 
 Run the following from the root directory to build the docs:

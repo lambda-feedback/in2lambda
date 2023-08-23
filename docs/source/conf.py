@@ -43,6 +43,7 @@ extensions = [
     "sphinx_design",
     "sphinxcontrib.pdfembed",
     "sphinxcontrib.programoutput",
+    "sphinx.ext.graphviz",
     "sphinx_togglebutton",
     "myst_parser",
 ]
@@ -55,6 +56,8 @@ ogp_image = "./_static/icons/social.png"
 ogp_social_cards = {
     "image": "./_static/icons/social.png",
 }
+
+graphviz_output_format = "svg"
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
