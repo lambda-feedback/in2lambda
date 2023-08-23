@@ -62,7 +62,7 @@ A PDF which this filter parses correctly is shown below:
    .. literalinclude:: {tex_file}
       :language: LaTeX
 
-:pdfembed:`src:../../_static/pdf/{filter_name}.pdf, height:700, width:100%, align:middle`
+:pdfembed:`src:../../../_static/pdf/{filter_name}.pdf, height:700, width:100%, align:middle`
 
 .. dropdown:: 🐍 Python Filter
 
