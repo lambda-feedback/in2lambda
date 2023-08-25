@@ -113,7 +113,7 @@ def filter(
             case pf.Math:
                 try:
                     expression = latex_to_katex(elem.text)
-                except:
+                except Exception:
                     expression = elem.text
                 return pf.Str(
                     f"${expression}$"
