@@ -1,7 +1,8 @@
 import importlib
 import os
-import shutil
 import pkgutil
+import shutil
+import subprocess
 from pathlib import Path
 
 import tex2lambda.filters
@@ -38,9 +39,20 @@ def generate_filters_docs():
         filter_file = f"{relative_directory}/filter.py"
         tex_file = f"{relative_directory}/example.tex"
 
+        # Different path likely needed since GitHub Actions builds with dirhtml builder.
+        # This is relative to the auto-generated filter file.
+        pdf_file = f"../../{'../' if os.getenv('GITHUB_ACTIONS') == 'true' else './'}{static_pdf_directory}/{filter_name}.pdf"
+
         if shutil.which("pdflatex"):
-            os.system(
-                f"pdflatex -output-directory={static_pdf_directory} -jobname={filter_name} -interaction=nonstopmode {tex_file}"
+            subprocess.run(
+                [
+                    "pdflatex",
+                    f"-output-directory={static_pdf_directory}",
+                    f"-jobname={filter_name}",
+                    "-interaction=nonstopmode",
+                    tex_file,
+                ],
+                check=True,
             )
 
             if not os.path.exists(f"{static_pdf_directory}/{filter_name}.pdf"):
@@ -62,7 +74,7 @@ A PDF which this filter parses correctly is shown below:
    .. literalinclude:: {tex_file}
       :language: LaTeX
 
-:pdfembed:`src:../../../_static/pdf/{filter_name}.pdf, height:700, width:100%, align:middle`
+:pdfembed:`src: {pdf_file}, height:700, width:100%, align:middle`
 
 .. dropdown:: 🐍 Python Filter
 
