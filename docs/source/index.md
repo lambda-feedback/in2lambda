@@ -3,21 +3,30 @@ og:title: tex2lambda
 ---
 
 ::::{grid} 1 2 2 2
+:padding: 0
 
 :::{grid-item}
 :child-align: center
 <div align="center">
     <h1>tex2lambda</h1>
+    <a href="https://www.codefactor.io/repository/github/lambda-feedback/tex2lambda">
+        <img alt="CodeFactor Grade" src="https://img.shields.io/codefactor/grade/github/lambda-feedback/tex2lambda/main?style=flat-square&logo=codefactor">
+    </a>
+    <a href="https://app.codecov.io/github/lambda-feedback/tex2lambda">
+        <img alt="Codecov" src="https://img.shields.io/codecov/c/github/lambda-feedback/tex2lambda?style=flat-square&logo=codecov">
+    </a>
 </div>
 :::
 
 :::{grid-item}
-:padding: 3
+\
+\
 Automagically uploads questions to [Lambda Feedback](https://lambda-feedback.github.io/user-documentation/) so you don't have to.
 
 ```{button-ref} quickstart
 :ref-type: doc
 :color: primary
+:expand:
 
 Get Started
 ```
