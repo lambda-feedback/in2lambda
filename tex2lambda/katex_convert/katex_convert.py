@@ -49,12 +49,12 @@ def delete_functions(latex_string: str) -> str:
                 end_index = match.end()
                 if not latex_string[end_index].isalpha():
                     logger.info(f"Deleted {latex_string[start_index:end_index]}")
-                    
+
                     if latex_string[end_index] == "{":
                         latex_string = brace_remover(latex_string, end_index)
                     latex_string = latex_string[:start_index] + latex_string[end_index:]
                 else:
-                    item=item + "(?![a-zA-Z])"
+                    item = item + "(?![a-zA-Z])"
 
     return latex_string
 
@@ -68,7 +68,6 @@ def replace_functions(latex_string: str) -> str:
             key, value = line.split(":", 1)
             key = key.strip()
             value = value.strip()
-
 
             pattern = re.compile(key)
             match = pattern.search(value)
