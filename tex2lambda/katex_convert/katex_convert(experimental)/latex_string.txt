@@ -1,3 +1,0 @@
-\vec{a}=2\,\norm{i}+3\,
-\norm{k}\, ,\qquad \vec{b}=\norm{i}-2\,\norm{j}-
-\norm{k}\ 
