@@ -5,7 +5,7 @@ from typing import Union
 
 import panflute as pf
 
-from tex2lambda.api.question import Question
+from in2lambda.api.question import Question
 
 
 @dataclass
@@ -26,7 +26,7 @@ class Module:
             The current question or Question("INVALID") if there are no questions.
 
         Examples:
-            >>> from tex2lambda.api.module import Module
+            >>> from in2lambda.api.module import Module
             >>> Module().current_question
             Question(title='INVALID', parts=[], images=[], _main_text='')
             >>> module = Module()
@@ -51,7 +51,7 @@ class Module:
             main_text: An optional string or panflute element for the main question text.
 
         Examples:
-            >>> from tex2lambda.api.module import Module
+            >>> from in2lambda.api.module import Module
             >>> import panflute as pf
             >>> module = Module()
             >>> module.add_question("Some title", pf.Para(pf.Str("hello"), pf.Space, pf.Str("there")))
@@ -74,7 +74,7 @@ class Module:
         The is useful if adding question text first and answers later.
 
         Examples:
-            >>> from tex2lambda.api.module import Module
+            >>> from in2lambda.api.module import Module
             >>> module = Module()
             >>> # Imagine adding the questions from a question file first...
             >>> module.add_question("Question 1")

@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "tex2lambda"
+name = "in2lambda"
 version = "0.1.0"
 description = "Automagically uploads questions to Lambda Feedback so you don't have to."
 authors = []
 license = "MIT"
 readme = "README.md"
-include = ["tex2lambda/py.typed"]
+include = ["in2lambda/py.typed"]
 classifiers = [
   "Natural Language :: English",
   "Operating System :: OS Independent",
@@ -14,12 +14,12 @@ classifiers = [
   'Programming Language :: Python :: 3 :: Only',
 ]
 
-homepage = "https://lambda-feedback.github.io/tex2lambda"
-repository = "https://github.com/lambda-feedback/tex2lambda"
-documentation = "https://lambda-feedback.github.io/tex2lambda"
+homepage = "https://lambda-feedback.github.io/in2lambda"
+repository = "https://github.com/lambda-feedback/in2lambda"
+documentation = "https://lambda-feedback.github.io/in2lambda"
 
 [tool.poetry.urls]
-"Bug Tracker" = "https://github.com/lambda-feedback/tex2lambda/issues"
+"Bug Tracker" = "https://github.com/lambda-feedback/in2lambda/issues"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -28,7 +28,7 @@ rich-click = "^1.6.1"
 beartype = "^0.15.0"
 
 [tool.poetry.scripts]
-tex2lambda = "tex2lambda.main:cli"
+in2lambda = "in2lambda.main:cli"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"

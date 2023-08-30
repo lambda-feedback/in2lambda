@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-import tex2lambda.filters
+import in2lambda.filters
 
 
 def generate_filters_docs():
@@ -21,16 +21,16 @@ def generate_filters_docs():
 
     filters = (
         i.name
-        for i in pkgutil.iter_modules(tex2lambda.filters.__path__)
+        for i in pkgutil.iter_modules(in2lambda.filters.__path__)
         if i.name[0] != "_"
     )
 
     for filter_name in filters:
         filter_module = importlib.import_module(
-            f"tex2lambda.filters.{filter_name}.filter"
+            f"in2lambda.filters.{filter_name}.filter"
         )
 
-        relative_directory = f"../../../../tex2lambda/filters/{filter_name}"
+        relative_directory = f"../../../../in2lambda/filters/{filter_name}"
         """Where to find the filter's directory relative to `autosummary_directory`.
 
         For some reason, literalinclude requires it to be relative.

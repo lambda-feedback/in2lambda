@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
-"""Question parts appear one after another, and solutions for those parts come next."""
+"""A solution appears after each individual part."""
 
+from collections import deque
 from typing import Optional
 
 import panflute as pf
 
-from tex2lambda.api.module import Module
-from tex2lambda.filters._markdown import filter
+from in2lambda.api.module import Module
+from in2lambda.filters._markdown import filter
 
 
 @filter
@@ -35,31 +36,28 @@ def pandoc_filter(
     if isinstance(elem.ancestor(3), pf.Doc):
         match type(elem):
             case pf.Para:
+                pandoc_filter.solutions = deque()
                 if hasattr(pandoc_filter, "question"):
                     pandoc_filter.question.append(pf.stringify(elem))
                 else:
                     pandoc_filter.question = [pf.stringify(elem)]
             case pf.OrderedList:
-                pandoc_filter.parts = []
-                for item in elem.content:
-                    pandoc_filter.parts.append(pf.stringify(item))
+                for listItem in elem.content:
+                    part = [
+                        pf.stringify(item)
+                        for item in listItem.content
+                        if not isinstance(item, pf.Div)
+                    ]
+                    module.current_question.add_part_text("\n".join(part))
+                    module.current_question.add_solution(
+                        pandoc_filter.solutions.popleft()
+                    )
 
-    # Solutions are in a Div
     if isinstance(elem, pf.Div):
-        module.add_question(main_text="\n".join(pandoc_filter.question))
-        if hasattr(pandoc_filter, "parts"):
-            for part in pandoc_filter.parts:
-                module.current_question.add_part_text(part)
+        pandoc_filter.solutions.append(pf.stringify(elem))
+        if pandoc_filter.question:
+            module.add_question(main_text="\n".join(pandoc_filter.question))
+            module.current_question.add_solution(pf.stringify(elem))
+            module.current_question._last_part["solution"] -= 1
         pandoc_filter.question = []
-        pandoc_filter.parts = []
-
-        # If the first part of the div is an ordered list, assume part answers
-        # If paragraph, extract all paragraphs as total answer
-        match type(first_answer_part := elem.content[0]):
-            case pf.OrderedList:
-                for item in first_answer_part.content:
-                    module.current_question.add_solution(pf.stringify(item))
-            case pf.Para:
-                module.current_question.add_solution(pf.stringify(elem))
-
     return None

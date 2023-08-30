@@ -1,12 +1,12 @@
-digraph tex2lambda_workflow {
-    subgraph cluster_tex2lambda {
+digraph in2lambda_workflow {
+    subgraph cluster_in2lambda {
         color = blue;
         
         labelloc = "b";
         labeljust = "l";
         
         style = "rounded";
-        label = <<b>tex2lambda</b>>;
+        label = <<b>in2lambda</b>>;
         
         filters [label = "Pandoc Filter";fillcolor = "#F0F0F0";];
         python_object [label = <<table border='0' cellborder='1' cellspacing='0' cellpadding='5'>

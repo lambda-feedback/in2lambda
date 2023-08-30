@@ -1,4 +1,4 @@
-"""The main input for tex2lambda, defining both the CLT and main library function."""
+"""The main input for in2lambda, defining both the CLT and main library function."""
 
 import importlib
 import pkgutil
@@ -7,9 +7,9 @@ from typing import Optional
 import panflute as pf
 import rich_click as click
 
-import tex2lambda.filters
-from tex2lambda.api.module import Module
-from tex2lambda.json_convert import json_convert
+import in2lambda.filters
+from in2lambda.api.module import Module
+from in2lambda.json_convert import json_convert
 
 
 def runner(
@@ -33,20 +33,18 @@ def runner(
 
     Examples:
         >>> import os
-        >>> from tex2lambda.main import runner
+        >>> from in2lambda.main import runner
         >>> # Retrieve an example TeX file and run the given filter.
-        >>> runner(f"{os.path.dirname(tex2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
+        >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
         Module(questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], _main_text='This is a sample question\n\n'), ...])
-        >>> runner(f"{os.path.dirname(tex2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
+        >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
         Module(questions=[Question(title='', parts=[Part(text='This is part (a)\n\n', worked_solution=''), ...], images=[], _main_text='Here is some preliminary question information that might be useful.'), ...)
     """
     # The list of questions for Lambda Feedback as a Python API.
     module = Module()
 
     # Dynamically import the correct pandoc filter depending on the subject.
-    filter_module = importlib.import_module(
-        f"tex2lambda.filters.{chosen_filter}.filter"
-    )
+    filter_module = importlib.import_module(f"in2lambda.filters.{chosen_filter}.filter")
 
     with open(question_file, "r", encoding="utf-8") as file:
         text = file.read()
@@ -92,7 +90,7 @@ def runner(
     type=click.Choice(
         [
             i.name
-            for i in pkgutil.iter_modules(tex2lambda.filters.__path__)
+            for i in pkgutil.iter_modules(in2lambda.filters.__path__)
             if i.name[0] != "_"
         ],
         case_sensitive=False,

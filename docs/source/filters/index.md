@@ -1,6 +1,6 @@
 # 📚 Filters
 
-Behind the scenes, tex2lambda makes use of [pandoc filters](https://pandoc.org/filters.html) to parse the question files.
+Behind the scenes, in2lambda makes use of [pandoc filters](https://pandoc.org/filters.html) to parse the question files.
 
 :::{admonition} Why not manually parse the questions?
 :class: dropdown

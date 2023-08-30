@@ -7,7 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from tex2lambda.api.question import Question
+from in2lambda.api.question import Question
 
 MINIMAL_TEMPLATE = "minimal_template.json"
 

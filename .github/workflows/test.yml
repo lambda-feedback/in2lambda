@@ -25,10 +25,10 @@ jobs:
       - name: Linting Checks
         run: |
           black --check .
-          isort --check-only tex2lambda docs
-          pydocstyle --convention=google tex2lambda
+          isort --check-only in2lambda docs
+          pydocstyle --convention=google in2lambda
       - name: pytest
-        run: pytest --cov-report=xml:coverage.xml --cov=tex2lambda --doctest-modules tex2lambda
+        run: pytest --cov-report=xml:coverage.xml --cov=in2lambda --doctest-modules in2lambda
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

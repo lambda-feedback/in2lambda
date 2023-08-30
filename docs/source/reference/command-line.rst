@@ -1,6 +1,6 @@
 Command Line Tool
 ==================
 
-.. click:: tex2lambda.main:cli
-  :prog: tex2lambda
+.. click:: in2lambda.main:cli
+  :prog: in2lambda
   :nested: full

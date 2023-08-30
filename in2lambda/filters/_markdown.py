@@ -7,8 +7,8 @@ import panflute as pf
 from beartype.typing import Callable, Optional
 from rich_click import echo
 
-from tex2lambda.api.module import Module
-from tex2lambda.katex_convert.katex_convert import latex_to_katex
+from in2lambda.api.module import Module
+from in2lambda.katex_convert.katex_convert import latex_to_katex
 
 
 @cache

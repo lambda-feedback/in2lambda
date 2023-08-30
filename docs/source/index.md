@@ -1,5 +1,5 @@
 ---
-og:title: tex2lambda
+og:title: in2lambda
 ---
 
 ::::{grid} 1 2 2 2
@@ -8,12 +8,12 @@ og:title: tex2lambda
 :::{grid-item}
 :child-align: center
 <div align="center">
-    <h1>tex2lambda</h1>
-    <a href="https://www.codefactor.io/repository/github/lambda-feedback/tex2lambda">
-        <img alt="CodeFactor Grade" src="https://img.shields.io/codefactor/grade/github/lambda-feedback/tex2lambda/main?style=flat-square&logo=codefactor">
+    <h1>in2lambda</h1>
+    <a href="https://www.codefactor.io/repository/github/lambda-feedback/in2lambda">
+        <img alt="CodeFactor Grade" src="https://img.shields.io/codefactor/grade/github/lambda-feedback/in2lambda/main?style=flat-square&logo=codefactor">
     </a>
-    <a href="https://app.codecov.io/github/lambda-feedback/tex2lambda">
-        <img alt="Codecov" src="https://img.shields.io/codecov/c/github/lambda-feedback/tex2lambda?style=flat-square&logo=codecov">
+    <a href="https://app.codecov.io/github/lambda-feedback/in2lambda">
+        <img alt="Codecov" src="https://img.shields.io/codecov/c/github/lambda-feedback/in2lambda?style=flat-square&logo=codecov">
     </a>
 </div>
 :::

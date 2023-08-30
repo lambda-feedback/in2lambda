@@ -5,7 +5,7 @@ from typing import Union
 
 import panflute as pf
 
-from tex2lambda.api.part import Part
+from in2lambda.api.part import Part
 
 
 @dataclass
@@ -15,7 +15,7 @@ class Question:
     Each question has a title and is composed of a list of parts.
 
     Examples:
-        >>> from tex2lambda.api.question import Question
+        >>> from in2lambda.api.question import Question
         >>> Question(title="Some title", _main_text="Some text")
         Question(title='Some title', parts=[], images=[], _main_text='Some text')
     """
@@ -45,7 +45,7 @@ class Question:
             value: A panflute element or string denoting what to append to the main text.
 
         Examples:
-            >>> from tex2lambda.api.question import Question
+            >>> from in2lambda.api.question import Question
             >>> question = Question()
             >>> question.main_text = "hello"
             >>> question.main_text = "there"
@@ -64,7 +64,7 @@ class Question:
             elem: A string or panflute element denoting a worked solution.
 
         Examples:
-            >>> from tex2lambda.api.question import Question
+            >>> from in2lambda.api.question import Question
             >>> question = Question()
             >>> question.add_part_text("part a")
             >>> question.add_solution("part a solution")
@@ -106,7 +106,7 @@ Part(text='part c', worked_solution='We now have a solution for c!')], images=[]
             elem: A string or panflute element denoting what the part text should be.
 
         Examples:
-            >>> from tex2lambda.api.question import Question
+            >>> from in2lambda.api.question import Question
             >>> question = Question()
             >>> question.add_part_text("part a")
             >>> question.add_solution("part a solution")
