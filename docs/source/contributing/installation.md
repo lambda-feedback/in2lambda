@@ -1,4 +1,4 @@
-# Installation
+# Development Setup
 
 :::{important}
 The standard installation method can be found in the [Quickstart](../quickstart). These instructions are for development purposes.
@@ -11,27 +11,19 @@ $ git clone https://github.com/GITHUB_NAME/tex2lambda
 $ cd tex2lambda
 ```
 
-The project can then be installed such that any local changes are applied automatically.
-
-## Poetry
-
-
-Install [poetry](https://python-poetry.org/) and then run the following:
+The project can then be installed using [poetry](https://python-poetry.org/):
 
 ```shell
 $ poetry install
 $ poetry shell
+$ pre-commit install
 $ tex2lambda --help
 ```
 
-## pip
+:::{admonition} Using pip
+:class: dropdown
 
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tex2lambda?style=flat-square&logo=python&logoColor=white)](https://pypi.org/project/tex2lambda/)
-
-:::{warning}
-This method only installs the necessary dependencies to run `tex2lambda`, without any developer/documentation libraries.
-:::
-
+Using pip alone is not recommended since it only installs the necessary dependencies to run `tex2lambda`, without any developer/documentation libraries. However, it could be useful for testing small modifications.
 
 First, we create and activate a [virtual environment](https://docs.python.org/3/library/venv.html):
 
@@ -46,3 +38,4 @@ Then install in [editable mode](https://pip.pypa.io/en/stable/topics/local-proje
 $ pip install -e .
 $ tex2lambda --help
 ```
+:::

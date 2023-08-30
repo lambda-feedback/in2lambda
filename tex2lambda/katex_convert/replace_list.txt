@@ -11,7 +11,7 @@
 \\arrowvert: \\vert
 \\bfseries: \\textbf
 \\emph: \\textit
-\\euro: 
+\\euro:
 \\LeftArrow: \\leftarrow
 \\mit: \\mathit
 \\overbracket: \\overbrace

@@ -32,7 +32,7 @@ def generate_filters_docs():
 
         relative_directory = f"../../../../tex2lambda/filters/{filter_name}"
         """Where to find the filter's directory relative to `autosummary_directory`.
-        
+
         For some reason, literalinclude requires it to be relative.
         If absolute were needed: f"{os.path.dirname(filter_module.__file__)}/filename"
         """
