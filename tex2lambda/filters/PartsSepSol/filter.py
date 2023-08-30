@@ -34,7 +34,6 @@ def pandoc_filter(
         Converted TeX elements for the AST where required
         e.g. replaces math equations so that they are surrounded by $.
     """
-
     # Top level ordered list (not nested parts list)
     if isinstance(elem.parent, pf.Doc) and isinstance(elem, pf.OrderedList):
         for numbered_part in elem.content:

@@ -1,3 +1,5 @@
+"""Converts questions from a Python module object into Lambda Feedback JSON."""
+
 import json
 import os
 import shutil
@@ -13,6 +15,13 @@ MINIMAL_TEMPLATE = "minimal_template.json"
 def converter(
     template: dict[str, Any], ListQuestions: list[Question], output_dir: str
 ) -> None:
+    """Turns a list of question objects into Lambda Feedback JSON.
+
+    Args:
+        template: The loaded JSON from the minimal template.
+        ListQuestions: A list of question objects.
+        output_dir: The absolute path for where to produced the final JSON/zip files.
+    """
     # Create output by copying template
 
     for i in range(len(ListQuestions)):
@@ -72,6 +81,14 @@ def converter(
 
 
 def main(questions: list[Question], output_dir: str) -> None:
+    """Preliminary defensive programming before calling the main converter function.
+
+    This ultimately then produces the Lambda Feedback JSON/ZIP files.
+
+    Args:
+        questions: A list of question objects.
+        output_dir: Where to output the final Lambda Feedback JSON/ZIP files.
+    """
     # Use path so minimal template can be found regardless of where the user is running python from.
     with open(Path(__file__).with_name(MINIMAL_TEMPLATE), "r") as file:
         template = json.load(file)

@@ -1,1 +1,1 @@
-"""Files relating to translating the Python representation of a question into JSON."""
+"""Files relating to translating the questions of a Python module object into JSON."""

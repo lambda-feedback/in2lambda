@@ -1,3 +1,5 @@
+"""A full question with optional parts that's contained in a module."""
+
 from dataclasses import dataclass, field
 from typing import Union
 
@@ -37,7 +39,7 @@ class Question:
 
     @main_text.setter
     def main_text(self, value: Union[pf.Element, str]) -> None:
-        """Appends to the top-level main text, which starts off as an empty string.
+        r"""Appends to the top-level main text, which starts off as an empty string.
 
         Args:
             value: A panflute element or string denoting what to append to the main text.
@@ -56,8 +58,7 @@ class Question:
         self._main_text += text_value
 
     def add_solution(self, elem: Union[pf.Element, str]) -> None:
-        """Adds a worked solution to all question parts without one, or inserts a new empty part with the solution if
-all parts already have a solution.
+        """Adds a worked solution to all question parts without one, or inserts a new empty part with the solution if all parts already have a solution.
 
         Args:
             elem: A string or panflute element denoting a worked solution.

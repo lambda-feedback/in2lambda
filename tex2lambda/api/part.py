@@ -1,3 +1,5 @@
+"""A part of a question."""
+
 from dataclasses import dataclass
 
 

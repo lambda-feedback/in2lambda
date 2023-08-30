@@ -18,7 +18,7 @@ def runner(
     output_dir: Optional[str] = None,
     answer_file: Optional[str] = None,
 ) -> Module:
-    """Takes in a TeX file for a given subject and outputs how it's broken down within Lambda Feedback.
+    r"""Takes in a TeX file for a given subject and outputs how it's broken down within Lambda Feedback.
 
     Args:
         question_file: The absolute path to a TeX question file.
@@ -36,9 +36,9 @@ def runner(
         >>> from tex2lambda.main import runner
         >>> # Retrieve an example TeX file and run the given filter.
         >>> runner(f"{os.path.dirname(tex2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
-        Module(questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], _main_text='This is a sample question\\n\\n'), ...])
+        Module(questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], _main_text='This is a sample question\n\n'), ...])
         >>> runner(f"{os.path.dirname(tex2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
-        Module(questions=[Question(title='', parts=[Part(text='This is part (a)\\n\\n', worked_solution=''), ...], images=[], _main_text='Here is some preliminary question information that might be useful.'), ...)
+        Module(questions=[Question(title='', parts=[Part(text='This is part (a)\n\n', worked_solution=''), ...], images=[], _main_text='Here is some preliminary question information that might be useful.'), ...)
     """
     # The list of questions for Lambda Feedback as a Python API.
     module = Module()

@@ -32,7 +32,6 @@ def pandoc_filter(
         Converted TeX elements for the AST where required
         e.g. replaces math equations so that they are surrounded by $.
     """
-
     # Question text (ListItem -> List -> Doc)
     if isinstance(elem.ancestor(3), pf.Doc):
         match type(elem):

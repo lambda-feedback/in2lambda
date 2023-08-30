@@ -26,6 +26,7 @@ jobs:
         run: |
           black --check .
           isort --check-only tex2lambda docs
+          pydocstyle --convention=google tex2lambda
       - name: pytest
         run: pytest --cov-report=xml:coverage.xml --cov=tex2lambda --doctest-modules tex2lambda
       - name: Upload coverage to Codecov

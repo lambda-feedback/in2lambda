@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jul  5 19:13:28 2023
+"""Functions relating to converting LaTeX expressions into valid KaTeX.
 
-@author: Matthew Howarth
+Due to custom macros/third-party libraries/etc. it can never be guaranteed to work. It works best
+with simpler cases.
 """
+
 import logging
 import re
 from pathlib import Path
@@ -27,12 +27,27 @@ logger.addHandler(file_handler)
 
 
 def latex_to_katex(latex_string: str) -> str:
-    # Replace incompatible LaTeX functions with KaTeX compatible equivalents
+    """Replace incompatible LaTeX functions with KaTeX compatible equivalents.
+
+    Args:
+        latex_string: A LaTeX string to be converted into valid KaTeX.
+
+    Returns:
+        Hopefully, a valid KaTeX expression that's similar to the LaTeX expression.
+    """
     katex_string = replace_functions(delete_functions(latex_string))
     return katex_string
 
 
 def delete_functions(latex_string: str) -> str:
+    """Helper method of `latex_to_katex` that deletes any LaTeX expressions with no KaTeX equivalent.
+
+    Args:
+        latex_string: A LaTeX string to be converted into valid KaTeX.
+
+    Returns:
+        The same LaTeX string with some commands removed.
+    """
     delete_list = []
 
     with open(Path(__file__).with_name("delete_list.txt"), "r") as file:
@@ -60,6 +75,14 @@ def delete_functions(latex_string: str) -> str:
 
 
 def replace_functions(latex_string: str) -> str:
+    """Helper method of `latex_to_katex` that replaces some LaTeX expressions with an equivalent KaTeX one.
+
+    Args:
+        latex_string: A LaTeX string to be converted into valid KaTeX.
+
+    Returns:
+        The same LaTeX string with some commands replaced where necessary.
+    """
     replacement_dict = {}  # Dictionary to store the formatted values
 
     with open(Path(__file__).with_name("replace_list.txt"), "r") as file:
@@ -90,6 +113,17 @@ def replace_functions(latex_string: str) -> str:
 
 
 def brace_remover(latex_string: str, brace_start_index: int) -> str:
+    """Used to remove the arguments + braces of a given LaTeX command.
+
+    This is used as part of `delete_functions` to remove any deleted functions arguments.
+
+    Args:
+        latex_string: A LaTeX string to be converted into KaTeX.
+        brace_start_index: The indes of the start brace following a command.
+
+    Returns:
+        The same string but with the brace at the start index, any arguments and the end brace removed.
+    """
     index_count = brace_start_index + 1
     level_count = 0
 
