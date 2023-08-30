@@ -26,11 +26,19 @@ def runner(
         output_dir: An optional argument for where to output the Lambda Feedback compatible json/zip files.
         answer_file: The absolute path to a TeX answer file.
 
-
     Returns:
         A list of questions and how they would be broken down into different Lambda Feedback sections
         in a Python-readable format. If `output_dir` is specified, the corresponding json/zip files are
         produced.
+
+    Examples:
+        >>> import os
+        >>> from tex2lambda.main import runner
+        >>> # Retrieve an example TeX file and run the given filter.
+        >>> runner(f"{os.path.dirname(tex2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
+        Module(questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], _main_text='This is a sample question\\n\\n'), ...])
+        >>> runner(f"{os.path.dirname(tex2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
+        Module(questions=[Question(title='', parts=[Part(text='This is part (a)\\n\\n', worked_solution=''), ...], images=[], _main_text='Here is some preliminary question information that might be useful.'), ...)
     """
     # The list of questions for Lambda Feedback as a Python API.
     module = Module()
