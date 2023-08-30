@@ -4,6 +4,29 @@ This page gives a quick overview of how to get started with tex2lambda to quickl
 
 ## 1. Installation
 
+### Docker
+
+[![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/lambda-feedback/tex2lambda/docker-publish.yml?style=flat-square&logo=docker&label=Docker)](https://github.com/lambda-feedback/tex2lambda/pkgs/container/tex2lambda)
+
+The following creates an interactive container which includes tex2lambda and mounts the current working directory into `/files`:
+
+```bash
+$ docker run -it --rm -v $(pwd):/files ghcr.io/lambda-feedback/tex2lambda sh
+```
+
+Within the container, we can access the files and run tex2lambda as normal.
+
+```bash
+$ cd files
+$ tex2lambda --help
+$ ...
+$ exit
+```
+
+The container is stopped and deleted after exiting, although the image remains downloaded for future use.
+
+### PyPi
+
 [![PyPI - Version](https://img.shields.io/pypi/v/tex2lambda?logo=pypi&logoColor=white&color=blue&style=flat-square)](https://pypi.org/project/tex2lambda/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tex2lambda?style=flat-square&logo=python&logoColor=white)](https://pypi.org/project/tex2lambda/)
 
@@ -43,7 +66,7 @@ The filter name is case-insensitive. Don't worry about the capital letters.
 Another filter might be used if [the answers are in a separate file](filters/_autosummary/PartsSepSol):
 
 ```bash
-$ tex2lambda questions.tex --answers solutions.tex PartsSepSol
+$ tex2lambda questions.tex -a solutions.tex PartsSepSol
 ```
 
 By default, this generates an `out` directory in the same place that the command was run in. It contains the zipped question files.
