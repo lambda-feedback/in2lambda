@@ -21,6 +21,3 @@ COPY --from=python-builder /usr/local/bin/tex2lambda /usr/local/bin/tex2lambda
 COPY --from=python-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 
 RUN apk add --no-cache pandoc
-
-ENTRYPOINT ["tex2lambda"]
-CMD ["--help"]
