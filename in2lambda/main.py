@@ -12,6 +12,41 @@ from in2lambda.api.module import Module
 from in2lambda.json_convert import json_convert
 
 
+def file_type(file: str) -> str:
+    """Determines which pandoc file format to use for a given file.
+
+    See https://github.com/jgm/pandoc/blob/bad922a69236e22b20d51c4ec0b90c5a6c038433/src/Text/Pandoc/Format.hs#L171
+    (or any newer commit) for pandoc's supported file extensions.
+
+    Args:
+        file: A file path with the file extension included.
+
+    Returns:
+        An option in `pandoc --list-input-formats` that matches the given file type
+
+    Examples:
+        >>> from in2lambda.main import file_type
+        >>> file_type("example.tex")
+        'latex'
+        >>> file_type("/some/random/path/demo.md")
+        'markdown'
+        >>> file_type("no_extension")
+        Traceback (most recent call last):
+        RuntimeError: Unsupported file extension: .no_extension
+        >>> file_type("demo.unknown_extension")
+        Traceback (most recent call last):
+        RuntimeError: Unsupported file extension: .unknown_extension
+    """
+    match (extension := file.split(".")[-1].lower()):
+        case "tex" | "latex" | "ltx":
+            return "latex"
+        case "md" | "rmd" | "markdown" | "mdown" | "mdwn" | "mkd" | "mkdn" | "text" | "txt":
+            return "markdown"
+        case "docx":
+            return "docx"  # Pandoc doesn't seem to support doc
+    raise RuntimeError(f"Unsupported file extension: .{extension}")
+
+
 def runner(
     question_file: str,
     chosen_filter: str,
@@ -52,7 +87,9 @@ def runner(
     # Parse the Pandoc AST using the relevant panflute filter.
     pf.run_filter(
         filter_module.pandoc_filter,
-        doc=pf.convert_text(text, input_format="latex", standalone=True),
+        doc=pf.convert_text(
+            text, input_format=file_type(question_file), standalone=True
+        ),
         module=module,
         tex_file=question_file,
         parsing_answers=False,
@@ -65,7 +102,9 @@ def runner(
 
         pf.run_filter(
             filter_module.pandoc_filter,
-            doc=pf.convert_text(answer_text, input_format="latex", standalone=True),
+            doc=pf.convert_text(
+                answer_text, input_format=file_type(answer_file), standalone=True
+            ),
             module=module,
             tex_file=answer_file,
             parsing_answers=True,
