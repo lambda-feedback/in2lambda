@@ -9,8 +9,8 @@ og:title: in2lambda
 :child-align: center
 <div align="center">
     <h1>in2lambda</h1>
-    <a href="https://www.codefactor.io/repository/github/lambda-feedback/in2lambda">
-        <img alt="CodeFactor Grade" src="https://img.shields.io/codefactor/grade/github/lambda-feedback/in2lambda/main?style=flat-square&logo=codefactor">
+    <a href="https://pypi.org/project/in2lambda/">
+        <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/in2lambda?style=flat-square&logo=pypi&logoColor=white&color=blue">
     </a>
     <a href="https://app.codecov.io/github/lambda-feedback/in2lambda">
         <img alt="Codecov" src="https://img.shields.io/codecov/c/github/lambda-feedback/in2lambda?style=flat-square&logo=codecov">
