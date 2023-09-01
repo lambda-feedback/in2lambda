@@ -34,6 +34,9 @@ def latex_to_katex(latex_string: str) -> str:
 
     Returns:
         Hopefully, a valid KaTeX expression that's similar to the LaTeX expression.
+
+    Examples:
+        >>>
     """
     katex_string = replace_functions(delete_functions(latex_string))
     return katex_string
@@ -143,7 +146,7 @@ def brace_remover(latex_string: str, brace_start_index: int) -> str:
 
 
 if __name__ == "__main__":
-    latex_input = """ \\textbf{Vector Algebra:} for two vectors $\\vec{a}$ and $\\vec{b}$ in $\\mathbb{R}^3$ given by \\norm{a}"""
+    latex_input = "\\textbf{Vector Algebra:} for two vectors $\\vec{a}$ and $\\vec{b}$ in $\\mathbb{R}^3$ given by \\norm{a}"
 
     katex_output = latex_to_katex(latex_input)
     print(katex_output)

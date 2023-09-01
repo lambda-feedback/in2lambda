@@ -10,7 +10,7 @@ from typing import Optional
 import panflute as pf
 
 from in2lambda.api.module import Module
-from in2lambda.filters._markdown import filter
+from in2lambda.filters.markdown import filter
 
 
 @filter

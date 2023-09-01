@@ -130,7 +130,7 @@ def runner(
         [
             i.name
             for i in pkgutil.iter_modules(in2lambda.filters.__path__)
-            if i.name[0] != "_"
+            if i.name != "markdown"
         ],
         case_sensitive=False,
     ),

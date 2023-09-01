@@ -22,7 +22,7 @@ def generate_filters_docs():
     filters = (
         i.name
         for i in pkgutil.iter_modules(in2lambda.filters.__path__)
-        if i.name[0] != "_"
+        if i.name != "markdown"
     )
 
     for filter_name in filters:

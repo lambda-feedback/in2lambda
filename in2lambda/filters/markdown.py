@@ -1,5 +1,7 @@
 """Generic helper functions used during the Pandoc filter stage for markdown conversion."""
 
+import os
+import re
 from functools import cache
 from pathlib import Path
 
@@ -13,7 +15,7 @@ from in2lambda.katex_convert.katex_convert import latex_to_katex
 
 @cache
 def image_directories(tex_file: str) -> list[str]:
-    """Determines the image directories referenced by `graphicspath` in a given TeX document.
+    r"""Determines the image directories referenced by `graphicspath` in a given TeX document.
 
     Args:
         tex_file: The absolute path to a TeX file
@@ -21,22 +23,45 @@ def image_directories(tex_file: str) -> list[str]:
     Returns:
         The exact contents of `graphicspath`, regardless of whether the directories are
         absolute or relative.
+
+    Examples:
+        >>> from in2lambda.filters.markdown import image_directories
+        >>> import tempfile
+        >>> import os
+        >>> # Example TeX file with a graphicspath
+        >>> temp_dir = tempfile.mkdtemp()
+        >>> tex_file = os.path.join(temp_dir, 'test.tex')
+        >>> with open(tex_file, 'w') as f:
+        ...     f.write("\graphicspath{{subdir1/}{subdir2/}{subdir3/}}")
+        45
+        >>> image_directories(tex_file)
+        ['subdir1/', 'subdir2/', 'subdir3/']
+        >>> with open(tex_file, 'w') as f:
+        ...    f.write("\graphicspath{ { subdir1/ }, { subdir2/ }, { subdir3/ } }")
+        57
+        >>> image_directories.cache_clear()
+        >>> image_directories(tex_file)
+        ['subdir1/', 'subdir2/', 'subdir3/']
+        >>> with open(tex_file, 'w') as f:
+        ...    f.write("No image directory")
+        18
+        >>> image_directories.cache_clear()
+        >>> image_directories(tex_file)
+        []
     """
     with open(tex_file, "r") as file:
         for line in file:
-            # Assumes line is in the format \graphicspath{ {...}, {...}, ...}
             if "graphicspath" in line:
-                return [
-                    i.strip("{").rstrip("}")
-                    for i in line.replace(" ", "")[len("\graphicspath{") : -1].split(
-                        ","
-                    )
-                ]
+                # Matches anything surrounded by curly braces, but excludes the top level
+                # graphicspath brace.
+                return [match.strip() for match in re.findall(r"{([^{]*?)}", line)]
     return []
 
 
+# TODO: This assumes the file extension is included, but that isn't required by LaTeX
+# See: https://www.overleaf.com/learn/latex/Inserting_Images#Generating_high-res_and_low-res_images
 def image_path(image_name: str, tex_file: str) -> Optional[str]:
-    """Determines the absolute path to an image referenced in a tex_file.
+    r"""Determines the absolute path to an image referenced in a tex_file.
 
     Args:
         image_name: The file name of the image e.g. example.png
@@ -44,29 +69,49 @@ def image_path(image_name: str, tex_file: str) -> Optional[str]:
 
     Returns:
         The absolute path to the image if it can be found. If not, it returns None.
+
+    Examples:
+        >>> from in2lambda.filters.markdown import image_path
+        >>> import tempfile
+        >>> import os
+        >>> # Example TeX file with a subdirectory
+        >>> temp_dir = tempfile.mkdtemp()
+        >>> tex_file = os.path.join(temp_dir, 'test.tex')
+        >>> with open(tex_file, 'w') as f:
+        ...     f.write("\graphicspath{{./subdir1/}{./subdir2/}{./subdir3/}}")
+        51
+        >>> # Example image in a relative subdirectory
+        >>> sub_dir = os.path.join(temp_dir, 'subdir3')
+        >>> os.makedirs(sub_dir)
+        >>> with open(os.path.join(sub_dir, 'inside_folder.png'), 'w') as f:
+        ...     pass
+        >>> image_path("inside_folder.png", tex_file) == os.path.join(temp_dir, 'subdir3', "inside_folder.png")
+        True
+        >>> # Absolute path provided
+        >>> image_path(os.path.join(temp_dir, 'subdir3', "inside_folder.png"), tex_file) == os.path.join(temp_dir, 'subdir3', "inside_folder.png")
+        True
     """
     # In case the filename is the exact absolute/relative location to the image
     # When handling relative locations (i.e. begins with dot), first go to the directory of the TeX file.
-    filename = (
-        f"{str(Path(tex_file).parent)}/" if image_name[0] == "." else ""
-    ) + image_name
+
+    filename = os.path.join(
+        str(Path(tex_file).parent) if image_name[0] == "." else "", image_name
+    )
 
     if Path(filename).is_file():
-        return filename
+        return os.path.normpath(filename)
 
     # Absolute or relative directories referenced by `graphicspath`
     image_locations = image_directories(tex_file)
 
     for directory in image_locations:
-        if directory[-1] != "/":
-            directory += "/"
-        filename = (
-            (f"{str(Path(tex_file).parent)}/" if directory[0] == "." else "")
-            + directory
-            + image_name
+        filename = os.path.join(
+            str(Path(tex_file).parent) if directory[0] == "." else "",
+            directory,
+            image_name,
         )
         if Path(filename).is_file():
-            return filename
+            return os.path.normpath(filename)
     return None
 
 
