@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "in2lambda"
-version = "0.2.0"
-description = "Automagically uploads questions to Lambda Feedback so you don't have to."
+version = "0.2.1"
+description = "Converts content ready for import into Lambda Feedback"
 authors = []
 license = "MIT"
 readme = "README.md"
@@ -43,7 +43,7 @@ pre-commit = "^3.3.3"
 [tool.poetry.group.docs.dependencies]
 furo = "^2023.8.19"
 myst-parser = "^2.0.0"
-sphinx = "^7.2.4"
+sphinx = "^7.2.5"
 sphinx-copybutton = "^0.5.2"
 sphinx-design = "^0.5.0"
 sphinx-click = "^5.0.1"

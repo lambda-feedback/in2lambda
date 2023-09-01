@@ -118,7 +118,8 @@ def runner(
 
 
 @click.command(
-    epilog="See the docs at https://lambda-feedback.github.io/user-documentation/ for more details."
+    no_args_is_help=True,
+    epilog="See the docs at https://lambda-feedback.github.io/in2lambda/ for more details.",
 )
 @click.argument(  # Use resolve_path to get absolute path
     "question_file", type=click.Path(exists=True, readable=True, resolve_path=True)
