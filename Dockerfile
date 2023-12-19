@@ -1,4 +1,4 @@
-FROM python:3.11.4-alpine AS python-builder
+FROM python:3.12.1-alpine AS python-builder
 
 ENV PYTHONUNBUFFERED=1 \
     # Prevents Python from buffering stdout and stderr
@@ -15,9 +15,9 @@ COPY ./in2lambda /app/in2lambda/
 
 RUN pip install .
 
-FROM python:3.11.4-alpine
+FROM python:3.12.1-alpine
 
 COPY --from=python-builder /usr/local/bin/in2lambda /usr/local/bin/in2lambda
-COPY --from=python-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=python-builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 
 RUN apk add --no-cache pandoc
