@@ -71,6 +71,7 @@ filters/index
 contributing/installation
 contributing/high_level
 contributing/documentation
+contributing/new_version
 ```
 
 ```{toctree}
