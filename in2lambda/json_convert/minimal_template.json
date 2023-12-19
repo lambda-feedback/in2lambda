@@ -1,92 +1,26 @@
 {
-  "type": "DRAFT",
-  "id": "NA",
-  "versionId": "NA",
-  "hasBeenPublished": false,
-  "createdAt": "",
-  "updatedAt": "",
-  "title": "Question title here",
-  "number": 0,
-  "masterContent": {
-    "blocks": [
-      {
-        "__typename": "TextContentBlock",
-        "id": "N/A",
-        "data": "Question here",
-        "type": "MILKDOWN"
-      }
-    ]
-  },
+  "isPublished": false,
+  "masterContent": "Top level question here",
   "parts": [
     {
-      "id": "NA",
-      "universalPartId": "",
-      "content": {
-        "blocks": [
-          {
-            "__typename": "TextContentBlock",
-            "id": "N/A",
-            "data": "\n",
-            "type": "MILKDOWN"
-          }
-        ]
-      },
+      "answer": "",
+      "content": "Part text here",
+      "responseArea": [],
+      "tutorial": [],
+      "universalPartId": "N/A",
       "workedSolution": [
         {
-          "id": "NA",
-          "content": {
-            "blocks": [
-              {
-                "__typename": "TextContentBlock",
-                "id": "N/A",
-                "data": "",
-                "type": "MILKDOWN"
-              }
-            ]
-          }
+          "content": "Part worked solution here",
+          "id": "N/A",
+          "title": ""
         }
-      ],
-      "answerContent": {
-        "blocks": [
-          {
-            "__typename": "TextContentBlock",
-            "id": "N/A",
-            "data": "",
-            "type": "MILKDOWN"
-          }
-        ]
-      },
-
-      "tutorial": [
-        {
-          "id": "NA",
-          "content": {
-            "blocks": [
-              {
-                "__typename": "TextContentBlock",
-                "id": "N/A",
-                "data": "",
-                "type": "MILKDOWN"
-              }
-            ]
-          }
-        },
-        {
-          "id": "NA",
-          "content": {
-            "blocks": [
-              {
-                "__typename": "TextContentBlock",
-                "id": "N/A",
-                "data": "",
-                "type": "MILKDOWN"
-              }
-            ]
-          }
-        }
-      ],
-
-      "responseAreas": []
+      ]
     }
-  ]
+  ],
+  "questionSettings": {
+    "displayFinalAnswer": true,
+    "displayStructuredTutorial": true,
+    "displayWorkedSolution": true
+  },
+  "title": "Question title here"
 }

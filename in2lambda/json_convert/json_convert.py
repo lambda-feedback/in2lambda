@@ -34,24 +34,20 @@ def converter(
             output["title"] = "Question " + str(i + 1)
 
         # add main text to the question file
-        output["masterContent"]["blocks"][0]["data"] = ListQuestions[i].main_text
+        output["masterContent"] = ListQuestions[i].main_text
 
         # add parts to the question file
         if ListQuestions[i].parts:
-            output["parts"][0]["content"]["blocks"][0]["data"] = (
-                ListQuestions[i].parts[0].text
-            )
-            output["parts"][0]["workedSolution"][0]["content"]["blocks"][0]["data"] = (
+            output["parts"][0]["content"] = ListQuestions[i].parts[0].text
+            output["parts"][0]["workedSolution"][0]["content"] = (
                 ListQuestions[i].parts[0].worked_solution
             )
             for j in range(1, len(ListQuestions[i].parts)):
                 output["parts"].append(deepcopy(template["parts"][0]))
-                output["parts"][j]["content"]["blocks"][0]["data"] = (
-                    ListQuestions[i].parts[j].text
+                output["parts"][j]["content"] = ListQuestions[i].parts[j].text
+                output["parts"][j]["workedSolution"][0]["content"] = (
+                    ListQuestions[i].parts[j].worked_solution
                 )
-                output["parts"][j]["workedSolution"][0]["content"]["blocks"][0][
-                    "data"
-                ] = (ListQuestions[i].parts[j].worked_solution)
 
         # Output file
         filename = "Question " + str(i + 1)
