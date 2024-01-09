@@ -1,0 +1,231 @@
+\documentclass[12pt]{article}
+
+% Mechanics course definitions and macros.
+%\usepackage{mechanics}
+\usepackage{graphicx}
+
+% Add space between paragraphs instead of indenting.
+\usepackage{parskip}
+
+\addtolength{\topmargin}{-4em}
+\addtolength{\evensidemargin}{-3em}
+\addtolength{\oddsidemargin}{-3em}
+\addtolength{\textheight}{6em}
+\addtolength{\textwidth}{4em}
+
+%\usepackage{bm}
+\usepackage{graphics}
+\usepackage{color}
+\usepackage{amsmath}
+
+\begin{document}
+\section*{\textrm{\textbf{Mechanics Problem Sheet 4 --- Collisions and CoM frame}}} 
+
+\begin{enumerate}
+%\begin{enumerate}
+\item The ballistic pendulum is a device for determining the speed of a
+  projectile. A large stationary mass $M$ is suspended by a wire from
+  the ceiling and a projectile of mass $m$ is fired into it at an
+  unknown speed $u$. The projectile embeds itself in the hanging mass.
+  Assume that $g = 9.8\,\text{m}\cdot\text{s}^{-2}$.
+  \begin{enumerate}
+  \item Is momentum conserved in the collision? Is kinetic energy
+    conserved?
+  \item Derive an expression for the height $h$ to which the masses rise
+    after the collision.
+  \item A bullet of mass $m = 12\,$g is fired into a block of mass
+    $M = 10\,$kg and the height rise $h$ is measured to be $10\,$cm.
+    What was the speed of the bullet?
+  \end{enumerate}
+
+\item A ping-pong (table tennis) ball makes a head-on elastic collision
+  with a much heavier basketball, which is initially stationary. Which 
+  of the following statements are true after the collision?
+  \begin{enumerate}
+  \item The absolute value of the momentum of the ping-pong ball is
+    smaller than that of the basketball.
+  \item The absolute value of the momentum of the ping-pong ball is the
+    same as that of the basketball.
+  \item The absolute value of the momentum of the ping-pong ball is
+    greater than that of the basketball.
+  \item Not enough information is given to decide between (a), (b) and
+    (c).
+  \item The ping-pong ball has less kinetic energy than the basketball.
+  \item The ping-pong ball has the same kinetic energy as the
+    basketball.
+  \item The ping-pong ball has more kinetic energy than the basketball.
+  \item Not enough information is given to decide between (e), (f) and
+    (g).
+  \end{enumerate}
+
+\item Question 3 on Problem Sheet 3 (repeated below) was about a woman
+  walking along a plank on a frictionless frozen lake. Solve this
+  problem again, this time using the concept of the centre of mass.
+
+%  \begin{tcolbox}{0.96\textwidth}
+%  {Woman walking along a plank on a frozen lake} 
+    A woman of mass 60\,kg stands at one end of a 10\,m plank of
+    mass 20\,kg, which itself lies on a (frictionless) frozen lake. She
+    walks to the other end of the plank. Work out how far she has
+    travelled relative to the lake.
+ % \end{tcolbox}
+
+\item Two masses, $m_1 = 4\,$kg and $m_2 = 6\,$kg, are moving in the
+  $x$-$y$ plane. The position of $m_1$ is given by
+  $\vec{\boldsymbol{r}}_1(t) = (1 + 3t)\boldsymbol{\hat{i}} + t\boldsymbol{\hat{j}}$ and the position of $m_2$ by
+  $\vec{\boldsymbol{r}}_2(t) = -2t\boldsymbol{\hat{i}} + 5\boldsymbol{\hat{j}}$. Positions are measured in metres and
+  the time $t$ is measured in seconds.
+  \begin{enumerate}
+  \item What is the reduced mass of the system?
+  \item What is the velocity of the centre of mass?
+  \item What is the velocity of $m_1$ relative to $m_2$?
+  \item What is the momentum of $m_1$ in the centre-of-mass frame?
+  \item What is the total kinetic energy of the system in the
+    centre-of-mass frame?
+  \end{enumerate}
+
+\item The position $\vec{\boldsymbol{R}}(t)$ of the centre of mass of $N$ objects with
+  masses $m_i$ at positions $\vec{\boldsymbol{r}}_i(t)$ is given by:
+  %
+  \begin{displaymath}
+    \vec{\boldsymbol{R}}(t) = \frac{\sum_{i=1}^{N} m_i \vec{\boldsymbol{r}}_i(t)}{\sum_{i=1}^{N} m_i} .
+  \end{displaymath}
+  %
+  Show that the vector sum of the momenta of all of the masses is zero
+  in the centre-of-mass frame. In other words, show that the
+  centre-of-mass frame is also the zero-momentum frame.
+  
+\item In lectures, you saw that the total laboratory-frame kinetic
+  energy of two particles is the sum of their kinetic energy in the
+  centre-of-mass frame and the kinetic energy of the centre of mass in
+  the laboratory frame. Show that the same result holds for a system of
+  $N$ particles. You may assume (because you proved it in the previous question) that the
+  total momentum of the $N$ particles is zero in the centre-of-mass
+  frame.
+
+\item In one-dimensional inelastic collisions, the coefficient of
+  restitution $e$ is defined by the equation
+  % 
+  \begin{displaymath}
+    v_2 - v_1 = -e (u_2 - u_1),
+  \end{displaymath}
+  % 
+  where $v_1$ and $v_2$ are the final velocities of the two bodies and
+  $u_1$ and $u_2$ are their initial velocities. Use this equation, plus
+  momentum conservation, to derive the following expressions for the
+  final velocities of the two bodies (of masses $m_1$ and $m_2$) in the
+  case when the second body is initially at rest ($u_2 = 0$):
+  % 
+  \begin{align*}
+    v_1 &= \frac{(m_1 - e m_2) u_1}{m_1 + m_2},
+    &
+      v_2 &= \frac{(1 + e)m_1 u_1}{m_1 + m_2}.
+  \end{align*}
+
+
+
+%\end{enumerate}
+
+
+%\subsection*{Problems for Reflection and Discussion}
+
+
+%\begin{enumerate}
+\item 
+  A ball is dropped onto a table from an initial height $h_0$. If it
+  lands with speed $v$, it bounces up with speed $ev$, where the
+  coefficient of restitution $e$ is a positive constant less than 1.
+  %
+  \begin{enumerate}
+  \item Write down expressions for the speed $v_0$ of the ball when it
+    first hits the table and the time $t_0$ it takes to drop.
+    
+  \item Find the height $h_1$ reached by the ball after its first bounce
+    and the corresponding drop time $t_1$. Write down expressions for
+    the height $h_n$ and drop time $t_n$ of the $n^{\text{th}}$ bounce.
+  \item How long does the ball take to stop completely? Evaluate this
+    time if the initial height $h_0 = 5\,$m and the coefficient of
+    restitution $e = 0.5$. Take $g = 10\,\text{m}\cdot\text{s}^{-2}$.
+
+    [Hint: you will need the formula for the sum of a geometric series:
+
+    \centerline{$\displaystyle a + ar + ar^2 + ar^3 + \ldots =
+      \frac{a}{1-r}, \qquad |r|<1.]$}
+  \end{enumerate}
+  
+\item In the chemical reaction $\text{NO} + \text{O}_3 \rightarrow
+  \text{NO}_2 + \text{O}_2$, there is an intermediate step where the
+  $\text{NO}$ and $\text{O}_3$ molecules combine to form an activated
+  complex $[\text{NO--O}_3]^{\ast}$. The diagram below shows an
+  empirical potential energy curve representing the three different
+  stages of the reaction.
+  %
+  \begin{center}
+    \includegraphics[width=0.75\textwidth]{figures/activated_complex.png}
+  \end{center}
+  %
+  Although the $x$ axis corresponds to an unspecified reaction
+  coordinate, the diagram can be interpreted as any other potential
+  function. The peak of the potential curve is 9.6\,kJ$\cdot$ mol$^{-1}$
+  above the combined potential energy of the $\text{NO} + \text{O}_3$
+  reactants; this is the ``activation energy'' required for the reaction
+  to take place. One mole consists of Avogadro's number, $6.022 \times
+  10^{23}$, of $[\text{NO--O}_3]^{\ast}$ complexes. The mass of a
+  nitrogen atom is 14 atomic mass units and the mass of an oxygen
+  atom is 16 atomic mass units.
+
+  \smallskip
+  
+  An $\text{NO}$ molecule travelling in the $x$ direction at speed
+  $u_{\text{NO}} = -550\,\text{m}\cdot\text{s}^{-1}$ and an $\text{O}_3$
+  molecule travelling at
+  $u_{\text{O}_3} = +550\,\text{m}\cdot\text{s}^{-1}$ collide. After the
+  collision, the molecules temporarily coalesce to form an
+  $[\text{NO--O}_3]^{\ast}$ complex.
+  \begin{enumerate}
+  \item Find the velocity of the $[\text{NO--O}_3]^{\ast}$ complex
+    after the collision.
+  \item Show that the collision is inelastic. What has happened to the
+    kinetic energy lost in the collision?
+  \item Will this collision lead to the formation of $\text{NO}_2$?
+    Explain your answer.
+  \item Two oxygen atoms collide in isolation. Could the collision
+    result in the formation of an $\text{O}_2$ molecule in the right
+    circumstances?
+  \end{enumerate}
+  
+
+\item Show that the velocity $v(t)$ of a rocket starting from rest and
+  accelerating against the Earth's gravity is given by
+  %
+  \begin{displaymath}
+    v(t) = u\ln \left ( \frac{M_0}{M(t)} \right ) - gt.
+  \end{displaymath}
+  The exhaust speed is $u$, the initial mass is $M_0$, and the mass
+  after time $t$ is $M(t)$. Neglect the dependence of $g$ on height.
+
+\item A two-stage rocket accelerates in free space by ejecting fuel at a
+  constant relative speed $u$. Three-quarters of its initial mass is
+  fuel. It accelerates from rest until $2/3$ of the fuel is burnt. The
+  first stage is then detached. Fuel accounts for $4/5$ of the mass of
+  the second stage. Show that the final speed of the second stage is
+  equal to $u\ln(10)$.
+
+  Show that a single-stage rocket of the same initial mass, burning 
+  the same total mass of fuel, would reach a final speed of 
+  approximately $0.6u\ln(10)$.
+
+\end{enumerate}
+
+
+  
+%\subsubsection*{Numerical Answers}
+%
+%\begin{list}{}{\setlength{\itemsep}{0em}\setlength{\labelwidth}{6em}}
+%\item[1.] 2.5\,m.
+%\item[2.] (a) 2.4\,kg; (b) $0.4\boldsymbol{\hat{j}}\,$m\udot s$^{-1}$; (c) $(5\boldsymbol{\hat{i}} +
+%  \boldsymbol{\hat{j}})\,$m\udot s$^{-1}$; (d) $(12\boldsymbol{\hat{i}} + 2.4\boldsymbol{\hat{j}})\,$kg\udot m\udot
+%  s$^{-1}$; (e) 31.2\,J.
+%\end{list}
+
+\end{document}

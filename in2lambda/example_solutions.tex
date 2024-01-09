@@ -1,0 +1,567 @@
+\documentclass[12pt]{article}
+
+% Mechanics course definitions and macros.
+%\usepackage{mechanics}
+\usepackage{graphicx}
+
+% Add space between paragraphs instead of indenting.
+\usepackage{parskip}
+
+\addtolength{\topmargin}{-4em}
+\addtolength{\evensidemargin}{-3em}
+\addtolength{\oddsidemargin}{-3em}
+\addtolength{\textheight}{6em}
+\addtolength{\textwidth}{4em}
+
+%\usepackage{bm}
+\usepackage{graphics}
+\usepackage{color}
+\usepackage{amsmath}
+
+\begin{document}
+\section*{Mechanics Answer Sheet 4} 
+
+\begin{enumerate}
+  \item
+  \begin{enumerate}
+
+  \item Momentum is conserved. Kinetic energy is not conserved. (The
+    collision is said to be \textbf{inelastic}.)
+
+  \item Immediately after the collision, the block and projectile have
+    merged into a single object of mass $M+m$ with total momentum $mu$.
+    The speed $U$ of the merged block and projectile is given by
+    % 
+    \begin{displaymath}
+      (M + m)U = mu \qquad \Rightarrow \qquad U = \frac{mu}{M+m} ,
+    \end{displaymath}
+    %
+    and its kinetic energy $K$ is
+    %
+    \begin{displaymath}
+      K = \frac{1}{2}(M+m)U^2 = \frac{m^2 u^2}{2(M+m)}.
+    \end{displaymath}
+    %
+    At the maximum height $h$, all of this kinetic energy has become
+    gravitational potential energy:
+    %
+    \begin{displaymath}
+      (M+m)gh =  \frac{m^2 u^2}{2(M+m)}.
+    \end{displaymath}
+    %
+    Hence
+    %
+    \begin{displaymath}
+      h = \frac{m^2 u^2}{2(M+m)^2 g}.
+    \end{displaymath}
+
+  \item The question says that $m = 12\,$g = $0.012\,$kg, $M = 10\,$kg,
+    and $h = 10\,$cm $= 0.1\,$m. Rearranging the result of part (b)
+    gives
+    %
+    \begin{displaymath}
+      u = \frac{M+m}{m} \sqrt{2gh}
+          = \frac{10.012}{0.012} \sqrt{2 \times 9.8 \times 0.1} \approx
+          1168 \, \text{m}\cdot\text{s}^{-1} \approx 1.17\,\text{km}\cdot\text{s}^{-1}.
+    \end{displaymath}
+
+  \end{enumerate}
+  
+\item Suppose the woman of mass $60\,$kg starts at the origin
+  ($X_{\text{woman}} = 0$) standing on the left-hand end of the plank.
+  The centre of mass of the $10\,$m long plank of mass $20\,$kg is at
+  $X_{\text{plank}} = 5\,$m, and the centre of mass of the joint system
+  (woman $+$ plank) is at
+  \[
+    X = \frac{60 \times X_{\text{woman}} + 20 \times X_{\text{plank}}}
+    {60 + 20} = 1.25\,\text{m}.
+  \]
+
+  There are no externally applied horizontal forces acting on the woman
+  $+$ plank (treated as one system), so the position $X$ of the centre
+  of mass cannot change. The diagram below, which pictures the woman and
+  plank before and after she walks from one end to the other, shows that
+  she moves a total distance of $2X = 2.5\,$m relative to the frozen
+  surface of the lake.
+
+\item
+  \begin{enumerate}
+
+  \item Using the formula
+    $\displaystyle \frac{1}{\mu} = \frac{1}{m_1} + \frac{1}{m_2}$ gives
+    $\mu = 2.4\,$kg.
+
+  \item Differentiating the definition of the centre of mass,
+    %
+    \begin{displaymath}
+      \vec{\boldsymbol{R}} = \frac{m_1 \vec{\boldsymbol{r}}_1 + m_2 \vec{\boldsymbol{r}}_2}{m_1 + m_2} ,
+    \end{displaymath}
+    %
+    gives a formula for the velocity of the centre of mass:
+    %
+    \begin{displaymath}
+      \dot{\vec{\boldsymbol{R}}} = \frac{m_1 \vec{\boldsymbol{v}}_1 + m_2 \vec{\boldsymbol{v}}_2}{m_1 + m_2}.
+    \end{displaymath}
+    %
+    We are told that $\vec{\boldsymbol{r}}_1 = (1 + 3t)\boldsymbol{\hat{i}} + t\boldsymbol{\hat{j}}$ and
+    $\vec{\boldsymbol{r}}_2 = -2t\boldsymbol{\hat{i}} + 5\boldsymbol{\hat{j}}$, so $\vec{\boldsymbol{v}}_1 = \dot{\vec{\boldsymbol{r}}}_1 = 3\boldsymbol{\hat{i}} + \boldsymbol{\hat{j}}$ and
+    $\vec{\boldsymbol{v}}_2 = \dot{\vec{\boldsymbol{r}}}_2 = -2\boldsymbol{\hat{i}}$. Hence
+    \begin{displaymath}
+      \dot{\vec{\boldsymbol{R}}} = \frac{4(3\boldsymbol{\hat{i}} + \boldsymbol{\hat{j}}) + 6(-2\boldsymbol{\hat{i}})}{4 + 6} = 0.4\boldsymbol{\hat{j}}
+      \;\text{m}\cdot\text{s}^{-1}.
+    \end{displaymath}
+
+  \item The velocity of $m_1$ relative to $m_2$ is
+    \begin{displaymath}
+      \vec{\boldsymbol{v}}_1 - \vec{\boldsymbol{v}}_2 = (3\boldsymbol{\hat{i}} + \boldsymbol{\hat{j}}) - (-2\boldsymbol{\hat{i}}) = (5\boldsymbol{\hat{i}} + \boldsymbol{\hat{j}})\,\text{m}\cdot\text{s}^{-1}.
+    \end{displaymath}
+
+  \item The momentum of $m_1$ in the centre-of-mass frame is
+    \begin{displaymath}
+      \vec{\boldsymbol{p}}_1^{\ast} = m_1(\vec{\boldsymbol{v}}_1 - \dot{\vec{\boldsymbol{R}}}) = 4(3\boldsymbol{\hat{i}} + 0.6\boldsymbol{\hat{j}})
+      = (12\boldsymbol{\hat{i}} + 2.4\boldsymbol{\hat{j}}) \, \text{kg}\cdot\text{m}\cdot\text{s}^{-1}.
+      \end{displaymath}
+
+  \item The velocities of the two particles in the centre-of-mass frame
+    are:
+    \begin{align*}
+      \vec{\boldsymbol{v}}_1^{\ast} &= \vec{\boldsymbol{v}}_1 - \dot{\vec{\boldsymbol{R}}} = (3\boldsymbol{\hat{i}} +
+                     0.6\boldsymbol{\hat{j}})\,\text{m}\cdot\text{s}^{-1}, \\
+      \vec{\boldsymbol{v}}_2^{\ast} &= \vec{\boldsymbol{v}}_2 - \dot{\vec{\boldsymbol{R}}} = (-2\boldsymbol{\hat{i}} -
+                     0.4\boldsymbol{\hat{j}})\,\text{m}\cdot\text{s}^{-1}.
+    \end{align*}
+    %
+    Their kinetic energies are
+    %
+    \begin{align*}
+      \frac{1}{2}m_1 (v_1^{\ast})^2 &= \frac{1}{2} 4 \left ( 3^2 +
+                                      (0.6)^2 \right ) =
+                                      18.72\,\text{J}, \\
+      \frac{1}{2}m_2 (v_2^{\ast})^2 &= \frac{1}{2} 6 \left ( 2^2 +
+                                      (0.4)^2 \right ) =
+                                      12.48\,\text{J}.
+    \end{align*}
+    %
+    The total kinetic energy in the centre-of-mass frame is $31.2\,$J.
+
+  \end{enumerate}
+
+\item As in the answer to Q2(b), the velocity of the centre of mass can
+  be found by differentiating the equation for $\vec{\boldsymbol{R}}(t)$:
+  %
+  \begin{displaymath}
+    \dot{\vec{\boldsymbol{R}}} = \frac{d}{dt} \left (
+      \frac{\sum_{i=1}^{N} m_i \vec{\boldsymbol{r}}_i}{\sum_{i=1}^{N} m_i}
+    \right ) = \frac{\sum_{i=1}^{N} m_i \vec{\boldsymbol{v}}_i}{\sum_{i=1}^{N} m_i}
+    = \frac{\sum_{i=1}^{N} m_i \vec{\boldsymbol{v}}_i}{M}
+  \end{displaymath}
+  %
+  where $M \equiv \sum_{i=1}^{N} m_i$. Since the velocity
+  $\vec{\boldsymbol{v}}_i^{\ast}$ of mass $m_i$ in the centre-of-mass frame is given by
+  $\vec{\boldsymbol{v}}_i - \dot{\vec{\boldsymbol{R}}}$, its momentum
+  $\vec{\boldsymbol{p}}_i^{\ast} = m_i(\vec{\boldsymbol{v}}_i - \dot{\vec{\boldsymbol{R}}})$. The total momentum in the
+  centre-of-mass frame is
+  %
+  \begin{align*}
+    \sum_{i=1}^{N} \vec{\boldsymbol{p}}_i^{\ast}
+    &=  \sum_{i=1}^{N} m_i (\vec{\boldsymbol{v}}_i - \dot{\vec{\boldsymbol{R}}} ) \\
+    &= \sum_{i=1}^{N} m_i \vec{\boldsymbol{v}}_i - \dot{\vec{\boldsymbol{R}}} \sum_{i=1}^{N} m_i \\
+    &= M \left ( \frac{\sum_{i=1}^{N} m_i \vec{\boldsymbol{v}}_i}{M} - \dot{\vec{\boldsymbol{R}}}
+      \right ) \\
+    &= 0. \qquad\qquad
+      \text{(Note that this is a zero \underline{vector}.)}
+  \end{align*}
+  %
+  The final step used the equation for $\dot{\vec{\boldsymbol{r}}}$ above.
+
+\item The total laboratory-frame kinetic energy of the $N$ particles
+  (masses $m_i$, velocities $\vec{\boldsymbol{v}}_i$) is
+  %
+  \begin{displaymath}
+    K = \sum_{i=1}^{N} \frac{1}{2} m_i v_i^2 .
+  \end{displaymath}
+  %
+  The laboratory (unstarred) and centre-of-mass (starred) velocities of
+  the particles are related by $\vec{\boldsymbol{v}}_i^{\phantom{}} = \vec{\boldsymbol{v}}_i^{\ast} +
+  \dot{\vec{\boldsymbol{R}}}$, where
+  %
+  \begin{displaymath}
+    \dot{\vec{\boldsymbol{R}}} = \frac{\sum_{i=1}^{N} m_i \vec{\boldsymbol{v}}_i}{\sum_{i=1}^{N} m_i}
+  \end{displaymath}
+  %
+  is the velocity of the centre of mass. Hence
+  %
+  \begin{align*}
+    K &= \frac{1}{2} \sum_{i=1}^{N} m_i^{\phantom{}} 
+        \left ( \vec{\boldsymbol{v}}_i^{\ast} + \dot{\vec{\boldsymbol{R}}} \right )^2 \\
+      &= \frac{1}{2} \sum_{i=1}^{N} m_i^{\phantom{}} \left [  
+        \left ( v_i^{\ast} \right)^2 + 
+        2 (\vec{\boldsymbol{v}}_i^{\ast}\cdot \dot{\vec{\boldsymbol{R}}}) + \dot{R}^2 \right ] \\
+      &= \frac{1}{2} \sum_{i=1}^{N} m_i^{\phantom{}} 
+        \left ( v_i^{\ast}\right )^2  
+        + \left ( \sum_{i=1}^{N} m_i^{\phantom{}} \vec{\boldsymbol{v}}_i^{\ast} \right ) 
+        \cdot \dot{\vec{\boldsymbol{R}}}
+        + \frac{1}{2} \left ( \sum_{i=1}^{N} m_i^{\phantom{}} \right ) 
+        \dot{R}^2 \\
+      &= \frac{1}{2}\sum_{i=1}^{N} m_i^{\phantom{}} 
+        \left ( v_i^{\ast} \right )^2 + \frac{1}{2} M \dot{R}^2 
+        \qquad (\text{where } M \equiv \sum_{i=1}^{N} m_i^{\phantom{}}) \\
+      &= K^{\ast} + \frac{1}{2} M \dot{R}^2 \\
+      &= \text{(KE in centre-of-mass frame)} + \text{(KE of centre of mass)}.
+  \end{align*}
+  %
+  The cross term vanished because $\sum_{i=1}^{N} m_i^{\phantom{}}
+  \vec{\boldsymbol{v}}_i^{\ast}$ is the total momentum in the centre-of-mass frame, which
+  Q2 showed is always zero.
+
+\item Start by writing down the definition of the coefficient of
+  restitution and the law of conservation of momentum in the case when
+  $u_2 = 0$:
+  %
+  \begin{align*}
+    v_2 - v_1 &= eu_1 ,\\
+    m_1 v_1 + m_2 v_2 &= m_1 u_1 .
+  \end{align*}
+  %
+  Our job is to solve for $v_1$ and $v_2$ as functions of $u_1$. One way
+  is to multiply the first equation by $m_1$,
+  %
+  \begin{displaymath}
+    m_1 v_2 - m_1 v_1 = e m_1 u_1,
+  \end{displaymath}
+  %
+  and add it to the second equation to obtain
+  %
+  \begin{displaymath}
+    m_2 v_2 + m_1 v_2 = m_1 u_1 + e m_1 u_1 ,
+  \end{displaymath}
+  % 
+  which rearranges to give
+  %
+  \begin{displaymath}
+    v_2 = \frac{(1 + e)m_1 u_1}{m_1 + m_2}.
+  \end{displaymath}
+  %
+  Plugging this back into $v_1 - v_2 = -eu_1$ yields
+  %
+  \begin{displaymath}
+    v_1 = v_2 - eu_1 = \frac{(1+e)m_1 u_1}{m_1 + m_2} - \frac{e(m_1 +
+    m_2)u_1}{m_1 + m_2} = \frac{(m_1 - e m_2)u_1}{m_1 + m_2}.
+  \end{displaymath}
+
+
+\item Options (a) and (g) are true.
+
+  The ping-pong ball of mass $m$ is so much lighter than the basketball
+  of mass $M$ that its momentum almost reverses when it collides:
+  $m\vec{\boldsymbol{u}}_m \rightarrow -m\vec{\boldsymbol{u}}_m$. Since the total momentum $m\vec{\boldsymbol{u}}_m$ is
+  conserved, the momentum of the basketball after the collision must be
+  approximately $2m\vec{\boldsymbol{u}}_m$. The absolute value of the momentum of the
+  basketball after the collision is larger than that of the ping-pong
+  ball.
+
+  The momentum of the basketball after the collision is approximately
+  $2m\vec{\boldsymbol{u}}_m$, so its velocity $\vec{\boldsymbol{v}}_M \approx \frac{2m}{M} \vec{\boldsymbol{u}}_m$. The
+  final kinetic energies of the basketball and ping-pong ball are:
+  %
+  \begin{align*}
+    K_M
+    &= \frac{1}{2}M |\vec{\boldsymbol{v}}_M|^2 \approx \frac{1}{2} M
+      \left |\frac{2m\vec{\boldsymbol{u}}_m}{M}\right |^2 = \frac{2m^2}{M}
+      |\vec{\boldsymbol{u}}_m|^2 ,\\
+    K_m
+    &\approx \frac{1}{2} m |-\vec{\boldsymbol{u}}_m|^2 .
+  \end{align*}
+  %
+  The ratio $K_m/K_M = M/(4m)$ is much bigger than 1 (the mass of one
+  basketball is much larger than the mass of four ping-pong balls), so
+  the ping-pong ball has much more kinetic energy than the basketball.
+
+  \item
+    \begin{enumerate}
+
+      \item The total momentum before the collision that forms the
+        complex is
+        \begin{displaymath}
+          p_{\text{tot}} = m_{\text{NO}} u_{\text{NO}} + m_{\text{O}_3}
+          u_{\text{O}_3} = (14 + 16)m_u u_{\text{NO}} + (3\times 16)m_u u_{\text{O}_3},
+        \end{displaymath}
+        where $m_u \approx 1.66 \times 10^{-27}\,$kg is the atomic mass
+        unit. Setting the value of $u_{\text{NO}}$ to $-550\,$m$\cdot$
+        s$^{-1}$ and $u_{\text{O}_3} = +550\,$m$\cdot$s$^{-1}$ gives
+        %
+        \begin{displaymath}
+          p_{\text{tot}} \approx 1.64 \times 10^{-23}\,\text{kg}\cdot\text{m}\cdot\text{s}^{-1}.
+        \end{displaymath}
+
+        The total momentum is conserved during the collision in which
+        the two molecules bind to form the [NO--O$_3$]$^{\ast}$ complex,
+        so
+        %
+        \begin{displaymath}
+          p_{\text{[NO--O$_3$]}^{\ast}} \approx 1.64 \times
+          10^{-23}\,\text{kg}\cdot\text{m}\cdot\text{s}^{-1}
+        \end{displaymath}
+        %
+        and the velocity of the complex is
+        %
+        \begin{displaymath}
+          v_{\text{[NO--O$_3$]}^{\ast}} \approx \frac{1.64 \times
+            10^{-23}}{[(14 + 16) + (3 \times 16)] m_u} \approx
+          127\,\text{m}\cdot\text{s}^{-1}.
+        \end{displaymath}
+
+      \item The total kinetic energy before the collision is
+        %
+        \[
+          K = \frac{1}{2} m^{}_{\text{NO}}v_{\text{NO}}^2 + \frac{1}{2}
+              m^{}_{\text{O}_3} v_{\text{O}_3}^2 
+            = \frac{1}{2} [ (14 + 16) + (3 \times 16) ] m_u (550)^2 
+            \approx 1.96\times 10^{-20}\,\text{J}.
+          \]
+
+        The total kinetic energy after the collision is
+        %
+        \[
+          K' = \frac{1}{2} m^{}_{\text{[NO--O$_3$]}^{\ast}} \,
+               v_{\text{[NO--O$_{3}$]}^{\ast}}^2 \\
+             = \frac{1}{2} (78 m_u) (127)^2 \\
+             \approx 1.04 \times 10^{-21}\,\text{J}.
+        \]
+
+        The total KE has reduced so the collision was inelastic.
+
+        The KE lost has gone into the internal energy of the activated
+        complex, which has higher chemical energy than the two molecules
+        of which it is formed (it is only metastable) plus internal
+        vibrational and rotational energy.
+
+      \item The collision will only form the products if the internal energy
+        of the complex exceeds the activation barrier. The internal
+        energy is
+        %
+        \begin{displaymath}
+          E^{\text{internal}}_{[\text{NO--O}_3]^{\ast}} = K - K' \approx
+          1.96 \times 10^{-20} - 1.04 \times 10^{-21}
+          \approx 1.85 \times 10^{-20}\,\text{J}.
+        \end{displaymath}
+        %
+        An activation barrier of of $9.6\,\text{kJ}\cdot\text{mol}^{-1}$
+        translates into
+        %
+        \begin{displaymath}
+          \frac{9.6 \times 10^3}{6.022 \times 10^{23}} \approx 1.59 \times
+          10^{-20} \, \text{J per complex}.
+        \end{displaymath}
+        %
+        This is less than the internal energy provided by the collision,
+        so the NO$_2$ and O$_2$ products will be formed (some of the
+        time, at least).
+
+      \item Set the potential energy of interaction to zero when the two
+        oxygen atoms are far apart. Since the atoms are approaching each
+        other, they already have some kinetic energy even before the
+        attractive part of the interaction starts accelerating them
+        towards each other. This means that their total energy $E$ is
+        greater than zero. If we choose to work in the centre-of-mass
+        frame, the total momentum is zero and the two oxygen atoms
+        approach each other with equal and opposite momentum.
+
+        Momentum and total energy are conserved, so the O$_2$ molecule
+        must have zero total momentum but positive total energy $E$. If
+        the molecule is to form, the kinetic energy of the molecules
+        arriving at their equilibrium spacing (the difference between
+        $E$ and the minimum value of $U(r)$) must be transferred into
+        internal vibrational, rotational and electronic degrees freedom
+        of the O$_2$ molecule.
+
+        Since the total energy of the molecule is greater than zero, it
+        is large enough to provide the two O atoms with enough kinetic
+        energy to unbind and escape to infinity. Unless some other
+        nearby atom or molecule takes away the excess energy before it
+        is too late, the highly-excited oxygen molecule will soon break
+        up.
+
+        \begin{center}
+          \includegraphics[width=0.55\textwidth]{figures/O2_potential.png}
+        \end{center}
+
+        The figure above illustrates the situation. It shows the
+        potential energy $U(r)$ of the two O atoms as a function of
+        their separation $r$ (compare with Q5 of the Mechanics part of
+        the week 6 problem sheet). The total energy $E$, indicated by
+        the dashed red line, is greater than zero. The total kinetic
+        energy at separation $r$, indicated by the green arrow, is $E -
+        U(r)$. Because $E > 0$, the two escaping atoms will keep moving
+        away from each other even as $r \rightarrow \infty$.
+        
+  \end{enumerate}
+  
+    \begin{enumerate}
+    
+    \item Using conservation of energy, the speed $v_0$ of the ball when
+      it first hits the ground is related to the initial height $h_0$ by
+      $mgh_0 = \frac{1}{2}mv_0^2$. This gives
+      %
+      \begin{displaymath}
+        v_0 = \sqrt{2gh_0}.
+      \end{displaymath}
+      %
+      (Could also have used the SUVAT equation $v^2 = u^2 + 2as$.) Since
+      $v_0 = g t_0$,
+      %
+      \begin{displaymath}
+        t_0 = \sqrt{\frac{2h_0}{g}}.
+      \end{displaymath}
+
+    \item The upward speed after the first bounce is $v_1 = ev_0$. The
+      height reached after the first bounce is
+      %
+      \begin{displaymath}
+        h_1 = \frac{v_1^2}{2g} = \frac{e^2 v_0^2}{2g}
+        = e^2 h_0.
+      \end{displaymath}
+      %
+      The time taken to reach the top of the first bounce is
+      %
+      \begin{displaymath}
+        t_1 = \sqrt{\frac{2h_1}{g}} = et_0.
+      \end{displaymath}
+      %
+      The height $h_n$ and drop time $t_n$ for the $n^{\text{th}}$ bounce
+      are
+      %
+      \begin{displaymath}
+        h_n = e^{2n} h_0, \qquad t_n = e^n t_0.
+      \end{displaymath}
+    
+    \item The initial drop takes time $t_0$. The duration of the
+      $n^{\text{th}}$ bounce is $2t_n$, not $t_n$, because the ball has to
+      rise and then drop again. The total time $T$ for the ball to stop
+      bouncing is the sum of the durations of the initial drop and all
+      subsequent bounces:
+      %
+      \begin{align*}
+        T &= t_0 + 2 e t_0 + 2 e^2 t_0 + 2 e^3 t_0 + \ldots \\
+          &= 2 t_0 (1 + e + e^2 + e^3 + \ldots) - t_0 \\
+          &= \frac{2 t_0}{1 - e} - t_0
+        \qquad \text{(using the formula given in the question)}\\
+          &= \frac{1 + e}{1 - e} \, t_0.
+      \end{align*}
+
+      If $h_0 = 5\,$m, $e = 0.5$, and $g = 10\,\text{m}\cdot\text{s}^{-2}$,
+      then
+      %
+      \begin{displaymath}
+        t_0 = \sqrt{\frac{2 \times 5}{10}} = 1\,\text{s},
+      \end{displaymath}
+      %
+      and the time $T$ taken to stop bouncing is
+      %
+      \begin{displaymath}
+        T = \frac{1 + 0.5}{1 - 0.5} \, t_0 = 3\,\text{s}.
+      \end{displaymath}
+
+    \end{enumerate}
+
+\item The diagram below shows that the change in momentum of the
+  rocket+fuel in time $dt$ can be found as follows:
+  %
+  \begin{align*}
+    \text{change in momentum}
+    &= \text{(momentum at time $t + dt$)} - \text{(momentum at time $t$)} \\
+    &=\big( (M + dM)(v + dv) + (-dM)(v-u) \big) - \big( Mv \big)\\
+    &= M dv + u dM . \qquad \text{(ignoring second-order terms)}
+  \end{align*}
+
+  \begin{center}
+    \includegraphics[width=0.45\textwidth]{figures/rocket-momentum.png}
+  \end{center}
+  
+  Since the only external force acting on the system is gravity, this
+  must be equal to the gravitational impulse $-Mg\,dt$ (which is negative
+  because gravity acts against the rocket's acceleration):
+  %
+  \begin{align*}
+    &M dv + u dM = -Mg \, dt \\
+    \Rightarrow \qquad
+    &dv = -u\frac{dM}{M} - g \, dt \\
+    \Rightarrow \qquad
+    &\int_{0}^{v(t)} dv' = -u \int_{M_0}^{M(t)} \frac{dM'}{M'} -
+      g\int_0^{t} dt' \\
+    \Rightarrow \qquad
+    &\left [ v' \right ]_0^{v(t)} = -u \left [ \ln M' \right
+      ]_{M_0}^{M(t)} - g \left [ t' \right ]_0^{t} \\
+    \Rightarrow \qquad
+    &v(t) = -u \left \{ \ln(M(t)) - \ln(M_0) \right \} - gt \\
+    \Rightarrow \qquad
+    &v(t) = u\ln\left ( \frac{M_0}{M(t)} \right ) - gt,
+  \end{align*}
+  as required.
+
+\item The free-space rocket equation is
+  %
+  \begin{displaymath}
+    v(t) = v_0 + u \ln \left ( \frac{M_0}{M(t)} \right ),
+  \end{displaymath}
+  %
+  where $v_0$ is the initial speed of the rocket, $u$ is the exhaust
+  speed, $M_0$ is the rocket's initial mass (including any fuel it is
+  carrying), and $M(t)$ is its mass at time $t$ (including any fuel not
+  yet burnt).
+
+  For the first stage of the journey, call the initial mass
+  $M_1^{\text{init}}$. The initial speed is zero. The initial mass of
+  fuel is $3M_1^{\text{init}}/4$, but only $2/3$ of this is burnt during
+  stage 1. The mass $M_1^{\text{final}}$ of the rocket and remaining
+  fuel at the end of stage 1 is therefore
+  $M_1^{\text{init}} - (2/3)(3M_1^{\text{init}}/4) =
+  M_1^{\text{init}}/2$. We can now work out the speed $v_1$ at the end
+  of stage 1:
+  %
+  \begin{displaymath}
+    v_1 = u \ln \left ( \frac{M_1^{\text{init}}}{M_1^{\text{final}}} \right )
+    = u\ln \left ( \frac{M_1^{\text{init}}}{M_1^{\text{init}}/2} \right ) = u\ln 2.
+  \end{displaymath}
+
+  Once the first stage of the rocket has detached, the remaining mass of
+  fuel, which we know is equal to
+  $(1/3)(3M_1^{\text{init}}/4) = M_1^{\text{init}}/4$, accounts for
+  $4/5$ of the mass of the rocket. This tells us the initial mass
+  of stage 2:
+  %
+  \begin{displaymath}
+    M_2^{\text{init}} = (5/4)(M_1^{\text{init}}/4) =
+    5M_1^{\text{init}}/16.
+  \end{displaymath}
+  %
+  At the end of stage 2, the fuel has all been burnt, so
+  $M_2^{\text{final}} = M_2^{\text{init}} - M_1^{\text{init}}/4 =
+  M_1^{\text{init}}/16$. The velocity $v_2$ at the end of stage 2 is
+  %
+  \begin{align*}
+    v_2 &= v_1 + u \ln \left (
+      \frac{M_2^{\text{init}}}{M_2^{\text{final}}} \right ) 
+    = u\ln 2 + u\ln \left
+      ( \frac{5M_1^{\text{init}}/16}{M_1^{\text{init}}/16} \right ) \\
+    &= u\ln 2 + u\ln 5 = u\ln 10.
+  \end{align*}
+
+  Suppose we had instead made the journey with a single-stage rocket of
+  initial mass $M_1^{\text{init}}$ and the same initial mass of fuel,
+  $3M_{1}^{\text{init}}/4$. At the end of the single stage, all of the
+  fuel has been burnt, so the final mass is
+  $M_1^{\text{init}} - 3M_{1}^{\text{init}}/4 = M_1^{\text{init}}/4$.
+  The final speed $v_1'$ is given by
+  %
+  \begin{align*}
+    v_1' = u\ln\left ( \frac{M_1^{\text{init}}}{M_1^{\text{init}}/4}
+    \right ) = u\ln 4,
+  \end{align*}
+  %
+  which is approximately $0.6u\ln(10)$.
+
+    \end{enumerate}
+    
+
+\end{document}
