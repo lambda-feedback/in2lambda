@@ -18,7 +18,7 @@ def converter(
     """Turns a list of question objects into Lambda Feedback JSON.
 
     Args:
-        template: The loaded JSON from the minimal template.
+        template: The loaded JSON from the minimal template (it needs to be in sync).
         ListQuestions: A list of question objects.
         output_dir: The absolute path for where to produced the final JSON/zip files.
     """

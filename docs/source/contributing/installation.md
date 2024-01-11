@@ -12,12 +12,18 @@ $ cd in2lambda
 ```
 
 The project can then be installed using [poetry](https://python-poetry.org/):
+(make sure you are in the top folder, which is the folder that contains pyproject.toml file)
 
 ```shell
 $ poetry install
 $ poetry shell
 $ pre-commit install
 $ in2lambda --help
+```
+
+To exit the environment:
+```shell
+$ exit
 ```
 
 :::{admonition} Using pip
