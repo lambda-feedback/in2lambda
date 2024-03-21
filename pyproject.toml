@@ -23,25 +23,25 @@ documentation = "https://lambda-feedback.github.io/in2lambda"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-panflute = "^2.3.0"
-rich-click = "^1.7.2"
-beartype = "^0.16.4"
+panflute = "^2.3.1"
+rich-click = "^1.7.4"
+beartype = "^0.17.2"
 
 [tool.poetry.scripts]
 in2lambda = "in2lambda.main:cli"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.12.0"
+black = "^24.3.0"
 isort = "^5.13.2"
 pydocstyle = "^6.3.0"
-mypy = "^1.7.1"
-pytest = "^7.4.3"
+mypy = "^1.9.0"
+pytest = "^8.1.1"
 pytest-cov = "^4.1.0"
-pytest-sugar = "^0.9.7"
-pre-commit = "^3.6.0"
+pytest-sugar = "^1.0.0"
+pre-commit = "^3.6.2"
 
 [tool.poetry.group.docs.dependencies]
-furo = "^2023.9.10"
+furo = "^2024.1.29"
 myst-parser = "^2.0.0"
 sphinx = "^7.2.6"
 sphinx-copybutton = "^0.5.2"
