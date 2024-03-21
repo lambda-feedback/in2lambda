@@ -72,7 +72,9 @@ def pandoc_filter(
             # Add each part solution/text
             # For the solution, prepend any top level answer text to each part answer
             for part in lettered_parts:
-                module.current_question.add_solution(
-                    spaced_blurb + part
-                ) if parsing_answers else module.current_question.add_part_text(part)
+                (
+                    module.current_question.add_solution(spaced_blurb + part)
+                    if parsing_answers
+                    else module.current_question.add_part_text(part)
+                )
     return None

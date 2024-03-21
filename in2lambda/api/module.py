@@ -6,6 +6,7 @@ from typing import Union
 import panflute as pf
 
 from in2lambda.api.question import Question
+from in2lambda.json_convert import json_convert
 
 
 @dataclass
@@ -89,3 +90,33 @@ class Module:
  Question(title='Question 2', parts=[Part(text='', worked_solution='Question 2 answer')], images=[], _main_text='')]
         """
         self._current_question_index += 1
+
+    def to_json(self, output_dir: str) -> None:
+        """Turns this module into Lambda Feedback JSON/ZIP files.
+
+        WARNING: This will overwrite any existing files in the directory.
+
+        Args:
+            output_dir: Where to output the final Lambda Feedback JSON/ZIP files.
+
+        Examples:
+            >>> import tempfile
+            >>> import os
+            >>> import json
+            >>> # Create a module with two questions
+            >>> module = Module()
+            >>> module.add_question("Question 1")
+            >>> module.add_question("Question 2")
+            >>> with tempfile.TemporaryDirectory() as temp_dir:
+            ...     # Write the JSON files to the temporary directory
+            ...     module.to_json(temp_dir)
+            ...     # Check the contents of the directory
+            ...     sorted(os.listdir(temp_dir))
+            ...     # Check the title of the first question
+            ...     with open(f"{temp_dir}/Question 1/Question 1.json") as file:
+            ...         print(f"Question 1's title: {json.load(file)['title']}")
+            ['Question 1', 'Question 1.zip', 'Question 2', 'Question 2.zip']
+            Question 1's title: Question 1
+
+        """
+        json_convert.main(self.questions, output_dir)

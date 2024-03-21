@@ -120,7 +120,10 @@ def filter(
         [pf.Element, pf.elements.Doc, Module, bool],
         Optional[pf.Str],
     ]
-) -> Callable[[pf.Element, pf.elements.Doc, Module, str, bool], Optional[pf.Str],]:
+) -> Callable[
+    [pf.Element, pf.elements.Doc, Module, str, bool],
+    Optional[pf.Str],
+]:
     """Python decorator to make generic LaTeX elements markdown readable.
 
     As an example, part of the process involves putting dollar signs around maths

@@ -9,7 +9,6 @@ import rich_click as click
 
 import in2lambda.filters
 from in2lambda.api.module import Module
-from in2lambda.json_convert import json_convert
 
 
 def file_type(file: str) -> str:
@@ -40,7 +39,17 @@ def file_type(file: str) -> str:
     match (extension := file.split(".")[-1].lower()):
         case "tex" | "latex" | "ltx":
             return "latex"
-        case "md" | "rmd" | "markdown" | "mdown" | "mdwn" | "mkd" | "mkdn" | "text" | "txt":
+        case (
+            "md"
+            | "rmd"
+            | "markdown"
+            | "mdown"
+            | "mdwn"
+            | "mkd"
+            | "mkdn"
+            | "text"
+            | "txt"
+        ):
             return "markdown"
         case "docx":
             return "docx"  # Pandoc doesn't seem to support doc
@@ -112,7 +121,7 @@ def runner(
 
     # Read the Python API format and convert to JSON.
     if output_dir is not None:
-        json_convert.main(module.questions, output_dir)
+        module.to_json(output_dir)
 
     return module
 
