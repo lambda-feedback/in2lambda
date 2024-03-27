@@ -80,9 +80,9 @@ def runner(
         >>> from in2lambda.main import runner
         >>> # Retrieve an example TeX file and run the given filter.
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
-        Module(questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], _main_text='This is a sample question\n\n'), ...])
+        Module(questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='This is a sample question\n\n'), ...])
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
-        Module(questions=[Question(title='', parts=[Part(text='This is part (a)\n\n', worked_solution=''), ...], images=[], _main_text='Here is some preliminary question information that might be useful.'), ...)
+        Module(questions=[Question(title='', parts=[Part(text='This is part (a)\n\n', worked_solution=''), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...)
     """
     # The list of questions for Lambda Feedback as a Python API.
     module = Module()

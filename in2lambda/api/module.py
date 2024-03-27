@@ -29,11 +29,11 @@ class Module:
         Examples:
             >>> from in2lambda.api.module import Module
             >>> Module().current_question
-            Question(title='INVALID', parts=[], images=[], _main_text='')
+            Question(title='INVALID', parts=[], images=[], main_text='')
             >>> module = Module()
             >>> module.add_question()
             >>> module.current_question
-            Question(title='', parts=[], images=[], _main_text='')
+            Question(title='', parts=[], images=[], main_text='')
         """
         return (
             self.questions[self._current_question_index]
@@ -57,7 +57,7 @@ class Module:
             >>> module = Module()
             >>> module.add_question("Some title", pf.Para(pf.Str("hello"), pf.Space, pf.Str("there")))
             >>> module
-            Module(questions=[Question(title='Some title', parts=[], images=[], _main_text='hello there')])
+            Module(questions=[Question(title='Some title', parts=[], images=[], main_text='hello there')])
             >>> module.add_question(main_text="Normal string text")
             >>> module.questions[1].main_text
             'Normal string text'
@@ -86,8 +86,8 @@ class Module:
             >>> module.increment_current_question()
             >>> module.current_question.add_solution("Question 2 answer")
             >>> module.questions
-            [Question(title='Question 1', parts=[Part(text='', worked_solution='Question 1 answer')], images=[], _main_text=''),\
- Question(title='Question 2', parts=[Part(text='', worked_solution='Question 2 answer')], images=[], _main_text='')]
+            [Question(title='Question 1', parts=[Part(text='', worked_solution='Question 1 answer')], images=[], main_text=''),\
+ Question(title='Question 2', parts=[Part(text='', worked_solution='Question 2 answer')], images=[], main_text='')]
         """
         self._current_question_index += 1
 

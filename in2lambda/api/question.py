@@ -16,8 +16,8 @@ class Question:
 
     Examples:
         >>> from in2lambda.api.question import Question
-        >>> Question(title="Some title", _main_text="Some text")
-        Question(title='Some title', parts=[], images=[], _main_text='Some text')
+        >>> Question(title="Some title", main_text="Some text")
+        Question(title='Some title', parts=[], images=[], main_text='Some text')
     """
 
     title: str = ""
@@ -25,7 +25,11 @@ class Question:
     parts: list[Part] = field(default_factory=list)
     images: list[str] = field(default_factory=list)
 
-    _main_text: str = ""
+    # Use getter/setter methods for main_text without exposing private attribute.
+    # See https://stackoverflow.com/a/61480946
+    main_text: str = ""
+    _main_text: str = field(init=False, repr=False, default="")
+
     _last_part: dict[str, int] = field(
         default_factory=lambda: {"solution": 0, "text": 0}, repr=False
     )
@@ -34,15 +38,10 @@ class Question:
 
     @property
     def main_text(self) -> str:
-        """Main top-level question text."""
-        return self._main_text
+        r"""Main top-level question text.
 
-    @main_text.setter
-    def main_text(self, value: Union[pf.Element, str]) -> None:
-        r"""Appends to the top-level main text, which starts off as an empty string.
-
-        Args:
-            value: A panflute element or string denoting what to append to the main text.
+        Setting the attribute multiple times appends to the current value with a newline.
+        This allows question text to be dynamically appended.
 
         Examples:
             >>> from in2lambda.api.question import Question
@@ -52,7 +51,28 @@ class Question:
             >>> question.main_text
             'hello\nthere'
         """
-        text_value = value if isinstance(value, str) else pf.stringify(value, False)
+        return self._main_text
+
+    @main_text.setter
+    def main_text(self, value: Union[pf.Element, str, property]) -> None:
+        r"""Appends to the top-level main text, which starts off as an empty string.
+
+        Args:
+            value: A panflute element or string denoting what to append to the main text.
+
+        See example in main_text property.
+        """
+        # Converts the inputted value into a string, stored in text_value
+        match value:
+            case str():
+                text_value = value
+            case property():
+                # Use default value when no value set at initialisation.
+                # See https://stackoverflow.com/a/61480946
+                text_value = self.main_text
+            case pf.Element():
+                text_value = pf.stringify(value, False)
+
         if self._main_text:
             self._main_text += "\n"
         self._main_text += text_value
@@ -69,7 +89,7 @@ class Question:
             >>> question.add_part_text("part a")
             >>> question.add_solution("part a solution")
             >>> question
-            Question(title='', parts=[Part(text='part a', worked_solution='part a solution')], images=[], _main_text='')
+            Question(title='', parts=[Part(text='part a', worked_solution='part a solution')], images=[], main_text='')
             >>> question.add_part_text("part b")
             >>> question.add_part_text("part c")
             >>> question.add_solution("Solution for b")
@@ -77,12 +97,12 @@ class Question:
             >>> question
             Question(title='', parts=[Part(text='part a', worked_solution='part a solution'), \
 Part(text='part b', worked_solution='Solution for b'), \
-Part(text='part c', worked_solution='Solution for b')], images=[], _main_text='')
+Part(text='part c', worked_solution='Solution for b')], images=[], main_text='')
             >>> question.add_solution("We now have a solution for c!")
             >>> question
             Question(title='', parts=[Part(text='part a', worked_solution='part a solution'), \
 Part(text='part b', worked_solution='Solution for b'), \
-Part(text='part c', worked_solution='We now have a solution for c!')], images=[], _main_text='')
+Part(text='part c', worked_solution='We now have a solution for c!')], images=[], main_text='')
         """
         elem_text = elem if isinstance(elem, str) else pf.stringify(elem)
 
@@ -111,13 +131,13 @@ Part(text='part c', worked_solution='We now have a solution for c!')], images=[]
             >>> question.add_part_text("part a")
             >>> question.add_solution("part a solution")
             >>> question
-            Question(title='', parts=[Part(text='part a', worked_solution='part a solution')], images=[], _main_text='')
+            Question(title='', parts=[Part(text='part a', worked_solution='part a solution')], images=[], main_text='')
             >>> # Supports adding the answer first.
             >>> question.add_solution("part b solution")
             >>> question.add_part_text("part b")
             >>> question
             Question(title='', parts=[Part(text='part a', worked_solution='part a solution'), \
-Part(text='part b', worked_solution='part b solution')], images=[], _main_text='')
+Part(text='part b', worked_solution='part b solution')], images=[], main_text='')
         """
         elem_text = elem if isinstance(elem, str) else pf.stringify(elem)
 
