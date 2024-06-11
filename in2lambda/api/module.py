@@ -113,9 +113,9 @@ class Module:
             ...     # Check the contents of the directory
             ...     sorted(os.listdir(temp_dir))
             ...     # Check the title of the first question
-            ...     with open(f"{temp_dir}/Question 1/Question 1.json") as file:
+            ...     with open(f"{temp_dir}/question_1/question_1.json") as file:
             ...         print(f"Question 1's title: {json.load(file)['title']}")
-            ['Question 1', 'Question 1.zip', 'Question 2', 'Question 2.zip']
+            ['Question 1', 'question_1.zip', 'Question 2', 'question_2.zip']
             Question 1's title: Question 1
 
         """
