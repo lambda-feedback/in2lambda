@@ -1,5 +1,4 @@
 {
-  "isPublished": false,
   "masterContent": "Top level question here",
   "parts": [
     {
@@ -17,6 +16,7 @@
       ]
     }
   ],
+  "publish": false,
   "questionSettings": {
     "displayFinalAnswer": true,
     "displayStructuredTutorial": true,

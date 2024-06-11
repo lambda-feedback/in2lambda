@@ -50,7 +50,7 @@ def converter(
                 )
 
         # Output file
-        filename = "Question " + str(i + 1)
+        filename = "question_" + str(i + 1)
 
         # create directory to put the questions
         os.makedirs(output_dir, exist_ok=True)
