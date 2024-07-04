@@ -4,7 +4,7 @@
     {
       "answer": "",
       "content": "Part text here",
-      "responseArea": [],
+      "responseAreas": [],
       "tutorial": [],
       "universalPartId": "N/A",
       "workedSolution": [
@@ -17,10 +17,8 @@
     }
   ],
   "publish": false,
-  "questionSettings": {
-    "displayFinalAnswer": true,
-    "displayStructuredTutorial": true,
-    "displayWorkedSolution": true
-  },
+  "displayFinalAnswer": true,
+  "displayStructuredTutorial": true,
+  "displayWorkedSolution": true,
   "title": "Question title here"
 }

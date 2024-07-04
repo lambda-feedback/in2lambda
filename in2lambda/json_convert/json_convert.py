@@ -29,9 +29,9 @@ def converter(
 
         # add title to the question file
         if ListQuestions[i].title != "":
-            output["title"] = ListQuestions[i].title
+            output["title"] = ListQuestions[i].title + "test"
         else:
-            output["title"] = "Question " + str(i + 1)
+            output["title"] = "Question " + str(i + 1) + "test"
 
         # add main text to the question file
         output["masterContent"] = ListQuestions[i].main_text
@@ -58,7 +58,7 @@ def converter(
         os.makedirs(output_question, exist_ok=True)
 
         # create directory to put image
-        output_image = os.path.join(output_question, "media")
+        output_image = os.path.join(output_question, "media" + "test")
         os.makedirs(output_image, exist_ok=True)
 
         # write questions into directory
@@ -73,7 +73,7 @@ def converter(
             shutil.copy(image_path, output_image)  # copies image into the directory
 
         # output zip file in destination folder
-        shutil.make_archive(output_question, "zip", output_question)
+        shutil.make_archive(output_question + "test", "zip", output_question)
 
 
 def main(questions: list[Question], output_dir: str) -> None:
