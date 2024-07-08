@@ -1,5 +1,7 @@
 """The main input for in2lambda, defining both the CLT and main library function."""
 
+#This commented block makes it run the local files rather than the pip library (I think, I don't understand it. Kevin wrote it.)
+#
 # import sys
 # import os
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -17,7 +19,7 @@ from in2lambda.api.module import Module
 
 import subprocess
 
-
+#Converts .docx files to markdown
 def docx_to_md(docx_file: str) -> str:
     md_output = subprocess.check_output(['pandoc', docx_file, '-t', 'markdown'])
     return md_output.decode('utf-8')
@@ -63,7 +65,7 @@ def file_type(file: str) -> str:
         ):
             return "markdown"
         case "docx":
-            return "docx"  # Pandoc doesn't seem to support doc
+            return "docx"  # Pandoc doesn't seem to support .doc, and panflute doesn't like .docx.
     raise RuntimeError(f"Unsupported file extension: .{extension}")
 
 
@@ -103,7 +105,7 @@ def runner(
 
 
     if file_type(question_file) == 'docx':
-        # Convert .docx to md using Pandoc
+        # Convert .docx to md using Pandoc and proceed
         text = docx_to_md(question_file)
         input_format = "markdown"
     else:
@@ -195,8 +197,3 @@ def cli(
 
 if __name__ == "__main__":
     cli()
-#%%
-
-# import panflute as pf
-
-# pf.convert_text("PS/TestQ.docx", input_format="docx", standalone=True)
