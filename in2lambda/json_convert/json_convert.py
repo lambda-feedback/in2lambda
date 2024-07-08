@@ -24,6 +24,16 @@ def converter(
     """
     # Create output by copying template
 
+    # create directory to put the questions
+    os.makedirs(output_dir, exist_ok=True)
+    output_question = os.path.join(output_dir, "set")
+    os.makedirs(output_question, exist_ok=True)
+
+
+    # create directory to put images - should be in set
+    output_image = os.path.join(output_question, "media")
+    os.makedirs(output_image, exist_ok=True)
+
     for i in range(len(ListQuestions)):
         output = deepcopy(template)
 
@@ -39,27 +49,19 @@ def converter(
         # add parts to the question file
         if ListQuestions[i].parts:
             output["parts"][0]["content"] = ListQuestions[i].parts[0].text
-            output["parts"][0]["workedSolution"][0]["content"] = (
+            output["parts"][0]["workedSolution"]["content"] = (
                 ListQuestions[i].parts[0].worked_solution
             )
             for j in range(1, len(ListQuestions[i].parts)):
                 output["parts"].append(deepcopy(template["parts"][0]))
                 output["parts"][j]["content"] = ListQuestions[i].parts[j].text
-                output["parts"][j]["workedSolution"][0]["content"] = (
+                output["parts"][j]["workedSolution"]["content"] = (
                     ListQuestions[i].parts[j].worked_solution
                 )
 
         # Output file
         filename = "question_" + str(i + 1)
 
-        # create directory to put the questions
-        os.makedirs(output_dir, exist_ok=True)
-        output_question = os.path.join(output_dir, filename)
-        os.makedirs(output_question, exist_ok=True)
-
-        # create directory to put image
-        output_image = os.path.join(output_question, "media")
-        os.makedirs(output_image, exist_ok=True)
 
         # write questions into directory
         with open(f"{output_question}/{filename}.json", "w") as file:

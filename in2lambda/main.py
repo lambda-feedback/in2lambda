@@ -1,5 +1,12 @@
 """The main input for in2lambda, defining both the CLT and main library function."""
 
+#This commented block makes it run the local files rather than the pip library (I think, I don't understand it. Kevin wrote it.)
+#
+# import sys
+# import os
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+ 
+
 import importlib
 import pkgutil
 from typing import Optional
@@ -10,6 +17,12 @@ import rich_click as click
 import in2lambda.filters
 from in2lambda.api.module import Module
 
+import subprocess
+
+#Converts .docx files to markdown
+def docx_to_md(docx_file: str) -> str:
+    md_output = subprocess.check_output(['pandoc', docx_file, '-t', 'markdown'])
+    return md_output.decode('utf-8')
 
 def file_type(file: str) -> str:
     """Determines which pandoc file format to use for a given file.
@@ -52,7 +65,7 @@ def file_type(file: str) -> str:
         ):
             return "markdown"
         case "docx":
-            return "docx"  # Pandoc doesn't seem to support doc
+            return "docx"  # Pandoc doesn't seem to support .doc, and panflute doesn't like .docx.
     raise RuntimeError(f"Unsupported file extension: .{extension}")
 
 
@@ -90,14 +103,21 @@ def runner(
     # Dynamically import the correct pandoc filter depending on the subject.
     filter_module = importlib.import_module(f"in2lambda.filters.{chosen_filter}.filter")
 
-    with open(question_file, "r", encoding="utf-8") as file:
-        text = file.read()
+
+    if file_type(question_file) == 'docx':
+        # Convert .docx to md using Pandoc and proceed
+        text = docx_to_md(question_file)
+        input_format = "markdown"
+    else:
+        with open(question_file, "r", encoding="utf-8") as file:
+            text = file.read()
+        input_format=file_type(question_file)
 
     # Parse the Pandoc AST using the relevant panflute filter.
     pf.run_filter(
         filter_module.pandoc_filter,
         doc=pf.convert_text(
-            text, input_format=file_type(question_file), standalone=True
+            text, input_format=input_format, standalone=True
         ),
         module=module,
         tex_file=question_file,
@@ -106,13 +126,18 @@ def runner(
 
     # If separate answer TeX file provided, parse that as well.
     if answer_file:
-        with open(answer_file, "r", encoding="utf-8") as file:
-            answer_text = file.read()
+        if file_type(answer_file) == 'docx':
+            answer_text = docx_to_md(answer_file)
+            answer_format = "markdown"
+        else:
+            with open(answer_file, "r", encoding="utf-8") as file:
+                answer_text = file.read()
+            answer_format = file_type(answer_file)
 
         pf.run_filter(
             filter_module.pandoc_filter,
             doc=pf.convert_text(
-                answer_text, input_format=file_type(answer_file), standalone=True
+                answer_text, input_format=answer_format, standalone=True
             ),
             module=module,
             tex_file=answer_file,
