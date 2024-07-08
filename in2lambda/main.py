@@ -8,6 +8,7 @@
 
 import importlib
 import pkgutil
+import subprocess
 from typing import Optional
 
 import panflute as pf
@@ -16,12 +17,12 @@ import rich_click as click
 import in2lambda.filters
 from in2lambda.api.module import Module
 
-import subprocess
 
-#Converts .docx files to markdown
+# Converts .docx files to markdown
 def docx_to_md(docx_file: str) -> str:
-    md_output = subprocess.check_output(['pandoc', docx_file, '-t', 'markdown'])
-    return md_output.decode('utf-8')
+    md_output = subprocess.check_output(["pandoc", docx_file, "-t", "markdown"])
+    return md_output.decode("utf-8")
+
 
 def file_type(file: str) -> str:
     """Determines which pandoc file format to use for a given file.
@@ -102,7 +103,7 @@ def runner(
     # Dynamically import the correct pandoc filter depending on the subject.
     filter_module = importlib.import_module(f"in2lambda.filters.{chosen_filter}.filter")
 
-    if file_type(question_file) == 'docx':
+    if file_type(question_file) == "docx":
         # Convert .docx to md using Pandoc and proceed
         text = docx_to_md(question_file)
         input_format = "markdown"
@@ -115,9 +116,7 @@ def runner(
     # Parse the Pandoc AST using the relevant panflute filter.
     pf.run_filter(
         filter_module.pandoc_filter,
-        doc=pf.convert_text(
-            text, input_format=input_format, standalone=True
-        ),
+        doc=pf.convert_text(text, input_format=input_format, standalone=True),
         module=module,
         tex_file=question_file,
         parsing_answers=False,
@@ -126,7 +125,7 @@ def runner(
     # If separate answer TeX file provided, parse that as well.
     if answer_file:
 
-        if file_type(answer_file) == 'docx':
+        if file_type(answer_file) == "docx":
 
             answer_text = docx_to_md(answer_file)
             answer_format = "markdown"
