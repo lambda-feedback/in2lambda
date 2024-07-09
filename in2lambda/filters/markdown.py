@@ -32,12 +32,12 @@ def image_directories(tex_file: str) -> list[str]:
         >>> temp_dir = tempfile.mkdtemp()
         >>> tex_file = os.path.join(temp_dir, 'test.tex')
         >>> with open(tex_file, 'w') as f:
-        ...     f.write("\graphicspath{{subdir1/}{subdir2/}{subdir3/}}")
+        ...     f.write("\\graphicspath{{subdir1/}{subdir2/}{subdir3/}}")
         45
         >>> image_directories(tex_file)
         ['subdir1/', 'subdir2/', 'subdir3/']
         >>> with open(tex_file, 'w') as f:
-        ...    f.write("\graphicspath{ { subdir1/ }, { subdir2/ }, { subdir3/ } }")
+        ...    f.write("\\graphicspath{ { subdir1/ }, { subdir2/ }, { subdir3/ } }")
         57
         >>> image_directories.cache_clear()
         >>> image_directories(tex_file)
@@ -78,7 +78,7 @@ def image_path(image_name: str, tex_file: str) -> Optional[str]:
         >>> temp_dir = tempfile.mkdtemp()
         >>> tex_file = os.path.join(temp_dir, 'test.tex')
         >>> with open(tex_file, 'w') as f:
-        ...     f.write("\graphicspath{{./subdir1/}{./subdir2/}{./subdir3/}}")
+        ...     f.write("\\graphicspath{{./subdir1/}{./subdir2/}{./subdir3/}}")
         51
         >>> # Example image in a relative subdirectory
         >>> sub_dir = os.path.join(temp_dir, 'subdir3')
