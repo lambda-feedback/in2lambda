@@ -29,7 +29,6 @@ def converter(
     output_question = os.path.join(output_dir, "set")
     os.makedirs(output_question, exist_ok=True)
 
-
     # create directory to put images - should be in set
     output_image = os.path.join(output_question, "media")
     os.makedirs(output_image, exist_ok=True)
@@ -61,7 +60,6 @@ def converter(
 
         # Output file
         filename = "question_" + str(i + 1)
-
 
         # write questions into directory
         with open(f"{output_question}/{filename}.json", "w") as file:
