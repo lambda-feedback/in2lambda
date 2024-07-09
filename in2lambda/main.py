@@ -18,9 +18,13 @@ import in2lambda.filters
 from in2lambda.api.module import Module
 
 
-
-#  Converts .docx files to markdown
 def docx_to_md(docx_file: str) -> str:
+    """Converts .docx files to markdown
+    Args:
+        docx_file: A file path with the file extension included
+    Returns:
+        the contents of the .docx file in markdown formatting 
+    """
     md_output = subprocess.check_output(["pandoc", docx_file, "-t", "markdown"])
     return md_output.decode("utf-8")
 
