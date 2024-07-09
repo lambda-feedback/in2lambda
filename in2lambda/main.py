@@ -17,7 +17,6 @@ import rich_click as click
 import in2lambda.filters
 from in2lambda.api.module import Module
 
-
 def docx_to_md(docx_file: str) -> str:
     """Converts .docx files to markdown
     Args:
