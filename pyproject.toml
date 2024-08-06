@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "in2lambda"
-version = "0.3.2"
+version = "0.3.3"
 description = "Converts content ready for import into Lambda Feedback"
 authors = []
 license = "MIT"
