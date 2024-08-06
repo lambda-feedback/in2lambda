@@ -54,6 +54,7 @@ def converter(
             for j in range(1, len(ListQuestions[i].parts)):
                 output["parts"].append(deepcopy(template["parts"][0]))
                 output["parts"][j]["content"] = ListQuestions[i].parts[j].text
+                output["parts"][j]["orderNumber"] = j
                 output["parts"][j]["workedSolution"]["content"] = (
                     ListQuestions[i].parts[j].worked_solution
                 )
