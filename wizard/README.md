@@ -1,0 +1,1 @@
+This is a folder where we'll generate a 'wizard' to automatically process input documents ready for in2lambda to reacte a JSON (or to directly create a JSON)
