@@ -1,0 +1,13 @@
+langchain
+pandas
+langchain-openai
+pypdf
+chromadb
+langchain_community
+unstructured
+PyMuPDF
+Pillow
+pdfminer.six
+unstructured[pdf]
+ipywidgets
+jupyter
