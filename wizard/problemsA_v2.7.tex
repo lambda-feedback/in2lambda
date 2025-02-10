@@ -1,0 +1,1136 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%	./problemsA.tex										%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    			Imperial College			    		%
+%			Department of Materials			    		%
+% MATE40002 Performance of Structural Materials 		%
+%				Problem Sheet A							%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CHANGES                                       		%
+% v2.0	-combined sheest 1, 2, 3 and RevA into sheet A
+%v2.1 predefined graphics paths
+% v2.2	-implemented optional environments for solutions
+% v2.3	-typo in {A4:sec:DistLoadFrame}
+%		-typo in {A3:sec:frame1}
+% v2.4	-typo in solution of {A3:sec:frame1}
+%		-typo in solution of {A1:sec:equivalentForceCouple1}
+%		-typo and clarification in solution of {A1:sec:towRope}
+% v2.5	-typo in {A1:sec:equivalentForceCouple1}
+% v2.6	-typo in solution for {A:sec:inclined_cylinders}
+% v2.7	-corrected figure {A3:fig:Q8c} in {A3:sec:frame2}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[a4paper,justified,oneside]{tufte-handout}
+\usepackage[none]{hyphenat}
+\usepackage{useful}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+
+\renewcommand\thepart{\Alph{part}}
+\titleformat{\section}[hang]{\normalfont\Large\itshape}{\thepart\thesection}{1em}{}[]		%redefine section heading to include part number
+\titleformat{\subsection}[hang]{\normalfont\large\itshape}{Problem \thepart\thesubsection}{1em}{}[]		%redefine subsection heading to include part number
+
+\renewcommand{\labelenumi}{\alph{enumi})}
+\renewcommand{\labelenumii}{\roman{enumii}.}
+\numberwithin{equation}{subsection}
+\graphicspath{{./img/P1/},{./img/P2/},{./img/P3/},{./img/RA/}}
+
+\includecomment{solution}			%this will add the solutions
+%\excludecomment{solution}			%this will remove the solutions
+
+\begin{document}
+	
+\widowpenalty1000			%penalise widows (max=10000)
+\clubpenalty1000			%penalise orphans (max=10000)
+%	\renewcommand{\partname}{Lecture}
+
+\title[MATE40002 Mechanics; Problem Sheet A]{\textsc{Engineering Mechanics}
+\thanks{\allcaps{MATE40002}: \textsc{Performance of Structural Materials}}\\Problem Sheet A}
+
+\author[Jonathan Rackham]{Jonathan Rackham\thanks{v2.7\\All corrections to\\ j.rackham@imperial.ac.uk}}
+
+\maketitle
+
+\part{Rigid Bodies: Newton's Laws \& Equilibria}
+\section{Resolving Forces \& Resultants}
+
+\subsection{}
+A builder pulls with a force of \SI{300}{\N} on a rope attached to a building as shown in figure~\ref{A1:fig:Q1a}. What are the horizontal and vertical components of the force exerted by the rope at the point A?
+\begin{figure}
+	\centering
+	\includegraphics[width=0.6\columnwidth]{problem1_1a.png}
+	\caption{A builder applying \SI{300}{\N} to a building using a rope.}
+	\label{A1:fig:Q1a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+The angle $\alpha$ between the rope and the horizontal line can be calculated using the relation between $\tan\alpha$ and the lengths of the sides of the right angled triangle as shown in figure~\ref{A1:fig:Q1b},
+\begin{align*}
+	\tan\alpha	&=\frac{\SI{6}{\m}}{\SI{8}{\m}}\\
+				&=0.75 \, ,	
+\end{align*}
+from which $\alpha=\ang{36.87}$.
+\begin{marginfigure}
+\centering
+\includegraphics[width=\columnwidth]{problem1_1b.png}
+\caption{The right angle triangle formed by the rope.}
+\label{A1:fig:Q1b}
+\end{marginfigure}
+
+The horizontal component, $F_H$, is the magnitude of the force projected onto the horizontal axis,
+\begin{align*}
+	F_H	&=\SI{300}{\N} \cos\alpha \\
+		&= \SI{240}{\N} \,,
+\end{align*} and the vertical component, $F_V$, is the magnitude of the force projected onto the vertical axis, 
+\begin{align*}
+	F_V	&=\SI{300}{\N} \sin\alpha \\
+		&= \SI{180}{\N}\, .
+\end{align*}
+\clearpage
+\end{solution}
+
+\subsection{}
+Four forces act on a bolt as shown in figure~\ref{A1:fig:Q2}. Determine the resultant of the forces on the bolt.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.65\columnwidth]{problem1_2.png}
+	\caption{A bolt with four forces acting on it.}
+	\label{A1:fig:Q2}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+To obtain the resultant force, the projection of the resultant on the vertical and horizontal axes is determined as the sum of the projections of the four forces onto the respective axes,
+\begin{align*}
+	R_H	&=	F_1 \cos\ang{30} - F_2\sin\ang{20} + F_4 \cos\ang{15}\\
+		&=	\SI{199.1}{\N}	\,,\\
+	R_V	&=	F_1 \sin\ang{30} +F_2 \cos\ang{20}-F_3 -F_4\sin\ang{15}\\
+		&=	\SI{14.3}{\N} \, .
+\end{align*}
+The angle with the horizontal then follows from
+\begin{align*}
+	\frac{R_V}{R_H}	&=	\frac{R\sin\alpha}{R\cos\alpha}\\
+					&=	\tan\alpha \\
+					&=0.0718\, .
+\end{align*}
+Hence, $\alpha=\ang{4.1}$. The magnitude of the resultant follows from,
+\begin{align*}
+	|R|	&=\sqrt{R_H^2+R_V^2}\\
+			&=	\SI{199.6}{\N}
+\end{align*}
+\clearpage
+\end{solution}
+
+\subsection{}\label{A1:sec:towRope}
+A car is being towed with two ropes as shown in figure~\ref{A1:fig:Q3}. If the resultant of the two forces is a \SI{30}{\N} force parallel to the long axis of the car, find:
+\begin{enumerate}
+	\item the tension in each of the ropes, if $\alpha = \ang{30}$.
+	\item the value of $\alpha$ such that the tension in rope, $T_2$ is minimal.
+\end{enumerate}
+\begin{marginfigure}[-20mm]
+	\centering
+	\includegraphics[width=\columnwidth]{problem1_3.png}
+	\caption{A car with two tow ropes attached.}
+	\label{A1:fig:Q3}
+\end{marginfigure}
+
+\begin{solution}
+\paragraph{Solution}
+In order for the resultant force to be a force with magnitude \SI{30}{\N} oriented along the horizontal, the following conditions must be true,
+\begin{align}
+	T_2 \cos\alpha + T_1 \cos\ang{20} &= \SI{30}{\N}	\\
+	T_2 \sin\alpha - T_1 \sin\ang{20} &= 0 \,.
+\end{align}
+Hence,
+\begin{align}
+	T_2	&=	T_1\frac{\sin\ang{20}}{\sin\alpha}	\label{A1:eq:Q3:T1}\\
+	\left(	T_1 \frac{\sin\ang{20}}{\sin\alpha}	\right) \cos\alpha &+ T_1\cos\ang{20} = \SI{30}{\N}	\nonumber \\
+	T_1	&=	\frac{\SI{30}{\N}}{\frac{\sin\ang{20}}{\tan\alpha} + \cos\ang{20}}	\,. \label{A1:eq:Q3:T2}
+\end{align}
+When $\alpha=\ang{30}$, this yields
+\begin{align*}
+	T_1&=\SI{19.58}{\N}\\
+	T_2&=\SI{13.39}{\N}
+\end{align*}
+
+Substituting the expression for $T_1$, equation~\ref{A1:eq:Q3:T1}, into the expression for $T_2$, equation~\ref{A1:eq:Q3:T2} allows us to determine $T_2$ as a function of $\alpha$,
+\begin{align}
+	T_2	&=\frac{\SI{30}{\N}}{\frac{\sin\ang{20}}{\tan\alpha} + \cos\ang{20}}	\frac{\sin\ang{20}}{\sin\alpha}	\nonumber	\\
+		&=\frac{\SI{30}{\N}}	{\sin\ang{20}\frac{\cos\alpha}{\sin\alpha} + \cos\ang{20}}	\frac{\sin\ang{20}}{\sin\alpha}	\nonumber \\
+		&=\frac{\SI{30}{\N}}	{\sin\ang{20}\frac{\cos\alpha}{\sin\alpha}\frac{\sin\alpha}{\sin\ang{20}} + \cos\ang{20}\frac{\sin\alpha}{\sin\ang{20}}}	\nonumber \\
+		&=\frac{\SI{30}{\N}}	{\cancel{\sin\ang{20}}	\frac{\cos\alpha}	{\cancel{\sin\alpha}}	\frac{\cancel{\sin\alpha}}{\cancel{\sin\ang{20}}} + \cos\ang{20}\frac{\sin\alpha}{\sin\ang{20}}}	\nonumber \\
+		&=\frac{\SI{30}{\N}}{\cos\alpha + \frac{\sin\alpha}{\tan\ang{20}}} \,.
+\end{align}
+Examining the form of this, we can see that $T_2$ will be minimal at $\alpha_{min}$ when $\left(\cos\alpha + \frac{\sin\alpha}{\tan\ang{20}}\right)$ is maximal. Searching for maximal stationary points in the usual manner,
+\begin{align}
+	\frac{\mathrm{d}}{\mathrm{d}\alpha} \left(\cos\alpha + \frac{\sin\alpha}{\tan\ang{20}}\right)	&=	0	\nonumber\\
+		&=	-\sin\alpha_{min} +\frac{\cos\alpha_{min}}{\tan\ang{20}}	\nonumber	\\
+		\tan\alpha_{min}	&=	\frac{1}{\tan\ang{20}}	\label{A1:eq:Q3:alpha}\\
+		\Rightarrow\,\alpha_{min} &= \ang{70} \nonumber
+\end{align}
+Hence, $T_2$ is minimal when $T_2$ is perpendicular to $T_1$.\sidenote[][]{This is true for all angles of $T_2$, see if you can convince yourself of this by examining equation~\ref{A1:eq:Q3:alpha} analytically.}
+\clearpage
+\end{solution}
+
+\subsection{}
+A \SI{30}{\N} force acts on the end of a \SI{3}{\m} lever as shown in figure~\ref{A1:fig:Q4a}. Determine the moment of the force about the point O.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem1_4a.png}
+	\caption{A lever with a single force acting on it.}
+	\label{A1:fig:Q4a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+We can make many problems easier by choosing a suitable set of axes. Looking at the special directions of this system, we can choose to orient the x-axis parallel to the line connecting point $O$ and the point where the force acts and the y-axis perpendicular to this, as shown in figure~\ref{A1:fig:Q4b}. The moment of the force is then given by
+\begin{align*}
+	M	&=	F_y\, d	\\
+		&=	\SI{30}{\N} \sin\ang{20} \SI{3}{\m}\\
+		&=	\SI{30.8}{\N} \,.
+\end{align*}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem1_4b.png}
+	\caption{The x-axis oriented parallel to the line between $O$ and the force's point of action.}
+	\label{A1:fig:Q4b}
+\end{figure}
+We can think of this in two ways. From one viewpoint the moment is the component of the force parallel to the y-axis, multiplied by the distance from the pivot. From the other viewpoint, the moment is the whole force multiple by the perpendicular distance from the pivot. Note that these are equivalent, it just depends where you choose to group the $\sin\ang{20}$ term. This is because only the component of the force that is non-parallel to the line joining the point of action and the pivot will induce rotation.
+\clearpage
+\end{solution}
+
+\subsection{}\label{A1:sec:equivalentForceCouple1}
+A \SI{4.8}{\m} beam is subjected to the system of forces as shown in figure~\ref{A1:fig:Q5a}. Reduce the given system of forces to \marginnote{NOTE: the reactions of the supports are \textbf{NOT} included in this given system of forces and therefore the beam will not be in equilibrium.}
+\begin{enumerate}
+	\item an equivalent force--couple system at A.
+	\item an equivalent force--couple system at B.
+	\item a single force or resultant.
+\end{enumerate}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem1_5a.pdf}
+	\caption{A beam with a system of forces acting on it. The left hand end of the beam is labelled \emph{A} and the right hand end of the beam is labelled \emph{B}.}
+	\label{A1:fig:Q5a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+The first step is to calculate the resultant force. This is common to all three parts of the problem. Choosing the x-axis to be parallel to the beam, and the y-axis perpendicular to the beam, the resultant is found to be
+\begin{align*}
+	R\left(\rightarrow\right):	\sum\, F_x	&= 0	\\
+	R\left(\uparrow\right):	\sum\, F_y		&= \SI{150}{\N} - \SI{600}{\N} + \SI{100}{\N} - \SI{250}{\N}	\\	
+											&=	\SI{-600}{\N}
+\end{align*}
+As all forces are acting perpendicular to the beam, the moment due to each force is the product of the force magnitude and the distance between the point of action and the pivot. Hence, the moment about the point $A$ is given by
+\begin{align*}
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}: M_A 	&=	\SI{-150}{\N}\times \SI{0}{\m} + \SI{600}{\N}\times \SI{1.6}{\m} - \SI{100}{\N}\times \SI{2.8}{\m} + \SI{250}{\N} \times \SI{4.8}{\m}	\\
+																						&=	\SI{1880}{\N\m}
+\end{align*}
+Hence, the loading shown in figure~\ref{A1:fig:Q5a} is equivalent to a force of \SI{600}{\N} downwards and a couple of \SI{1880}{\N\m} acting clockwise about $A$.
+
+For the equivalent force-couple system evaluated at the point B, the resultant force is the same but a new equivalent couple must be calculated.
+\begin{align*}
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{B}\raisebox{1.5pt}{\big)}: M_B 	&=	\SI{150}{\N}\times \SI{4.8}{\m} - \SI{600}{\N}\times \SI{3.2}{\m} + \SI{100}{\N}\times \SI{2}{\m} - \SI{250}{\N} \times \SI{0}{\m}	\\
+	&=	\SI{-1000}{\N\m}
+\end{align*}
+Hence, the loading shown in figure~\ref{A1:fig:Q5a} is equivalent to a force of \SI{600}{\N} downwards and a couple of \SI{1000}{\N\m} acting anticlockwise about $B$.
+
+To reduce the system of forces shown in figure~\ref{A1:fig:Q5a} to a single resultant force with no couple, we must consider the resultant force to act at some unknown point $X$ a distance $x$ \si{\m} from $A$ where the equivalent couple of the system is zero as shown in figure~\ref{A1:fig:Q5b}.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem1_5b.pdf}
+	\caption{The same beam as shown in figure~\protect\ref{A1:fig:Q5a} with the new point $X$ marked. The moment about $X$ is required to be zero.}
+	\label{A1:fig:Q5b}
+\end{figure}
+
+Before embarking on this, let us check that such a point exists. We can see that the resultant couple at $A$ is positive and the resultant couple at $B$ is negative, so there must be a point between $A$ and $B$ where the equivalent couple is zero. Great, now to work out where $X$ is!
+
+As in the last two scenarios, the value of the resultant force remains unchanged at \SI{600}{\N} downwards so the resultant moment about $X$ is given by
+\begin{align*}
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{X}\raisebox{1.5pt}{\big)}: M_X 	&=	\SI{150}{\N}\times x \, \si{\m} + \SI{600}{\N}\times (1.6-x) \, \si{\m}\\
+																						&\qquad	- \SI{100}{\N}\times (2.8-x) \, \si{\m} + \SI{250}{\N} \times (4.8-x) \, \si{\m}	\\
+																						&=	0\,,
+\end{align*}
+which can be rearranged for $x$ to give
+\begin{align}
+	x	&=	\frac{-(600\times 1.6 -100\times 2.8 + 250\times 4.8)\, \si{\N}}{(150 -600 +100-250) \, \si{\m}}	\\
+		&=	\frac{\SI{-1880}{\N\m}}{\SI{-600}{\N}}
+		&=	\SI{3.13}{\m}
+\end{align}
+
+Note that $X$, as shown in figure~\ref{A1:fig:Q5c}, is much further towards $B$ than is shown in figure~\ref{A1:fig:Q5b}. Nonetheless, by consistently applying our chosen sign convention the vectors took care of themselves and we arrived at the correct answer.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem1_5c.pdf}
+	\caption{The system of forces shown in figure~\protect\ref{A1:fig:Q5a} is equivalent to a force of \SI{600}{\N} acting \SI{3.13}{\m} from $A$.}
+	\label{A1:fig:Q5c}
+\end{figure}
+\clearpage
+\end{solution}
+
+\subsection{}
+A beam of length \SI{4}{\m} is loaded in the various ways shown in figure~\ref{A1:fig:Q6a}. Find the two loadings which are equivalent.
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem1_6a.png}
+	\caption{A beam with various loads applied.}
+	\label{A1:fig:Q6a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+To consider whether different loading systems are statically equivalent, it is convenient to consider the effect about a single common reference point by calculating the equivalent force-couple resultant. This requires moving the point at which forces act and hence accounting for the moment such forces induce about the reference point. A detailed procedure for case \textit{(a)} is shown in figure~\ref{A1:fig:Q6b}.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem1_6b.pdf}
+	\caption{Various equivalent force-couple systems that are equivalent to that shown in figure~\protect\ref{A1:fig:Q6a}a. The end goal is to find an equivalent force-couple resultant acting on the left-hand end of the beam.}
+	\label{A1:fig:Q6b}
+\end{figure}
+The moment of \SI{1500}{\N\m} is equivalent to a set of forces acting at either end of the beam, one acting upward and one acting downward so as to have no net resultant force.\sidenote[][0mm]{This pair of forces are a \emph{couple}.} The magnitude of this force is given by
+\begin{align*}
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{R}\raisebox{1.5pt}{\big)}: M_R	&=	 \SI{1500}{\N\m}	\\
+																						&=	F \times \SI{4}{\m}	\\
+																	\\Rightarrow	F	&=	\frac{\SI{1500}{\N\m}}{\SI{4}{\m}}	\\
+																						&=	\SI{375}{\N} \,
+\end{align*}
+and to ensure that this set of forces induce a moment of the right `sense' they should be acting on the beam as shown in figure~\ref{A1:fig:Q6b}b. Now, the resultant of the two forces gripping on the right hand side is calculated as
+\begin{align*}
+	R\left(\uparrow\right):	R	&=	\SI{-500}{\N} - \SI{375}{\N}	\\	
+								&=	\SI{-875}{\N} \,,
+\end{align*}
+giving us the force-couple system shown in figure~\ref{A1:fig:Q6b}c.
+
+By calculating the moment about the left-hand end of the beam induced by the above resultant, we can move the point of action for this force to the left-hand end as shown in figure~\ref{A1:fig:Q6b}d.
+\begin{align*}
+		M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{L}\raisebox{1.5pt}{\big)}: M_L	&=	\SI{875}{\N} \times \SI{4}{\m}	\\
+																							&=	\SI{3500}{\N\m} \,
+\end{align*}
+where the moment is found to be positive as it would induce a clockwise rotation. In the final step, the resultant of the forces acting on the left-hand end of the beam is calculated,
+\begin{align*}
+	R\left(\uparrow\right): L	&=	\SI{-875}{\N} + \SI{375}{\N}	\\
+								&=	\SI{-500}{\N} \,.
+\end{align*}
+Hence, the resultant force-couple system at the left-hand end of the beam is \SI{500}{\N} acting downwards and a moment of \SI{3500}{\N\m} acting clockwise.
+
+We could have achieved the same result quicker by moving the force to act at the left-hand end of the beam and adding a balancing moment. The moment about the left-hand end of the beam due to the \SI{500}{\N} force is $\SI{500}{\N}\times\SI{4}{\m}=\SI{2000}{\N\m}$ acting clockwise. Adding this directly to the moment already acting,\sidenote[][0mm]{This is possible because, when a moment is applied to a body, it does not matter where it acts: it has the same effect at any point on the body.} we find a resultant moment of 
+\begin{align*}
+	M_L	&=	\SI{1500}{\N\m}	+	\SI{500}{\N}\times\SI{4}{\m}	\\	
+		&=	\SI{3500}{\N\m} \,,
+\end{align*}
+with the same \SI{500}{\N} resultant force.
+
+Applying either method to all the loading scenarios yields the results shown in figure~\ref{A1:fig:Q6c}, showing scenarios \textit{(c)} and \textit{(f)} to be equivalent.
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem1_6c.png}
+	\caption{Equivalent force-couple systems for figure~\protect\ref{A1:fig:Q6a} acting at the left-hand end of the beam.}
+	\label{A1:fig:Q6c}
+\end{figure}
+%\clearpage
+\end{solution}
+
+\clearpage
+\section{Structures in Equilibrium}
+
+\subsection{}
+Two forces, $P$ and $Q$ of magnitude $P=\SI{100}{\N}$ and $Q=\SI{120}{\N}$ are applied to the aircraft connection shown in figure~\ref{A2:fig:Q1}. Knowing that the connection is in equilibrium, determine the tensions $T_1$ and $T_2$.
+\begin{marginfigure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_1.png}
+	\caption{An aircraft connection with four applied loads.}
+	\label{A2:fig:Q1}
+\end{marginfigure}
+
+\begin{solution}
+\paragraph{Solution}
+Equilibrium requires that there is no net force in any direction and no net moment. However, it is clear that the line of action of all forces intersect in a common point, hence the system of forces cannot cause any rotation. Furthermore, all forces act within the plane of the paper, hence the only remaining equations for equilibrium are
+\begin{align*}
+	\sum F_x&=0	\,,\\
+	\sum F_y&=0 \,.
+\end{align*}
+
+Choosing the $x$-axis paralleltwith the line of action of $T_1$ and the y-axis perpendicular with this, \textit{i.e.}~ along the line of action of $P$ but acting upwards, the equilibrium equations can be made explicit as
+\begin{alignat*}{2}
+	\sum F_x	&=	-Q\cos\ang{15}	+T_2\cos\ang{60}	+T_1	&=	0 \,,	\\
+	\sum F_y	&=	Q\sin\ang{15}	+T_2\sin\ang{60}	-P	&=	0 \,.
+\end{alignat*}
+
+Solving this for $T_1$ and $T_2$ yields
+\begin{align*}
+	T_2	&= \frac{P-Q\sin\ang{15}}{\sin\ang{60}}	\\
+		&=	\frac{\SI{100}{\N}	-\SI{120}{\N} \times 0.2588}{\frac{\sqrt{3}}{2}}	\\
+		&=	\SI{79.16}{\N}	\,,	\\
+	T_1	&=	Q\cos\ang{15}	-T_2\cos\ang{60}	\\
+		&=	\SI{120}{\N} \times 0.966	-\frac{\SI{79.16}{\N}}{2}	\\
+		&=	\SI{76.11}{\N} \,.
+\end{align*}
+\clearpage
+\end{solution}
+
+\subsection{}
+A cantilever beam is loaded as shown in figure~\ref{A2:fig:Q2a}. The beam is fixed at the left hand end and is free at the right hand end. Determine the reaction at the fixed end.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\columnwidth]{problem2_2a.png}
+	\caption{A cantilever beam with a system of applied loads.}
+	\label{A2:fig:Q2a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+To find the reaction in the fixed end, a \emph{free body diagram} of the loading scenario is drawn, as shown in figure~\ref{A2:fig:Q2b}. A fixed end stops displacements occurring in both the vertical and horizontal directions thus yielding a reaction in both these direction, $R_x$, $R_y$. A fixed end also stops rotations from occurring and hence will also impart a reaction moment if required, $M_z$. 
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem2_2b.png}
+	\caption{A free body diagram representation for figure~\protect\ref{A2:fig:Q2a} with reactions from the fixed end of the beam.}
+	\label{A2:fig:Q2b}
+\end{figure}
+
+To solve for $R_x$, $R_y$ and $M_z$, we use the equilibrium equation,
+\begin{align*}
+	R\left(\rightarrow\right):\quad -R_x &= 0
+	\Rightarrow R_x					&=	0	\\
+	R\left(\uparrow\right):\quad	R_y		&=	\SI{800}{\N}	+\SI{400}{\N}	+\SI{200}{\N}	\\
+									&=	\SI{1400}{\N}	\\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{\text{Fixed}}\raisebox{1.5pt}{\big)}:\quad 0	&=	M_z	+\SI{800}{\N} \times \SI{1.5}{\m}	+\SI{400}{\N} \times \SI{4}{\m}	+\SI{200}{\N} \times \SI{6}{\m}	\\
+						\Rightarrow	M_z	&=	\SI{-4000}{\N\m} \,.
+\end{align*}
+\clearpage
+\end{solution}
+
+\subsection{}
+A \SI{100}{\N} force acts on a block of weight \SI{300}{\N} placed on an inclined plane as shown in figure~\ref{A2:fig:Q3a}. The coefficient of static friction between the block and the plane is $\mu=0.25$. Determine whether the block is in equilibrium.
+\begin{marginfigure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_3a.png}
+	\caption{A block placed on a rough inclined plane.}
+	\label{A2:fig:Q3a}
+\end{marginfigure}
+
+\begin{solution}
+\paragraph{Solution}
+To ascertain whether the block is in equilibrium, first the situation is translated into a free body diagram where the support of the slope, $R$, and the contribution from friction, $R_F$ are added, as shown in figure~\ref{A2:fig:Q3b}.
+\begin{marginfigure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_3b.png}
+	\caption{A free body diagram for figure~\protect\ref{A2:fig:Q3a}.}
+	\label{A2:fig:Q3b}
+\end{marginfigure}
+Choosing the x-axis parallel to the slope, and the y-axis perpendicular to it, the equilibrium relations give
+\begin{align*}
+	\sum F_x	&=	0	\\
+				&= \SI{100}{\N} -\SI{300}{\N}\sin\alpha	+R_F	\,,	\\
+	\sum F_y	&=	0	\\
+				&=	R	-\SI{300}{\N}\cos\alpha	\,.
+\end{align*}
+Solving for $R$ and $R_F$ we find $R=\SI{240}{\N}$ and $R_F=\SI{80}{\N}$. However, if $R_F$ is due to static friction, then the maximum value it can exert is given by
+\begin{align*}
+	R_{F,max}	&=	\mu R	\\
+				&=	0.25	\times \SI{240}{\N}	\\
+				&=	\SI{60}{\N} \,.
+\end{align*}
+This is less than the value required for equilibrium and hence the block will slide down the inclined plane.
+\clearpage
+\end{solution}
+
+\subsection{}
+A \SI{10}{\kg} joist of length \SI{4}{\m} is raised by pulling on a rope as shown in figure~\ref{A2:fig:Q4a}. Find the tension $T$ in the rope and the reaction force(s) at point A.
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_4a.png}
+	\caption{A joist being lifted by pulling on a rope.}
+	\label{A2:fig:Q4a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+To find the tension $T$ and the reaction(s) at A, we must first express the mass of the beam (\SI{10}{\kg}) as a force, its \emph{weight}. In the gravitational field of the Earth, a \SI{10}{\kg} mass would experience an acceleration of \SI{9.8}{\m\s^{-2}} and hence an force of $\SI{10}{\kg} \times \SI{9.8}{\m\s^{-2}} = \SI{98}{\N}$ acting directly downwards. This force will act at the centre of mass which is, by symmetry, located halfway along the joist. Hence the free body diagram is as shown in figure~\ref{A2:fig:Q4b}.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\columnwidth]{problem2_4b.png}
+	\caption{The free body diagram for the joist shown in figure~\protect\ref{A2:fig:Q4a}.}
+	\label{A2:fig:Q4b}
+\end{figure}
+
+Applying the equilibrium equations yields
+\begin{align*}
+	\sum F_x	&=	0	\\
+				&=	-T\cos\ang{15}	-R_{Ax}	\\
+	\sum F_y	&=	0	\\
+				&=	-T\sin\ang{15}	-R_{Ay}	-\SI{98}{\N}	\\
+	\left(\sum M_z\right)_A	&=	0	\\
+							&=	\SI{98}{\N} \times \SI{2}{\m} \cos\ang{45}	-T\sin\ang{30} \times \SI{4}{\m}
+\end{align*}
+
+Solving for $R_{Ax}$, $R_{Ay}$ and T yields,
+\begin{align*}
+	T		&=	\SI{98}{\N} \frac{\SI{2}{\m}}{\SI{4}{\m}} \frac{\cos\ang{45}}{\sin\ang{30}}	\\
+			&=	\frac{\SI{98}{\N}}{\sqrt{2}}	\\
+			&=	\SI{69.3}{\N}	\,,	\\
+	R_{Ax}	&=	-T\cos\ang{15}	\\	
+			&=	\SI{-69.3} \times 0.966	\\
+			&=	\SI{-66.9}{\N}	\,,	\\
+	R_{Ay}	&=	-T\sin\ang{15} -\SI{98}{\N}	\\
+			&=	\SI{-69.3}{\N} \times 0.259 -\SI{98}{\N}	\\
+			&=	\SI{-115.9}{\N}	\,.
+\end{align*}
+Hence, the tension in the rope is as drawn in figure~\ref{A2:fig:Q4b}, but the negative values for the reactions at A suggest the action action of both reactions is in the opposite direction. 
+%\clearpage
+\end{solution}
+
+\clearpage
+\section{Method of Joints}
+\subsection{}
+Using the method of joints, determine the force in each member of the truss as shown in figure~\ref{A3:fig:Q5a}.
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_5a.png}
+	\caption{A truss with a system of supports and applied loads.}
+	\label{A3:fig:Q5a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+The first step to find the force in each member of the truss is to replace all supports by their reactions. The roller at $E$ only resist a vertical displacement and hence only gives a vertical reaction, whereas the pivot at $C$ can resist displacements in both the horizontal and vertical direction and hence gives two reactions. For each of reference, each member has been numbered as shown in the free body diagram of the truss, figure~\ref{A3:fig:Q5b}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem2_5b.png}
+	\caption{The free body diagram for the truss shown in figure~\protect\ref{A3:fig:Q5a}.}
+	\label{A3:fig:Q5b}
+\end{figure}
+
+The free body diagram also shows that all the diagonal members form the same angle, $\alpha$, with the horizontal. By examining the dimensions of the truss and forming a right-angle triangle for member $2$, we can see that $\sin\alpha=0.8$ and $\cos\alpha=0.6$.
+
+The next step is to make some starting assumptions about the nature of the forces acting on each of the members. It is assumed here that all members are in tension, \textit{i.e.}~a force is pulling at either end. Hence, by Newton III, each of the members pulls on the joints to which it is attached.
+
+Then, we note that for overall equilibrium to be achieved, we require each joint to individually be in equilibrium. Hence we can write down two equilibrium equations for each joint
+
+\begin{align*}
+	\text{A:}\quad	\sum F_x	&=	F_1 + F_2\cos\alpha = 0	\\
+					\sum F_y	&=	\SI{-2000}{\N} -F_2\sin\alpha = 0	\\
+	\\
+	\text{B:}\quad	\sum F_x	&=	-F_1	+F_6	-F_3 \cos\alpha	+F_5\cos\alpha	=0	\\
+					\sum F_y	&=	-\SI{1000}{\N}	-F_3\sin\alpha	-F_5\sin\alpha	=0	\\
+	\\
+	\text{C:}\quad	\sum F_x	&=	-F_6	+R_2	-F_7\cos\alpha	=0	\\
+					\sum F_y	&=	R_3	-F_7\sin\alpha	=0	\\
+	\\	
+	\text{D:}\quad	\sum F_x	&=	-F_2\cos\alpha	+F_3\cos\alpha	+F_4	=0	\\
+					\sum F_y	&=	F_2\sin\alpha	+F_3\sin\alpha	=0	\\
+	\\
+	\text{E:}\quad	\sum F_x	&=	-F_4	-F_5\cos\alpha+F_7\cos\alpha	=0	\\
+					\sum F_y	&=	F_5\sin\alpha	+F_7\sin\alpha	+R_1	=0	\\
+\end{align*}
+
+This is a set of 10 equations with 10 unknowns and therefore it is not impossible to solve.\sidenote[][-10mm]{Having the same number of equations as unknown is a requirement but is not sufficient to ensure a solution. Linear dependence between equations can mean that there are effectively fewer equations than unknowns and a full solution is not possible.} We could test this in advance by checking whether the truss is statically determinate as predicted by the criterion $m+r=2j$.\sidenote[][0mm]{This is described in section~A2.4 of the handout.}
+
+Solving by substitution yields
+\begin{align*}
+	\text{From A:}\quad	F_2	&=	\SI{-2000}{\N} \times \frac{10}{8}	\\
+							&=	\SI{-2500}{\N}	\\
+						F_1	&=	-F_2 \sin\alpha	\\
+							&=	\SI{2500}{\N} \times 	\frac{6}{10}	\\
+							&=	\SI{1500}{\N}	\\
+	\text{From D:}\quad	F_3	&=	-\frac{F_2\sin\alpha}{\sin\alpha}	\\
+							&=	-F_2	\\
+							&=	\SI{2500}{\N}	\\
+						F_4	&=	F_2\cos\alpha	-F_3\cos\alpha	\\
+							&=	\SI{-2500}{\N} \times\frac{6}{10}	-\SI{2500}{\N}	\times\frac{6}{10}	\\
+							&=	\SI{-3000}{\N}	\\
+	\text{From B:}\quad	F_5	&=	\frac{-\SI{1000}{\N} -F_3\sin\alpha}{\sin\alpha}	\\
+							&=	\SI{-1000}{\N}\times\frac{10}{8}	-\SI{2500}{\N}	\\
+							&=	\SI{-3750}{\N}	\\
+						F_6	&=	F_1	+F_3\cos\alpha	+F_5\cos\alpha	\\
+							&=	\SI{1500}{\N}	+\SI{2500}{\N}\times\frac{6}{10}	-\SI{3750}{\N}\times\frac{6}{10}	\\
+							&=	\SI{5250}{\N}	\\
+	\text{From E:}\quad	F_7	&=	\frac{F_4 +F_5\cos\alpha}{\cos\alpha}	\\
+							&=	\SI{-3000}{\N}	\times\frac{10}{6}	-\SI{3750}{\N}	\\
+							&=	\SI{-8750}{\N}	\\
+						R_1	&=	-F_5\sin\alpha	-F_7\sin\alpha	\\
+							&=	\SI{3750}{\N}	\times \frac{8}{10}	+\SI{8750}{\N}	\times\frac{8}{10}	\\
+							&=	\SI{10000}{\N}	\\
+	\text{From C:}\quad	R_2	&=	F_6	+F_7\cos\alpha	\\
+							&=	\SI{5250}{\N}	-\SI{8750}{\N}	\times\frac{6}{10}	\\
+							&=	\SI{0}{\N}	\\
+						R_3	&=	F_7\sin\alpha	\\
+							&=	\SI{-8750}{\N}	\times\frac{8}{10}	\\
+							&=	\SI{-7000}{\N}
+\end{align*}
+
+Using these results the distribution of the members in tension and compression can be found and the reactions can be adapted to show the direction in which they act. An updated free body diagram in shown in figure~\ref{A3:fig:Q5c}. Note that the top members are all in tension, the bottom member is in compression and the diagonal members are alternately in tension and compression. This arises because the applied loads try top \emph{bend} the truss thereby attempting to elongate the top and shorten the bottom. Member~7 is an exception to the alternating loading of diagonal members as it is being compressed by the two reaction forces $R_1$ and $R_3$ and does not take part in the bending.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\columnwidth]{problem2_5c.png}
+	\caption{An updated free body diagram for the truss showing the type of load in each member (+ indicated tension) and the direction in which the reactions act.}
+	\label{A3:fig:Q5c}
+\end{figure}
+\clearpage
+\end{solution}
+
+\subsection{}
+\begin{enumerate}
+	\item Examine the trusses shown in figure~\ref{A3:fig:Q6ab} and explain, without calculation, which members you believe will be in tension and which in compression.
+	\item Using the method of joints, calculate the force in each member of the two trusses.
+	\item Compare your results and, if they differ, consider why.
+\end{enumerate}
+\begin{figure}
+	\centering
+%	\includegraphics[width=0.45\columnwidth]{problem2_6a.png}\qquad
+%	\includegraphics[width=0.45\columnwidth]{problem2_6b.png}
+	\includegraphics[width=0.7\columnwidth]{problem2_6a.png}\\
+	\includegraphics[width=0.6\columnwidth]{problem2_6b.png}
+	\caption{Two trusses to qualitatively and quantitatively evaluate.}
+	\label{A3:fig:Q6ab}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+To determine whether a member will be in tension or compression we must consider the expected deformation of the structure. For the first truss, the weight pulling down on the structure will attempt to elongate the diagonal members and hence these are expected to be in tension. Note how they are also expected to rotate as they elongate as shown by the dotted lines in figure~\ref{A3:fig:Q6c}.
+\begin{marginfigure}[20mm]
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_6c.png}
+	\caption{A qualitative evaluation of the first truss with the expected deformations indicated with dotted lines.}
+	\label{A3:fig:Q6c}
+\end{marginfigure}
+
+Predicting the type of load in horizontal member is a little more tricky. If the member is in tension then this is will be moving the supports further apart effectively elongating the diagonal members or lifting the load upward if the diagonal members are considered to be of fixed length. Both of these would require an addition of energy into the system, the opposite of what would be expected. If the member is in compression then the reverse would happen, either the elongation of the diagonal members would reduce or the load would be lowered, both lower energy states. Hence we would expect the horizontal member to be in compression.
+
+To convince ourselves of our analysis, let us consider the joint at the bottom of the triangle. The two members are expected to be in tension, pulled by the joint, and hence by Newton III the joint is pulling back on these members. A free body diagram for this joint is shown in figure~\ref{A3:fig:Q6d}. The equilibrium equations are thus
+\begin{align*}
+	R(\rightarrow):\quad	0&=	-A\cos\alpha	+B\cos\beta	\,,	\\
+	R(\uparrow):\quad		0&=	A\sin\alpha+B\sin\alpha-17640	\,,	
+\end{align*}
+\begin{marginfigure}[-20mm]
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_6d.png}
+	\caption{A free body diagram for the joint at the bottom of the truss.}
+	\label{A3:fig:Q6d}
+\end{marginfigure}
+and solving for $A$ and $B$ yields
+\begin{align*}
+		B	&=	A\frac{\cos\alpha}{\cos\beta}	\\
+	17640	&=	A\sin\alpha	-B\sin\beta	\\
+			&=	A\sin\alpha	+A\frac{\cos\alpha\sin\beta}{\cos\beta}	\\
+			&=	A\left(\sin\alpha	+\cos\alpha\tan\beta\right)	\\
+		A	&=	\frac{17640}{\sin\alpha	+\cos\alpha\tan\beta}	\\
+			&=	\frac{\SI{17640}{\N}}{\frac{3}{5}	+\frac{4}{5}\times \frac{3}{8}}	\\
+			&=	\SI{19600}{\N} \,,	\\
+		B	&=	\SI{19600}{\N} \times\frac{4}{5} \times\frac{\sqrt{73}}{8}	\\
+			&=	\SI{16746}{\N}	\,.
+\end{align*}
+The fact that both values are positive confirms that the members are indeed in tension.
+
+For the joint in the upper right corner, the member B is again in tension and hence pulls on the joint. Conversely, C is expected to be in compression and hence will push onto the joint. The free body diagram for this joint is shown in figure~\ref{A3:fig:Q6e}.
+\begin{marginfigure}[-20mm]
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_6e.png}
+	\caption{A free body diagram for the joint in the upper right corner.}
+	\label{A3:fig:Q6e}
+\end{marginfigure}
+
+Writing out the equilibrium equations yields
+\begin{align*}
+	R(\rightarrow):\quad	0&=	C	-B\cos\beta	\,,	\\
+	R(\uparrow):\quad		0&=	R_1	-B\sin\beta	\,,	
+\end{align*}
+which can be solved as follows
+\begin{align*}
+	C	&=	B\cos\beta	\\
+		&=	\SI{16746}{\N} \times \frac{8}{\sqrt{73}}	\\
+		&=	\SI{15680}{\N}	\,,	\\
+	R_1	&=	B\sin\beta	\\
+		&=	\SI{16746}{\N}	\times\frac{3}{\sqrt{73}}	\\
+		&=	\SI{5880}{\N}	\,.
+\end{align*}
+Again, the positive value for C confirms that our prediction of a compressive loading was correct.\marginnote[0mm]{If we needed the reactions in the upper left corner then we could solve the equilibrium equations for that joint but these are unnecessary for the purpose of identifying the types of loading present.}
+
+The same techniques can be applied to the second truss. Visualising the anticipated deformation, as shown in figure~\ref{A3:fig:Q6f}, suggests that the beam AB will be elongated while the beam AC will be shortened and that a concurrent shortening of the beam BC will reduce the required changes in length.
+\begin{marginfigure}[-10mm]
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_6f.png}
+	\caption{The anticipated deformation of the second truss in question.}
+	\label{A3:fig:Q6f}
+\end{marginfigure}
+Such reasoning is further helped by realising that, in order for joint A to be in horizontal equilibrium, the forces in AB and AC must be of opposite sign as the both act from the same side of the joint. In contrast, at joint C the forces in BC and AC must be of the same sign to allow horizontal equilibrium.\sidenote[][25mm]{This argument cannot be applied at joint B as there are external reaction forces acting in both the horizontal and vertical directions.} This second argument allows you to determine the relative type of loading in the members. Combining this with the type of loading in a member determined from the earlier deformation argument\sidenote[][0mm]{E.g.~ the compressive loading of the beam AC.} we can confidently identify the type of loads in all three beams.
+
+By applying the method of joints, the actual forces in the members are found as follows,
+\begin{align*}
+	F_{AB}	&=	\frac{F}{\cos\beta\left(\tan\gamma -\tan\beta\right)}	\\
+			&=	3.25 F	\,,	\\
+	F_{AC}	&=	\frac{F}{\cos\gamma\left(\tan\gamma -\tan\beta\right)}	\\
+			&=	3.75 F	\,,	\\
+	F_{BC}	&=	\frac{F}{\tan\gamma -\tan\beta}	\\
+			&=	3 F	\,,	\\		
+\end{align*}
+where $\beta$ and $\gamma$ are defined as shown in figure~\ref{A3:fig:Q6ab}. Again, all forces have positive values, suggesting that the prediction of which members are in tension or compression was correct.
+%\clearpage
+\end{solution}
+
+\clearpage
+\subsection{}\label{A3:sec:frame1}
+Determine the components of the forces acting on each of three members in the frame shown in figure~\ref{A3:fig:Q7a}. The distance between all adjacent joints is $L$.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem2_7a.pdf}
+	\caption{A frame with a single applied load $W$. The distance between all adjacent joints is $L$.}
+	\label{A3:fig:Q7a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+Before we begin, we must note that this is a frame, not a truss and so not all forces are applied at joints between beams. Thus, when we use the method of joints, we cannot assume that the forces acting on a beam will act along the length of the beam.
+
+We start by finding the reaction forces that keep the frame as a whole in equilibrium,
+\begin{align*}
+	R(\uparrow):\quad	0	&=	N_A	+N_E	-W	\\
+	R(\rightarrow):\quad	0	&=	R	\\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{\text{A}}\raisebox{1.5pt}{\big)}:\quad 0	&=	\frac{5WL}{2}	-2N_E L	\,,
+\end{align*}
+which then gives
+\begin{align*}
+	R	&=	0	\\
+	N_E	&=	\frac{5W}{4}	\\
+	N_A	&=	\frac{-W}{4}	
+\end{align*}
+
+We next divide the frame into beams and joints, drawing a free body diagram for each member and joint as shown in figure~\ref{A3:fig:Q7b}.
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.9\columnwidth]{problem2_7b.pdf}
+	\caption{Free body diagrams for all three members of the frame and the joints.}
+	\label{A3:fig:Q7b}
+\end{figure*}
+We can now begin to enforce equilibrium for each member in turn. For the beam ABC,
+\begin{align*}
+	R(\rightarrow):\quad	0	&=	B_x	+C_x	\,,	\\
+	R(\uparrow):\quad		0	&=	N_A	+B_y	+C_y	\,,	\\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{\text{A}}\raisebox{1.5pt}{\big)}:\quad 0	&=	-B_y L\cos\ang{60}	+B_x L\sin\ang{60}	-C_y \, 2L\cos\ang{60}	+C_x \, 2L\sin\ang{60}	\,.	\\
+\end{align*}
+Some substitution allows us to write these three equations in terms of the single unknown $B_x$,
+\begin{align*}
+	C_x	&=	-B_x	\,,\\
+	C_y	&=	-B_x\tan\ang{60}	+N_A	\,,	\\
+	B_y	&=	B_x\tan\ang{60}	-2N_A	\,.
+\end{align*}
+For the beam CDE,
+\begin{align*}
+	R(\rightarrow):\quad	0	&=	C'_x	+D'_x	\,,	\\
+	R(\uparrow):\quad		0	&=	N_E	-C'_y	+D_y	\,,	\\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{\text{E}}\raisebox{1.5pt}{\big)}:\quad 0	&=	D_y L\cos\ang{60}	+D_x L\sin\ang{60}	-C'_y \, 2L\cos\ang{60}	+C'_x \, 2L\sin\ang{60}	\,.	\\
+\end{align*}
+Some substitution allows us to write these three equations in terms of the single unknown $D_x$,
+\begin{align*}
+	C'_x	&=	D_x	\,,\\
+	C'_y	&=	-D_x\tan\ang{60}	-N_E	\,,	\\
+	D_y		&=	-D_x\tan\ang{60}	-2N_E	\,.
+\end{align*}
+For the beam BDF,
+\begin{align*}
+	R(\rightarrow):\quad	0	&=	B'_x	+D'_x	\,,	\\
+	R(\uparrow):\quad		0	&=	B'_y	+D'_y	+W	\,,	\\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{\text{F}}\raisebox{1.5pt}{\big)}:\quad 0	&=	D'_y L	+C'_y \, 2L\,.	\\
+\end{align*}
+Some substitution allows us to write these three equations in terms of the single unknown $D'_x$,
+\begin{align*}
+	B'_x	&=	D'_x	\,,\\
+	B'_y	&=	W	\,,	\\
+	D'_y	&=	-2W	\,.
+\end{align*}
+Each joint must also be in equilibrium, yielding another six equations to relate together the forces on the members,
+\begin{center}
+	\begin{tabular}{cc}
+		{$B_x	=	B'_x$,}	&	{$B_y	=	B'y$,}	\\
+		{$C_x	=	C'_x$,}	&	{$C_y	=	C'y$,}	\\
+		{$D_x	=	D'_x$,}	&	{$D_y	=	D'y$.}
+	\end{tabular}
+\end{center}
+We now have the ingredients to substitute the equations for the beams into the equations for the joints, giving us the final values for the forces on each beam,
+\begin{align*}
+	\left.\begin{aligned}
+		B_x		&=B'_x	\\
+		-C_x	&=-C'_x	\\
+		-D_x	&=	-D'_x	
+	\end{aligned}\right\}	&=	\frac{W}{2\sqrt{3}}	\,,	\\
+	B_y	=B'_y	\;\;\:\quad		&=	W	\,,	\\
+	C_y	=C'_y	\;\;\;\quad		&=	-\frac{3W}{4}	\,,	\\
+	D_y	=D'_y	\;\;\:\quad			&=	-2W	\,.
+\end{align*}
+\clearpage
+\end{solution}
+
+%\clearpage
+\subsection{}\label{A3:sec:frame2}
+Determine the components of the forces acting on each member of the frame shown in figure~\ref{A3:fig:Q8a}.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\columnwidth]{problem2_8a.png}
+	\caption{A frame with a single applied load.}
+	\label{A3:fig:Q8a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+Although all the beams are clearly connected by pin joints, the force does not act at a joint, making this a frame, not a truss. Hence, it is no longer acceptable to assume that the forces will act along the length of the members in the frame. To find the forces which act on the members of the frame we must first ensure the overall equilibrium of the frame, working from the free body diagram shown in 
+\begin{marginfigure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_8b.png}
+	\caption{A free body diagram of the frame in question.}
+	\label{A3:fig:Q8b}
+\end{marginfigure}
+\begin{alignat*}{2}
+	\sum F_x	&=	C	&\quad=	0\,,	\\
+	\sum F_y	&=	A +B -F	&\quad=	0\,,	\\
+	\sum M_z		&=	F \times \SI{3.6}{\m}	-A\times \SI{4.8}{\m}	&\quad=	0\,.
+\end{alignat*}
+Solving for $A$, $B$ and $C$ yields,
+\begin{align*}
+A	&=	\frac{3F}{4}	\,,	\\
+B	&=	\frac{F}{4}		\,,	\\
+C	&=	0	\,.
+\end{align*}
+
+So far we have followed the same procedure as with problem~\ref{A2:sec:frame1}, but now we will deviate from that. Whereas previously we considered the equilibrium of the beams and then the joints, here we will consider the joints first. As we saw in the previous problem the equilibrium condition is quite consistent: the force in one beam is equal, but opposite, to the force on the adjoining beam.
+
+We now draw free body diagrams for each of the members in the frame, reducing the number of unknowns by implicitly applying the equilibrium conditions for each joint. These are shown in figure~\ref{A3:fig:Q8c}. Each member gives three equilibrium equations, and we will see that we only need to consider two of the members to find the unknown forces.
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem2_8c_corrected.png}
+	\caption{Free body diagrams for each of the beams in the frame.}
+	\label{A3:fig:Q8c}
+\end{figure*}
+\begin{alignat*}{2}
+\intertext{Vertical beam:}
+\sum F_x	&= -X_1-X_2										&=	0	\qquad\Rightarrow	X_1	&=0	\,,\\
+\sum F_y	&=	B +Y_1 +Y_2									&=	0	\qquad\Rightarrow	X_2	&=0	\,,\\
+\sum M_A	&=	-X_2\cdot\SI{2.7}{\m} -X_1\cdot\SI{5.4}{\m}	&=	0	\qquad\Rightarrow	Y_1	&=-Y_2-B	\,,\\
+\intertext{Horizontal beam:}
+\sum F_x	&=	X_2-X_3										&=	0	\qquad\Rightarrow	X_3	&=0	\,,\\
+\sum F_y	&=	-Y_2 -Y_3 -F								&=	0	\qquad\Rightarrow	Y_2	&=-F-Y_3	\,,\\
+			&												&								&=\frac{F}{2}	\,,\\	
+\sum M_A	&=	Y_3\cdot\SI{2.4}{\m} +F\cdot\SI{3.6}{\m}	&=	0	\qquad\Rightarrow	Y_3	&=-\frac{3F}{2}		\,.
+\end{alignat*}
+The results are summarised in the figure below, where the orientation of the forces has been adapted to represent the direction in which each force acts.\sidenote[][-10mm]{i.e.~all forces now have positive values. Be careful when comparing this with figure~\ref{A3:fig:Q8b}!}
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem2_8d.png}
+	\caption{The forces calculated for each member with arrows oriented so all forces have positive values.}
+	\label{A3:fig:Q8d}
+\end{figure}
+%\clearpage
+\end{solution}
+
+\clearpage
+\section{Distributed Loads}
+\subsection{}
+Determine the equivalent concentrated load(s) and external reactions for the simply supported beam shown.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\columnwidth]{problem3_1.png}
+	\caption{A simply supported beam with a distributed load.}
+	\label{A4:fig:Q1a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+The overall force applied by the constant load distribution on the first four metres has a resultant of
+\begin{align*}
+	R 	&= \SI{1200}{N/m} \cdot \SI{4}{m}\\
+	&= \SI{4800}{N}\,.
+\end{align*}
+
+Placing this force in the middle of the segment also conserves the moment of the distribution (see Handout 2, section 2.1).
+
+Similarly, the constant part of the varying pressure distribution over the second part of
+the beam has a resultant
+\begin{align*}
+	R 	&= \SI{1200}{N/m} \cdot \SI{6}{m}\\
+	&= \SI{7200}{N}
+\end{align*}
+which should also be placed in the middle of that section. Substracting this from the pressure distribution (principle of superposition of loads), one is left with a pressure varying linearly from zero to 1600 N/m over a distance of 6 m, with a resultant equal to
+\begin{align*}
+	R 	&= \frac{\SI{1600}{N/m} \cdot \SI{6}{m}}{2}\\
+	&= \SI{4800}{N}\,.
+\end{align*}
+
+To ensure the same moment, this force must be placed a distance two thirds of the length away from the point where the pressure is zero (see Example 2 in section A3 of the handout).
+
+Hence, in terms of concentrated forces the diagram changes as shown in figure~\ref{A4:fig:Q1b}.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem3_1_sol.png}
+	\caption{A free body diagram for Problem~1 and the equivalent loading with dimensions.}
+	\label{A4:fig:Q1b}
+\end{figure}
+
+The reactions A and B (where the horizontal reaction near A is not considered as there are no horizontal forces) are found from the equilibrium equations
+\begin{align*}
+	R\left(\uparrow\right)															&: A+B	= \SI{16800}{N}R\,,\\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}	&: \SI{4800}{N}\cdot\SI{2}{m} +\SI{7200}{N}\cdot\SI{7}{m} +\SI{4800}{N}\cdot\SI{8}{m} - B\cdot\SI{10}{m} = 0\,,
+\end{align*}
+from which
+\begin{align*}
+	A&=\SI{6960}{N}\,,\\
+	B&=\SI{9840}{N}\,.
+\end{align*}
+\clearpage
+\end{solution}
+
+%\clearpage
+\subsection{}
+Determine the tensions within the struts crossing the line $a$---$b$ as shown in figure~\ref{A4:fig:Q2a}.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem3_2.png}
+	\caption{A truss with a cut made along the line $a-b$. All members are of length~L.}
+	\label{A4:fig:Q2a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+The free body diagram is as shown in Figure~\ref{A4:fig:Q2b}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem3_2_fbd.png}
+	\caption{The free body diagram for Problem 2.}
+	\label{A4:fig:Q2b}
+\end{figure}
+
+We need to compute the reaction forces at the wall. There is no vertical force on the lower connection because it is on rollers.
+\begin{align*}
+	R\left(\uparrow\right)															: 0	&=R-F\,,					&\Rightarrow R=F\,. \\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}	: 0	&=3F L -N_1 LL\,,			&	\Rightarrow N_1 = 3F\,.\\
+	R\left(\rightarrow\right)														: 0	&=N_1 + N_2\,,				&	\Rightarrow N_2 = -3F\,.	\\
+\end{align*}
+
+If we cut through at the line $a-b$, the free body diagram for the right side is shown in Figure~\ref{A4:fig:Q2c}.
+\begin{marginfigure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem3_2_fbd-cut.png}
+	\caption{A new FBD showing the right side of the $a-b$ cut from figure~\protect\ref{A4:fig:Q2b}}
+	\label{A4:fig:Q2c}
+\end{marginfigure}
+
+\begin{align*}
+	R\left(\uparrow\right)															: 0	&=R-T_2 \sin 45\,,						&\Rightarrow T_2 = F/ \sin 45=\sqrt{2}F\,, \\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}	: 0	&=N_1 L -T_1 L-T_2 \cos 45 L\,,			&	\\
+	&=3FL-T_1L-FL\,,						&\Rightarrow T_1 =2F\,,\\
+	R\left(\rightarrow\right)														: 0	&=N_1 + N2 - T_1 - T_2 \cos 45 - T_3	&	\\
+	&=-4F-F-T_3\,, 							&\Rightarrow T_3 = -3F
+\end{align*}
+\clearpage
+\end{solution}
+
+%\clearpage
+\subsection{}\label{A4:sec:DistLoadFrame}
+Figure~\ref{A4:fig:Q3a} shows a frame supporting a non-uniform distributed load.\sidenote[][-10mm]{Note that $p(x)$ varies linearly with position, and has a maximum value of $p_0$ at the mid-point.} Determine the reaction forces at the wall.
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{problem3_3.png}
+	%	\includegraphics[height=50mm]{problem3_3.png}
+	\caption{A frame with a varying distributed load.}
+	\label{A4:fig:Q3a}
+\end{figure}
+
+\begin{solution}
+\paragraph{Solution}
+First we replace the distributed force by a concentrated force. As it is symmetric, the location must be in the middle. The total force is the area under the triangle, so $F=p_0 L/2$.
+We now draw the free body diagram
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\columnwidth]{problem3_3_fbd.png}
+	\caption{The FBD for Problem~\protect\ref{A4:sec:DistLoadFrame} with the distributed load replaced by an equivalent concentrated load.}
+	\label{A4:fig:Q3b}
+\end{figure}
+
+We are asked to calculate the reaction forces. Thus, resolving and taking moments about A
+\begin{align*}
+	R\left(\rightarrow\right)														: 0	&=N_2 + N_1\,,				&\Rightarrow N_1 = - N_2\,,\\
+	R\left(\uparrow\right)															: 0	&= - p_0 L/2 + R_1\,,			&\Rightarrow R_1 = p_0 L/2\,,\\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}	: 0	&=-N_2 L -p_0 L/2 \times 3L/2,,					&\Rightarrow N_1 = - N_2 = 3p_0 L/4\,.	\\
+\end{align*}
+%\clearpage
+\end{solution}
+
+\clearpage
+\section{Revision Questions}
+\subsection{}\label{A5:sec:inclined_cylinders}
+Consider three cylinders of mass~$M$ and radius~$R$ stacked on a V--shaped surface as shown in the following figure:
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\columnwidth]{RQA-1.png}
+	\caption{Three cylinders of mass~$M$ and radius~$R$ stacked on a V--shaped surface.}
+	\label{A5:fig:Q1}
+\end{figure}
+\begin{enumerate}
+	\item Assume that the cylinders and V-shaped surface are smooth. Determine the smallest angle $\theta$ that allows the system to remain stable.
+	\item If the coefficient of friction between the lower cylinders (B and C) and the V-shaped surface is $\mu$, then what value must it have for the system to be stable when $\theta=0$?
+\end{enumerate}
+
+\begin{solution}
+\paragraph{Solution}
+\begin{marginfigure}[0mm]
+	\centering
+	\includegraphics[width=0.8\columnwidth]{RAA-1.png}
+	\caption{The free body diagram for cylinder A.}
+	\label{A5:fig:S1a}
+\end{marginfigure}
+First we consider the free body diagram for cylinder A showing in Figure~\ref{A5:fig:S1a}. Since the cylinders are smooth, the force between the cylinders must be perpendicular to the surfaces of the cylinders at the points of contact. Asserting equilibrium, we find
+\begin{align*}
+	R\left(\rightarrow\right):	0&=	-N\sin 30 +N\sin 30	\,,\\
+	R\left(\uparrow\right):	0&=2N\cos 30 - Mg	\quad\Rightarrow N=\frac{Mg}{\sqrt{3}}	\,.
+	%M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}
+\end{align*}
+
+We now consider the free body diagram for cylinder B, shown in Figure~\ref{A5:fig:S1b}.
+\begin{marginfigure}[0mm]
+	\centering
+	\includegraphics[width=0.8\columnwidth]{RAA-2.png}
+	\caption{The free body diagram for cylinder B.}
+	\label{A5:fig:S1b}
+\end{marginfigure}
+\begin{alignat*}{2}
+	R\left(\rightarrow\right):	0&=	R\sin\theta - I - N\sin 30 	\quad\Rightarrow&	R\sin \theta &= I +\frac{Mg}{2\sqrt{3}}\,,\\
+	R\left(\uparrow\right):	0&=R\cos \theta - Mg - N\cos 30		\quad\Rightarrow& R\cos\theta &= \frac{3}{2}Mg\,.
+	%M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}
+\end{alignat*}
+Dividing these equations, we find
+\begin{equation*}
+	\tan\theta=\frac{2I}{3Mg} + \frac{1}{3\sqrt{3}}\,.
+\end{equation*}
+Since $I\geq0$, we find $\tan\theta\geq \frac{1}{3\sqrt{3}} \Rightarrow \theta\geq\SI{10.89}{\degree}$.
+
+\newpage
+For part b), the free body diagram for cylinder A is unchanged. However, the diagram for B now includes friction, as shown in Figure~\ref{A5:fig:S1c}.
+\begin{marginfigure}[0mm]
+	\centering
+	\includegraphics[width=0.8\columnwidth]{RAA-3.png}
+	\caption{The revised free body diagram for cylinder B incorporating friction.}
+	\label{A5:fig:S1c}
+\end{marginfigure}
+\begin{alignat*}{2}
+	R\left(\rightarrow\right):	0&=	\mu R - I - N\sin 30 \quad\Rightarrow&	I&=\mu R-\frac{Mg}{2\sqrt{3}},,\\
+	R\left(\uparrow\right):	0&=R - Mg - N\cos 30	\quad\Rightarrow& R&=\frac{3}{2}Mg\,.\\
+\end{alignat*}
+Substituting for R gives
+\begin{align*}
+	I	&=\mu \frac{3Mg}{2} - \frac{Mg}{2\sqrt{3}}\\
+	&=\frac{3Mg}{2}\left(\mu-\frac{1}{3\sqrt{3}}\right)\,.
+	%M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}
+\end{align*}
+Since $I\geq 0$, we find that $\mu \geq \frac{1}{3\sqrt{3}}\approx \num{0.192}$.
+\clearpage
+\end{solution}
+
+\subsection{}
+Consider the following block of mass~$M$ supported by a lift. What value of applied force~$F$ is needed for equilibrium for a given angle~$\theta$? Assume the weight of the block acts through the middle of the top platform. The red dots indicate smooth joints.
+\begin{marginfigure}[-10mm]
+	\centering
+	\includegraphics[width=1.1\columnwidth]{RQA-2.png}
+	\caption{A scissor lift supporting a block of mass~$M$.}
+	\label{A5:fig:Q2}
+\end{marginfigure}
+
+\begin{solution}
+\paragraph{Solution}
+The forces in the two struts supporting the platform on which the mass sits must lie along the line of the struts. Thus the free body diagram for the platform is as shown in Figure~\ref{A5:fig:S2a}
+\begin{marginfigure}[0mm]
+	\centering
+	\includegraphics[width=\columnwidth]{RAA-4.png}
+	\caption{The free body diagram for the platform in the scissor lift, as shown in Figure~\protect\ref{A5:fig:Q2}.}
+	\label{A5:fig:S2a}
+\end{marginfigure}
+\begin{equation*}
+	%R\left(\rightarrow\right):	0&=	\mu R - I - N\sin 30 \Rightarrow&	I=\mu R-\frac{Mg}{2\sqrt{3}},,\\
+	R\left(\uparrow\right):	0=2R_1 \sin\theta -Mg\Rightarrow R_1=\frac{Mg}{2\sin\theta}\,.
+	%M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}
+\end{equation*}
+
+Now consider the forces acting on the left joint, with the application of an external force, shown in Figure~\ref{A5:fig:S2a}
+\begin{marginfigure}[0mm]
+	\centering
+	\includegraphics[width=\columnwidth]{RAA-5.png}
+	\caption{The free body diagram for the left hand joint of the platform. Note the opposite direction of $R_1$.}
+	\label{A5:fig:S2b}
+\end{marginfigure}
+\begin{align*}
+	R\left(\rightarrow\right):	0&= F- \left(R_1 +R_2 \right) \cos\theta\,,\\
+	R\left(\uparrow\right):	0&=R_2 \sin\theta\ - R_1\sin\theta \Rightarrow R_1 = R_2\,.
+	%M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}
+\end{align*}
+Combining these equations, we get
+\begin{align*}
+	F	&=2R_1\cos\theta\\
+	&=Mg \cot\theta\,.
+\end{align*}
+\clearpage
+\end{solution}
+
+\subsection{}
+Consider the machine shown in Figure~\ref{A5:fig:Q3}. Find the external forces on the machine (these are the forces through the pivot and the wheel, as well as the applied force~$F$).
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\columnwidth]{RQA-3.png}
+	\caption{A machine with a fixed pivot and a wheel supporting a load~$F$. A cut~$a$ is indicated in one of the members.}
+	\label{A5:fig:Q3}
+\end{figure}
+\begin{enumerate}
+	\item Find the external forces on the machine (these are the forces through the pivot and the wheel, as well as the applied force~$F$).
+	\item Find the internal forces and moments acting at the plane~$a$.
+\end{enumerate}
+
+\begin{solution}
+\paragraph{Solution}
+Consider the free body diagram for the whole system as shown in Figure~\ref{A5:fig:S3a}
+\begin{marginfigure}
+	\centering
+	\includegraphics[width=\columnwidth]{RAA-6.png}
+	\caption{The free body diagram for Figure~\protect\ref{A5:fig:Q3}.}
+	\label{A5:fig:S3a}
+\end{marginfigure}
+\begin{align*}
+	R\left(\rightarrow\right):	0&= R\sin\theta \Rightarrow \theta=0\,,\\
+	R\left(\uparrow\right):	0&=N + R \cos\theta -F
+	%M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}
+\end{align*}
+Substituting in the value of $\theta$, we get $F=N+R$. Now, taking moments about the pivot,
+\begin{equation*}
+	0=3LN-4LF	\Rightarrow N=\frac{4F}{3}
+\end{equation*}
+and hence $R=-\frac{F}{3}$.
+
+To find the internal forces and moments acting at the plane~$a$, first consider the free body diagram for the upper beam, as shown in Figure~\ref{A5:fig:S3b}. Note that the reaction force from the joint is $R'\neq R$. Asserting equilibrium,
+\begin{marginfigure}
+	\centering
+	\includegraphics[width=\columnwidth]{RAA-7.png}
+	\caption{The free body diagram of the upper member for the frame shown in Figure~\protect\ref{A5:fig:Q3}.}
+	\label{A5:fig:S3b}
+\end{marginfigure}
+\begin{align*}
+	R\left(\rightarrow\right):	0&=R' \sin\theta \Rightarrow \theta=0	\,,\\
+	R\left(\uparrow\right):	0&=R' \cos\theta - F +N'	\,.
+	%M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}
+\end{align*}
+Substituting the value of $\theta$, we get $F= N'+ R'$. We now take moments about the triangular pivot,
+\begin{equation*}
+	0=2LN'-4LF	\Rightarrow N'=2F	\,,
+\end{equation*}
+and hence $R' = F- N' = -F$. It is worthwhile to compare this with the magnitude of the reaction provided by the fixed support, $R=-\frac{F}{3}$. These are quite different! We can reconcile this be considering a FBD for the joint itself, remembering that in a \emph{frame} the members can exert reactions that are both parallel and perpendicular to their line of action (i.e.\~normal and transverse to the beam).
+
+We now consider the free body diagram for the upper beam cut at $a$, shown in Figure~\ref{A5:fig:S3c}.
+\begin{marginfigure}
+	\centering
+	\includegraphics[width=\columnwidth]{RAA-8.png}
+	\caption{The free body diagram of the upper member for the frame shown in Figure~\protect\ref{A5:fig:Q3}.}
+	\label{A5:fig:S3c}
+\end{marginfigure}
+\begin{align*}
+	%R\left(\rightarrow\right):	0&=R' \sin\theta \Rightarrow=0	\,,\\
+	R\left(\uparrow\right):	0&= 2F - F - T	\Rightarrow	T=F	\,,\\
+	M\raisebox{1.5pt}{\big(}\overset{\curvearrowright}{A}\raisebox{1.5pt}{\big)}: 0&=M+2LF-3LF	\Rightarrow	M=LF \,.
+\end{align*}
+These values are given with respect to the diagram and, in this instance, do not follow the conventions. It is possible to reformulate this and consider reactions in line with convention---these are found to be equivalent. 
+\end{solution}
+
+\end{document}
