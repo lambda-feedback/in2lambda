@@ -3,6 +3,8 @@ import dotenv
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate, FewShotChatMessagePromptTemplate
+
 
 #from in2lambda.api.question import Question
 from chains.llm_factory import LLMFactory
@@ -18,6 +20,7 @@ class QuestionConverter:
             raise Exception('Error loading .env file')
         llm_factory_instance = LLMFactory()
         self.llm = llm_factory_instance.get_llm()
+
 
         self.examples = [
             {
@@ -90,22 +93,49 @@ class QuestionConverter:
         Convert a question and solution to a Question object
         it's possible solution is a list of solutions or no solution at all
         '''
+
+        # This is a prompt template used to format each individual example.
+        example_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("human", "{input}"),
+                ("ai", "{output}"),
+            ]
+        )
+        few_shot_prompt = FewShotChatMessagePromptTemplate(
+            example_prompt=example_prompt,
+            examples=self.examples,
+        )
+
+        final_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", """You are intelligent assistant to process the given input question, 
+                        Please analyze the input question and respond with: 
+                        1. Main Content (String).
+                        2. Relevant parts (Comma and new line separated list).
+                        Use format: "Main Content: <string>\\nParts: <Part1>, \\n<Part2>, \\n..."""),
+            few_shot_prompt,
+            ("human", "{input}"),
+        ]
+)
+
+        # print(few_shot_prompt.format())
         
-        prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content="""Analyze text and respond with: 
-                1. Main Content (string)
-                2. Relevant parts (coma and new line seperated list)
-                Use format: "Main Content: <string>\\nParts: <Part1>, \\n<Part2>, \\n..."""),
-            *[
-                HumanMessage(content=ex["input"]) 
-                for ex in self.examples
-            ],
-            *[AIMessage(content=f"Main Content: {ex['output'][0]} nParts: {', '.join(ex['output'][1])}") for ex in self.examples],
-            HumanMessage(content="{input}")
-        ])
+        # prompt = ChatPromptTemplate.from_messages([
+        #     SystemMessage(content="""Analyze text and respond with: 
+        #         1. Main Content (string)
+        #         2. Relevant parts (coma and new line seperated list)
+        #         Use format: "Main Content: <string>\\nParts: <Part1>, \\n<Part2>, \\n..."""),
+        #     *[
+        #         HumanMessage(content=ex["input"]) 
+        #         for ex in self.examples
+        #     ],
+        #     *[AIMessage(content=f"Main Content: {ex['output'][0]}  Parts: {',  '.join(ex['output'][1])}") for ex in self.examples],
+        #     HumanMessage(content="{input}")
+        # ])
 
-        chain = prompt | self.llm
+        chain = final_prompt | self.llm
 
+        print(question)
         result = chain.invoke({"input":question})
         print(result)
         return Question()
