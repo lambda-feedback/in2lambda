@@ -107,31 +107,16 @@ class QuestionConverter:
         )
 
         final_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", """You are intelligent assistant to process the given input question, 
-                        Please analyze the input question and respond with: 
-                        1. Main Content (String).
-                        2. Relevant parts (Comma and new line separated list).
-                        Use format: "Main Content: <string>\\nParts: <Part1>, \\n<Part2>, \\n..."""),
-            few_shot_prompt,
-            ("human", "{input}"),
-        ]
-)
-
-        # print(few_shot_prompt.format())
-        
-        # prompt = ChatPromptTemplate.from_messages([
-        #     SystemMessage(content="""Analyze text and respond with: 
-        #         1. Main Content (string)
-        #         2. Relevant parts (coma and new line seperated list)
-        #         Use format: "Main Content: <string>\\nParts: <Part1>, \\n<Part2>, \\n..."""),
-        #     *[
-        #         HumanMessage(content=ex["input"]) 
-        #         for ex in self.examples
-        #     ],
-        #     *[AIMessage(content=f"Main Content: {ex['output'][0]}  Parts: {',  '.join(ex['output'][1])}") for ex in self.examples],
-        #     HumanMessage(content="{input}")
-        # ])
+            [
+                ("system", """You are intelligent assistant to process the given input question, 
+                            Please analyze the input question and respond with: 
+                            1. Main Content (String).
+                            2. Relevant parts (Comma and new line separated list).
+                            Use format: "Main Content: <string>\\nParts: <Part1>, \\n<Part2>, \\n..."""),
+                few_shot_prompt,
+                ("human", "{input}"),
+            ]
+        )
 
         chain = final_prompt | self.llm
 
@@ -152,5 +137,6 @@ test_question = '''Write each of the following expressions as a complex number i
                     {\\rm (f)}\\hskip5pt \\displaystyle{1\\over i}
                     \\end{array}
                     $'''
+test_question2 = "Which city is the capital of China? \\item Beijing \\item Shanghai \\item Guangzhou"
 test_converter = QuestionConverter()
-test_converter.convert(test_question, "")  
+test_converter.convert(test_question2, "")  
