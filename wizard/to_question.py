@@ -33,7 +33,7 @@ class QuestionConverter:
                     \\end{enumerate}
                     \\begin{marginfigure}[-20mm]
                         \\centering
-                        \\includegraphics[width=\columnwidth]{problem1_3.png}
+                        \\includegraphics[width=\\columnwidth]{problem1_3.png}
                         \\caption{A car with two tow ropes attached.}
                         \\label{A1:fig:Q3}
                     \\end{marginfigure}
