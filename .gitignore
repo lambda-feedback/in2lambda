@@ -687,3 +687,5 @@ log
 **/_autosummary
 *.pdf
 /tex
+pastpapers/
+media/
