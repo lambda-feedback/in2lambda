@@ -9,6 +9,7 @@ unstructured
 PyMuPDF
 Pillow
 pdfminer.six
+pytesseract
 unstructured[pdf]
 ipywidgets
 jupyter
