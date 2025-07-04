@@ -27,10 +27,10 @@ e) Density
 a) $\mathbf{u}=3 x \hat{i}+2 x \hat{j}-2 x \hat{k}$
 b) $\mathbf{u}=(3 x+t) \hat{i}+2 t x \hat{j}-2 x t \hat{k}$
 b) $\mathbf{u}=(3 x+t) \hat{i}+2 y \hat{j}-2 z \hat{k}$
-![](https://cdn.mathpix.com/cropped/2025_07_04_b41bcc42f6f303f464c5g-2.jpg?height=398&width=706&top_left_y=335&top_left_x=681)
+![](media/0_2025_07_04_16cf47a4cac705653b5fg-2.jpg)
 
 Figure 1: Onboard camera
-![](media/lalala.jpg)
+![](media/1_2025_07_04_16cf47a4cac705653b5fg-2.jpg)
 
 Figure 2: View from the stands
 10. Are the following flows steady? Explain your answer
