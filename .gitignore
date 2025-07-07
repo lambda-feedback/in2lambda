@@ -278,6 +278,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# markdown
+**/pdfs/
+
 # Spyder project settings
 .spyderproject
 .spyproject
