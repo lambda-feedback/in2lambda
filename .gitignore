@@ -279,7 +279,7 @@ env.bak/
 venv.bak/
 
 # markdown
-**/pdfs/
+**/conversion_content/
 
 # Spyder project settings
 .spyderproject
