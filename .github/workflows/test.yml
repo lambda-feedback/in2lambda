@@ -19,14 +19,14 @@ jobs:
           python -m pip install --upgrade setuptools wheel virtualenv
           pip install poetry
           poetry config virtualenvs.create true
-          poetry install
+          poetry install --with dev
       - name: Install Pandoc  # apt version seems too old
         uses: r-lib/actions/setup-pandoc@v2
       - name: Linting Checks
         run: |
-          black --check .
-          isort --check-only in2lambda docs
-          pydocstyle --convention=google in2lambda
+          poetry run black --check .
+          poetry run isort --check-only in2lambda docs
+          poetry run pydocstyle --convention=google in2lambda
       - name: pytest
         run: pytest --cov-report=xml:coverage.xml --cov=in2lambda --doctest-modules in2lambda
       - name: Upload coverage to Codecov
