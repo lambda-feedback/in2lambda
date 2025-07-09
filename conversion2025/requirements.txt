@@ -4,3 +4,4 @@ pydantic
 langchain
 langchain-openai
 pillow
+in2lambda
