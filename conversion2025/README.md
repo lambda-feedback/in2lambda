@@ -22,5 +22,9 @@ Ensure you have the following installed:
 - Ensure your API key and endpoint are correct, as they are required for LLM functionality.
 - The notebook is designed for scientific documents, but can be extended to other text formats.
 
+## How to use
+Place a pdf of your choice into the folder, `/conversion_content`. Name is example.pdf
+Run the converter in Jupiter. A folder with all the convertion content will be produced.
+Right now, a markdown made by Mathpix called `example.md` will be made. To save tokens, Mathpix will not run if `example.md` exists.
 
 
