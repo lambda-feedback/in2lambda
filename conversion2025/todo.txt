@@ -1,0 +1,4 @@
+TODO: 
+
+ensure no answer in question itself, only in parts_solutions.
+properly handles images allocation
