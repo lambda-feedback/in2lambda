@@ -278,8 +278,9 @@ ENV/
 env.bak/
 venv.bak/
 
-# markdown
-**/conversion_content/
+# markdown - ignore everything inside conversion_content but keep the folder
+**/conversion_content/*
+!**/conversion_content/.gitkeep
 
 # Spyder project settings
 .spyderproject

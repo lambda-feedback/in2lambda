@@ -23,8 +23,11 @@ Ensure you have the following installed:
 - The notebook is designed for scientific documents, but can be extended to other text formats.
 
 ## How to use
-Place a pdf of your choice into the folder, `/conversion_content`. Name is example.pdf
+Place a pdf of your choice into the folder, `/conversion_content`. Name the pdf file as `example.pdf`.
 Run the converter in Jupiter. A folder with all the convertion content will be produced.
-Right now, a markdown made by Mathpix called `example.md` will be made. To save tokens, Mathpix will not run if `example.md` exists.
+for `mathpix_to_llm_to_in2lambda_to_JSON.ipynb`, it will produce a folder called `/mathpix_to_llm_to_in2lambda_to_JSON_out`.
+This will contain all the output of the converter.
 
-
+There is a markdown file called `example.md` inside `/mathpix_to_llm_to_in2lambda_to_JSON_out`, this is the markdown version of the pdf.
+As Mathpix rather reliably generates a consistent markdown version of the pdf, the converter will simply start from `example.md`.
+Meaning that if you wish to convert a different pdf, you must delete `example.md` first.
