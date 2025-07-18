@@ -1,0 +1,23 @@
+struggles with questions with the structure:
+```
+main content
+    parts
+    parts
+    parts
+2nd main content
+```
+interprets 2nd main content as another part
+
+================================================
+
+does not konw how to split sub questions within subquestion
+```
+mian content
+    part a 
+        part I
+        part ii
+        ...
+    part b
+    ...
+...
+```

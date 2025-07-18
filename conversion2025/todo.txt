@@ -2,3 +2,4 @@ TODO:
 
 ensure no answer in question itself, only in parts_solutions.
 properly handles images allocation
+give llm access to full question to give better idea on how to split the solution into parts
