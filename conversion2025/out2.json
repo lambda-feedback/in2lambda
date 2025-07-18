@@ -1,0 +1,56 @@
+{
+    "pandoc-api-version": [
+        1,
+        23,
+        1
+    ],
+    "meta": {},
+    "blocks": [
+        {
+            "t": "Para",
+            "c": [
+                {
+                    "t": "Str",
+                    "c": "hello_world"
+                },
+                {
+                    "t": "SoftBreak"
+                },
+                {
+                    "t": "Str",
+                    "c": "$$"
+                },
+                {
+                    "t": "SoftBreak"
+                },
+                {
+                    "t": "Str",
+                    "c": "this"
+                },
+                {
+                    "t": "Space"
+                },
+                {
+                    "t": "Str",
+                    "c": "is"
+                },
+                {
+                    "t": "Space"
+                },
+                {
+                    "t": "Str",
+                    "c": "maths"
+                }
+            ]
+        },
+        {
+            "t": "Para",
+            "c": [
+                {
+                    "t": "Str",
+                    "c": "bye"
+                }
+            ]
+        }
+    ]
+}

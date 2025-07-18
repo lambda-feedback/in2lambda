@@ -1,0 +1,7 @@
+hello_world 
+$$
+this is maths
+$$
+Bye
+
+text text $x=y$.

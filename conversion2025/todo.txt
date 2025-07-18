@@ -1,5 +1,5 @@
 TODO: 
 
-ensure no answer in question itself, only in parts_solutions.
-properly handles images allocation
-give llm access to full question to give better idea on how to split the solution into parts
+in2lambda add a question ordering capability
+use pandoc for syntax checking
+support multimedia as the initial input
