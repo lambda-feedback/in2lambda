@@ -1,5 +1,6 @@
 TODO: 
 
-in2lambda add a question ordering capability
 use pandoc for syntax checking
-support multimedia as the initial input
+in2lambda add a question ordering capability
+add constructive feedback capability when encountering an error
+confidence rating to tell user input is valid

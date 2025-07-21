@@ -32,19 +32,18 @@ def math_delimiter_checker(md_content: str) -> bool:
                 if next_character == '$':
                     next_next_character = md_content[idx+2] if idx + 2 < len(md_content) else None
 
-                    # $$ must be followed and preceded by a newline to be valid
-                    if prev_character != '\n' or prev_character == None or next_next_character != '\n':
+                    # $$ must be preceded by a newline (or be at start) and followed by a newline
+                    if (prev_character != '\n' and prev_character is not None) or next_next_character != '\n':
                         return False
                     
                     # If it is a display math expression, then expect a double dollar sign
                     expect_single_dollar = False
-                    idx += 2
+                    idx += 1  # Skip the second $, main loop will increment idx again
 
                 else:
                     expect_single_dollar = True
             else:
                 expect_open_delimiter = True
-                next_next_character = md_content[idx+2] if idx + 2 < len(md_content) else None
 
                 # If it expect a single dollar sign, then it is an inline math expression, and it should be followed by a non-dollar character
                 if expect_single_dollar and next_character == '$':
@@ -54,11 +53,11 @@ def math_delimiter_checker(md_content: str) -> bool:
                 elif not expect_single_dollar:
                     if next_character != '$':
                         return False
-                    elif prev_character != '\n' or (next_next_character != '\n' and next_next_character != None):
+                    
+                    next_next_character = md_content[idx+2] if idx + 2 < len(md_content) else None
+                    if (prev_character != '\n' and prev_character is not None) or (next_next_character != '\n' and next_next_character is not None):
                         return False
-                    idx += 1
-
-                idx += 1
+                    idx += 1  # Skip the second $, main loop will increment idx again
 
         # there cannot be a newline if it is between two dollar signs
         elif character == '\n' and not expect_open_delimiter and expect_single_dollar:
