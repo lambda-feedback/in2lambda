@@ -1,4 +1,7 @@
-def math_delimiter_checker(md_content: str) -> bool:
+from validator_classes import *
+
+
+def math_delimiter_checker(md_content: str) -> ValidatorError:
     """
     Checks if the markdown content has correctly places the math delimiters.
     If there is an issue with the math delimiters, it return false.
@@ -33,8 +36,11 @@ def math_delimiter_checker(md_content: str) -> bool:
                     next_next_character = md_content[idx+2] if idx + 2 < len(md_content) else None
 
                     # $$ must be preceded by a newline (or be at start) and followed by a newline
-                    if (prev_character != '\n' and prev_character is not None) or next_next_character != '\n':
-                        return False
+                    if (prev_character != '\n' and prev_character is not None):
+                        return MissingNewLineBeforeOpeningDisplayMathDelimiter
+                    if next_next_character != '\n':
+                        return MissingNewLineAfterOpeningDisplayMathDelimiter
+                    
                     
                     # If it is a display math expression, then expect a double dollar sign
                     expect_single_dollar = False
@@ -47,22 +53,30 @@ def math_delimiter_checker(md_content: str) -> bool:
 
                 # If it expect a single dollar sign, then it is an inline math expression, and it should be followed by a non-dollar character
                 if expect_single_dollar and next_character == '$':
-                    return False
+                    return DoubleDollarInsteadOfClosingSingleDollar
 
                 # If it expects a double dollar sign, and there should be newlines preceding and following it.
                 elif not expect_single_dollar:
                     if next_character != '$':
-                        return False
+                        return MissingClosingDoubleDollarInsteadOfSingleDollar
                     
                     next_next_character = md_content[idx+2] if idx + 2 < len(md_content) else None
-                    if (prev_character != '\n' and prev_character is not None) or (next_next_character != '\n' and next_next_character is not None):
-                        return False
+                    if (prev_character != '\n' and prev_character is not None):
+                        return MissingNewLineBeforeClosingDisplayMathDelimiter
+                    
+                    if next_next_character != '\n' and next_next_character is not None:
+                        return MissingNewLineAfterClosingDisplayMathDelimiter
                     idx += 1  # Skip the second $, main loop will increment idx again
 
         # there cannot be a newline if it is between two dollar signs
         elif character == '\n' and not expect_open_delimiter and expect_single_dollar:
-            return False
+            return InvalidNewlineInsideInlineMathExpression
         
         idx += 1
 
-    return expect_open_delimiter
+    if expect_open_delimiter:
+        return Passed
+    elif expect_single_dollar:
+        return MissingClosingSingleDollar
+    else:
+        return MissingClosingDoubleDollar

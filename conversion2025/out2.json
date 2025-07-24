@@ -47,6 +47,79 @@
             "t": "Para",
             "c": [
                 {
+                    "t": "Math",
+                    "c": [
+                        {
+                            "t": "DisplayMath"
+                        },
+                        "\nhello bossman\n"
+                    ]
+                }
+            ]
+        },
+        {
+            "t": "Para",
+            "c": [
+                {
+                    "t": "Str",
+                    "c": "$"
+                },
+                {
+                    "t": "Space"
+                },
+                {
+                    "t": "Str",
+                    "c": "wowie"
+                },
+                {
+                    "t": "Space"
+                },
+                {
+                    "t": "Str",
+                    "c": "$"
+                },
+                {
+                    "t": "SoftBreak"
+                },
+                {
+                    "t": "Math",
+                    "c": [
+                        {
+                            "t": "InlineMath"
+                        },
+                        "wowie"
+                    ]
+                },
+                {
+                    "t": "SoftBreak"
+                },
+                {
+                    "t": "Math",
+                    "c": [
+                        {
+                            "t": "InlineMath"
+                        },
+                        "wo\\$wie"
+                    ]
+                }
+            ]
+        },
+        {
+            "t": "Para",
+            "c": [
+                {
+                    "t": "Math",
+                    "c": [
+                        {
+                            "t": "DisplayMath"
+                        },
+                        "nope"
+                    ]
+                },
+                {
+                    "t": "SoftBreak"
+                },
+                {
                     "t": "Str",
                     "c": "bye"
                 }

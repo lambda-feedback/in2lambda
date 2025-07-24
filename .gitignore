@@ -696,3 +696,8 @@ log
 pastpapers/
 media/
 media_ans/
+
+# Haskell build artifacts
+dist-newstyle/
+dist/
+.stack-work/
