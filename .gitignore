@@ -701,3 +701,9 @@ media_ans/
 dist-newstyle/
 dist/
 .stack-work/
+
+
+# Scala build artifacts
+.bsp/
+.scala-build/
+.metals/
