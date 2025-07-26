@@ -11,11 +11,11 @@ object lexer {
 
     private val desc = LexicalDesc.plain.copy(
         nameDesc = NameDesc.plain.copy(
-            identifierStart = Basic(_.isInstanceOf[Char]),
-            identifierLetter = Basic(_.isInstanceOf[Char]),
+            identifierStart = Basic(x => x.isInstanceOf[Char] && x != '$'),
+            identifierLetter = Basic(x => x.isInstanceOf[Char] && x != '$'),
         ),
         symbolDesc = SymbolDesc.plain.copy(
-            hardOperators = genericKeywords,
+            hardOperators = genericKeywords
         )
     )
 

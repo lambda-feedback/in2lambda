@@ -21,8 +21,8 @@ object parser {
   private lazy val blocks = many(block)
 
   private lazy val block: Parsley[Block] = 
-    Display(display) |
-    Inline(inline) |
+    atomic(Display(display)) |
+    atomic(Inline(inline)) |
     Text(lexer.text)
 
   private lazy val display = "$$" ~> lexer.text <~ "$$"
