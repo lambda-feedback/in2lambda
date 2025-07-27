@@ -20,11 +20,15 @@ object parser {
 
   private lazy val blocks = many(block)
 
+  // Define the block parser that recognizes different types of blocks
   private lazy val block: Parsley[Block] = 
-    atomic(Display(display)) |
-    atomic(Inline(inline)) |
+    Display(display) |
+    Inline(inline) |
     Text(lexer.text)
 
-  private lazy val display = "$$" ~> lexer.text <~ "$$"
-  private lazy val inline = "$" ~> lexer.text <~ "$"
+  // Define the display math parser that recognizes display math blocks
+  private lazy val display = "$$".label("Opening display math delimiter") ~> lexer.text <~ "$$".label("Closing display math delimiter")
+
+  // Define the inline math parser that recognizes inline math blocks
+  private lazy val inline = "$".label("Opening inline math delimiter") ~> lexer.text <~ "$".label("Closing inline math delimiter")
 }

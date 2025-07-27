@@ -20,6 +20,7 @@ object Main extends IOApp {
   val host: Host = Host.fromString("localhost").getOrElse(Host.fromString("0.0.0.0").get)
   val port: Port = Port.fromInt(8080).getOrElse(Port.fromInt(80).get)
 
+  // runs the server
   def run(args: List[String]): IO[ExitCode] =
     EmberServerBuilder
       .default[IO]

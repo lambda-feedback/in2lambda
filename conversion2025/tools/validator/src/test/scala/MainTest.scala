@@ -3,6 +3,8 @@ import munit.FunSuite
 import Block.* 
 
 class MainSpec extends FunSuite {
+  // syntax checking
+  // valid tests
   test("only regular text") {
     val result = parser.parse("Hello world!")
     assertEquals(result, Right(MarkDown(List(Text("Hello world!")))))
@@ -31,5 +33,67 @@ class MainSpec extends FunSuite {
   test("display math with no spaces") {
     val result = parser.parse("$$x+y=z$$")
     assertEquals(result, Right(MarkDown(List(Display("x+y=z")))))
+  }
+
+
+  // invalid tests
+  test("missing closing inline math delimiter") {
+    val result = parser.parse("$ x + y = z")
+    assert(result.isLeft)
+  }
+
+  test("missing closing display math delimiter") {
+    val result = parser.parse("$$ x + y = z")
+    assert(result.isLeft)
+  }
+
+  test("missing opening inline math delimiter") {
+    val result = parser.parse("x + y = z $")
+    assert(result.isLeft)
+  }
+
+  test("missing opening display math delimiter") {
+    val result = parser.parse("x + y = z $$")
+    assert(result.isLeft)
+  }
+
+  test("inline math inside display math") {
+    val result = parser.parse("$$ x + $y$ = z $$")
+    assert(result.isLeft)
+  }
+
+  test("display math inside inline math") {
+    val result = parser.parse("$ x + $$y$$ = z $")
+    assert(result.isLeft)
+  }
+
+
+  // semantic checking
+  test("valid inline math without newlines") {
+    val markdown = MarkDown(List(Inline("x + y = z")))
+    assert(validate_markdown(markdown))
+  }
+  
+  test("invalid inline math with newlines") {
+    val markdown = MarkDown(List(Inline("x + \ny = z")))
+    assert(!validate_markdown(markdown))
+  }
+
+  test("valid markdown with mixed content") {
+    val markdown = MarkDown(List(Text("Hello"), Inline("x + y"), Display("E = mc^2")))
+    assert(validate_markdown(markdown))
+  }
+
+  // rebuilding markdown
+  test("rebuild markdown from parsed structure") {
+    val markdown = MarkDown(List(Text("Hello"), Inline("x + y"), Display("E = mc^2")))
+    val rebuilt = rebuild_markdown(markdown)
+    assertEquals(rebuilt, "Hello$x + y$\n$$\nE = mc^2\n$$\n")
+  }
+
+  test("invalid thing") {
+    val string = "Hello world$!"
+    val result = parser.parse(string)
+    assertEquals(result, Left("yikes"))
   }
 }
