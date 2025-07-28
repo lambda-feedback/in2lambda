@@ -1,3 +1,5 @@
+package validator
+
 import parsley.quick.*
 import parsley.syntax.zipped.*
 import parsley.expr.chain
@@ -7,9 +9,7 @@ import parsley.errors.combinator.*
 
 import lexer.{fully, text}
 import lexer.implicits.implicitSymbol
-
 import Block.*
-
 
 object parser {
   def parse[Err: ErrorBuilder](input: String): Either[Err, MarkDown] = parser.parse(input).toEither

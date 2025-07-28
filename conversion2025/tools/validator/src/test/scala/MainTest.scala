@@ -35,6 +35,21 @@ class MainSpec extends FunSuite {
     assertEquals(result, Right(MarkDown(List(Display("x+y=z")))))
   }
 
+  test("display math with newlines") {
+    val result = parser.parse("$$\nE = \nmc^2\n$$")
+    assertEquals(result, Right(MarkDown(List(Display("E = \nmc^2\n")))))
+  }
+
+  // test ("allow escaped dollar signs in inline math") {
+  //   val result = parser.parse("$ x + \\$y = z $")
+  //   assertEquals(result, Right(MarkDown(List(Inline("x + $y = z ")))))
+  // }
+
+  // test ("allow escaped dollar signs in display math") {
+  //   val result = parser.parse("$$ x + \\$y = z $$")
+  //   assertEquals(result, Right(MarkDown(List(Display("x + $y = z ")))))
+  // }
+
 
   // invalid tests
   test("missing closing inline math delimiter") {
@@ -84,6 +99,11 @@ class MainSpec extends FunSuite {
     assert(validate_markdown(markdown))
   }
 
+  test("allows display math with newlines") {
+    val markdown = MarkDown(List(Display("E = mc^2\n")))
+    assert(validate_markdown(markdown))
+  }
+
   // rebuilding markdown
   test("rebuild markdown from parsed structure") {
     val markdown = MarkDown(List(Text("Hello"), Inline("x + y"), Display("E = mc^2")))
@@ -91,9 +111,4 @@ class MainSpec extends FunSuite {
     assertEquals(rebuilt, "Hello$x + y$\n$$\nE = mc^2\n$$\n")
   }
 
-  test("invalid thing") {
-    val string = "Hello world$!"
-    val result = parser.parse(string)
-    assertEquals(result, Left("yikes"))
-  }
 }

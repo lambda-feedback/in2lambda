@@ -1,4 +1,5 @@
-import Block.*
+package validator
+import Block.* 
 
 // check that the inline math does not contain newlines
 def inline_check(math: String): Boolean = !math.contains('\n')

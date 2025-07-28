@@ -1,5 +1,7 @@
+package validator
+
 import parsley.Parsley
-import parsley.token.{Lexer, Basic}
+import parsley.token.{Lexer, Basic, Unicode}
 import parsley.token.descriptions.*
 import parsley.errors.combinator.*
 
@@ -7,9 +9,13 @@ import parsley.errors.combinator.*
 object lexer {
 
     // Define the set of generic keywords
-    private val genericKeywords = Set(
+    private val genericOperators = Set(
         "$$", "$"
     )
+
+    // private val genericKeywords = Set(
+    //     "\\$"
+    // )
 
     // Define the lexical description
     private val desc = LexicalDesc.plain.copy(
@@ -21,8 +27,16 @@ object lexer {
 
         // Define how symbols are recognized
         symbolDesc = SymbolDesc.plain.copy(
-            hardOperators = genericKeywords
-        )
+            hardOperators = genericOperators,
+            // hardKeywords = genericKeywords
+        ),
+
+        // textDesc = TextDesc.plain.copy(
+        //     escapeSequences = EscapeDesc.plain.copy(
+        //         escBegin = '\\',
+        //         literals = Set('$')
+        //     )
+        // )
     )
 
     private val lexer = Lexer(desc)
