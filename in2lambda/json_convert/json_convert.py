@@ -36,6 +36,7 @@ def converter(
     for i in range(len(ListQuestions)):
         output = deepcopy(template)
 
+        output["orderNumber"] = i  # order number starts at 0
         # add title to the question file
         if ListQuestions[i].title != "":
             output["title"] = ListQuestions[i].title
