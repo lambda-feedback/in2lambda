@@ -1,0 +1,5 @@
+assumptions:
+    - only 1 set of questions
+    - the set of question contains the questions AND solutions
+    - parts are only 1 level deep (i.e. no Q1, part a), i)
+    - individual questions and solutions are seperatable by using just lines

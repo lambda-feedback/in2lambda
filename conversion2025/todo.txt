@@ -1,6 +1,0 @@
-TODO: 
-
-use pandoc for syntax checking
-in2lambda add a question ordering capability
-add constructive feedback capability when encountering an error
-confidence rating to tell user input is valid

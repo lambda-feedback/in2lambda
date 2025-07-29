@@ -1,152 +1,39 @@
 {
-  "name": "Real Analysis - Sequences and Convergence",
-  "year": "0",
+  "name": "ME1 Stress Analysis Tutorial Sheet 1. Moments",
+  "year": "2023-24",
   "questions": [
     {
-      "title": "Equivalences of properties of sequences",
-      "content": "Consider the following properties of a sequence of real numbers $(a_n)_{n\\ge0}$\u2026:\n\n1. $a_n\\to a$, or\n\n2. \"$a_n$ eventually equals $a$\" -- i.e.\n$\\exists N\\in\\mathbb N_{>0}$ such that\n$\\forall n\\ge N,\\ a_n = a$, or\n\n3. \"$(a_n)$ is bounded\" -- i.e. $\\exists\\,R\\in\\mathbb R$ such that\n$|a_n|<R\\ \\ \\forall n\\in \\mathbb N_{>0}$.\n\nFor each statement (a-e) below, which of (i-iii) is it equivalent\nto? Proof?",
-      "parts": [
-        "1. $\\exists\\, N\\in\\mathbb N_{>0}$ such that\n$\\forall n\\ge N,\\ \\forall\\epsilon>0,\\ |a_n-a|<\\epsilon$.",
-        "2. $\\forall\\epsilon>0$ there are only finitely many\n$n\\in\\mathbb N_{>0}$ for which $|a_n-a|\\ge\\epsilon$.",
-        "3. $\\forall N\\in\\mathbb N_{>0},\\ \\exists\\,\\epsilon>0$ such that\n$n\\ge N\\ \\Rightarrow\\ |a_n-a|<\\epsilon$.",
-        "4. $\\exists\\,\\epsilon>0$ such that\n$\\forall N\\in\\mathbb N_{>0},\\ |a_n-a|<\\epsilon\\ \\forall n\\ge N$.",
-        "5. $\\forall R >0\\ \\exists\\, N\\in\\mathbb N_{>0}$ such that\n$n\\ge N\\ \\Rightarrow\\ a_n\\in(a-\\frac1R,a+\\frac1R)$."
-      ],
-      "images": [],
-      "parts_solutions": [
-        "(a) $\\iff$ (ii) because \"$\\forall\\epsilon>0,\\ |a_n-a|<\\epsilon$\"\nis the same statement as \"$a_n = a$.\"\n\n(Proof: if $a_n\\ne a$ then set $\\epsilon:= |a_n-a| > 0$ so that\n$|a_n-a| <\\epsilon$ is not true.)",
-        "(b) $\\iff$ (i). Suppose (b) is true. Fix any $\\epsilon > 0$ and\nlet $n_1,\\ldots, n_r$ be the finite number of $n_i$ with\n$|a_{n_i}- a|\\ge\\epsilon$.\n\nSet $N :=\\max\\{n_1,\\ldots, n_r\\} + 1$. Then $\\forall n\\ge N$ we have\n$|a_n -a| < \\epsilon$, so $a_n\\to a$.\n\nSuppose (i) is true. Fix any $\\epsilon > 0$, then\n$\\exists\\, N\\in\\mathbb N_{>0}$ such that\n$|a_n -a| < \\epsilon\\ \\forall n\\ge N$. In particular if\n$|a_n- a|\\ge\\epsilon$ then $n<N$ so there are only finitely many\nsuch $n\\in\\mathbb N_{>0}$.}",
-        "(c) $\\iff$ (iii). Suppose (c) is true and take $N = 1$. Then\n$\\exists\\,\\epsilon > 0$ such that\n$|a_n -a| < \\epsilon\\ \\forall n\\ge 1$. So, by the triangle\ninequality, $|a_n| < |a| + \\epsilon$. Putting $R := |a| + \\epsilon$\ngives (iii).\n\nSuppose (iii) is true, i.e. $\\exists\\, R\\in\\mathbb R$ such that\n$|a_n|<R\\ \\ \\forall n\\in N$. By the triangle inequality, $|a_n- a| <\nR + |a|\\ \\,\\forall n\\ge N$. Putting $\\epsilon := R + |a|$ proves\n(c).",
-        "(d) \\iff (iii). Suppose (d) is true and take $N = 1$. Then\n$|a_n -a| < \\epsilon\\ \\forall n\\ge 1$. So, by the triangle\ninequality, $|a_n| < |a| +\\epsilon$. Putting $R := |a| + \\epsilon$\ngives (iii).\n\nSuppose (iii) is true, i.e. $\\exists\\, R\\in\\mathbb R$ such that\n$|a_n|<R\\ \\ \\forall n\\in N$. By the triangle inequality,\n$|a_n - a| <\nR + |a|\\ \\forall n\\ge N$. Putting $\\epsilon:= R + |a|$ proves (d).",
-        "(e) \\iff (i): just replace \\epsilon by \\frac1R in the definition\nof convergence."
+      "question_content": "## Problem 1.1\n\nA 20 N force is applied to the end of a 0.4 m lever.\n![pictureTag](0_2025_07_29_62fff12b7847de9f2d97g-2.jpg)\n\nCalculate the magnitude of the moment that this force produces about the point O , and state the direction of the rotational effect.",
+      "solution_content": "[6.9 Nm, clockwise]",
+      "images": [
+        "0_2025_07_29_62fff12b7847de9f2d97g-2.jpg"
       ]
     },
     {
-      "title": "Convergence in the Complex Plane",
-      "content": "Given a sequence $(a_n)_{n\\ge1}$ of *complex* numbers, define what\na_n\\to a means. For $x,y\\in\\mathbb R$ and $z:=x+iy\\in\\mathbb C$\nshow $\\max(|x|,|y|)\\ \\le\\ |z|\\ \\le\\ \\sqrt2\\max(|x|,|y|),$ and\n$$a_n\\to a+ib\\in\\mathbb C\\quad\\iff\\quad \\mathrm{Re}(a_n)\\to a \\quad\\mathrm{and\\quad Im}(a_n)\\to b.$$",
-      "parts": [
-        "Given a sequence $(a_n)_{n\\ge1}$ of *complex* numbers, define what\na_n\\to a means. For $x,y\\in\\mathbb R$ and $z:=x+iy\\in\\mathbb C$\nshow $\\max(|x|,|y|)\\ \\le\\ |z|\\ \\le\\ \\sqrt2\\max(|x|,|y|),$ and\n$$a_n\\to a+ib\\in\\mathbb C\\quad\\iff\\quad \\mathrm{Re}(a_n)\\to a \\quad\\mathrm{and\\quad Im}(a_n)\\to b.$$"
-      ],
-      "images": [],
-      "parts_solutions": [
-        "The inequalties\n$$\\max(x^2,y^2)\\ \\le\\ x^2+y^2\\ \\le\\ \\max(x^2,y^2)+\\max(x^2,y^2)$$\ngive $$\\max(|x|,|y|)^2\\ \\le\\ |z|^2\\ \\le\\ 2\\max(|x|,|y|)^2.$$ Suppose\na_n\\to a+ib and fix any $\\epsilon>0$. Then\n$\\exists\\, N\\in\\mathbb N_{>0}$ such that\n$$n\\ge N\\ \\Rightarrow\\ |a_n-(a+ib)|<\\epsilon\\ \\Rightarrow\\ \\max(|\\mathrm{Re}(a_n)-a|,|\\mathrm{Im}(a_n)-b|)<\\epsilon,$$\nusing the first stated inequality. Therefore\n$|\\mathrm{Re}(a_n)-a|<\\epsilon$ and $|\\mathrm{Im}(a_n)-b|<\\epsilon$\nas required.\n\nConversely, suppose\n$\\mathrm{Re}(a_n)\\to a \\quad\\mathrm{and\\quad Im}(a_n)\\to b$ and fix\nany $\\epsilon>0$. Then $\\exists\\, N\\in\\mathbb N_{>0}$ such that\n$n\\ge N\\ \\Rightarrow\\ |\\mathrm{Re}(a_n)-a|<\\epsilon/\\sqrt 2$ and\n$|\\mathrm{Im}(a_n)-b|<\\epsilon/\\sqrt 2$. Thus\n$$|a_n-(a+ib)|\\ <\\ \\sqrt 2\\max(|\\mathrm{Re}(a_n)-a|,|\\mathrm{Im}(a_n)-b|)\\ <\\ \\sqrt 2\\epsilon/\\sqrt 2\\ =\\ \\epsilon,$$\nusing the second stated inequality."
+      "question_content": "## Problem 1.2\n\nA mechanic must tighten a bolt to 45 N cm .\n(a) If the mechanic's wrench is 15 cm long, what force must be applied by the mechanic perpendicular to the end of the wrench?\n(b) The maximum force that a mechanic can exert with one arm is 500 N . If the mechanic must close a valve that requires a torque of 150 N m , how long must the moment arm be?\n[3 N; 0.3 m ].",
+      "solution_content": "",
+      "images": []
+    },
+    {
+      "question_content": "A 25 N planter is hung from a bracket. Calculate the moments applied by the 25 N about the mounting points A and B .\n![pictureTag](1_2025_07_29_62fff12b7847de9f2d97g-2.jpg)\n[ $\\mathrm{M}_{\\mathrm{A}}=\\mathrm{M}_{\\mathrm{B}}=70.71 \\mathrm{~N} \\mathrm{~m}$, clockwise.]\n\n## Problem 1.4\n",
+      "solution_content": "A child attempts to drive a toy car and applies a force at three separate instants as shown below.",
+      "images": [
+        "1_2025_07_29_62fff12b7847de9f2d97g-2.jpg"
       ]
     },
     {
-      "title": "Squeeze Theorem for Sequences",
-      "content": "Suppose that $a_n\\le b_n\\le c_n\\ \\forall n$ and that $a_n\\to a$ and\n$c_n\\to a$. Prove that $b_n\\to a$.",
-      "parts": [
-        "Suppose that $a_n\\le b_n\\le c_n\\ \\forall n$ and that $a_n\\to a$ and\n$c_n\\to a$. Prove that $b_n\\to a$.",
-        ""
-      ],
-      "images": [],
-      "parts_solutions": [
-        "$\\exists\\, N_1\\in\\mathbb N_{>0}$ such that\\nn\\ge N_1\\ \\Rightarrow\\ |a_n-a|<\\epsilon\\ \\Rightarrow\\ a_n>a-\\epsilon.$\\n\\n$\\exists\\, N_2\\in\\mathbb N_{>0}$ such that\\nn\\ge N_2\\ \\Rightarrow\\ |c_n-a|<\\epsilon\\ \\Rightarrow\\ c_n<a+\\epsilon.$\\n\\nSet $N:=\\max(N_1,N_2)$. Then\\nn\\ge N\\ \\Rightarrow\\ a-\\epsilon<a_n\\le b_n\\le c_n<a+\\epsilon$.\\nTherefore $|b_n-a|<\\epsilon$.}",
-        "$\\exists\\, N_1\\in\\mathbb N_{>0}$ such that\\nn\\ge N_1\\ \\Rightarrow\\ |a_n-a|<\\epsilon\\ \\Rightarrow\\ a_n>a-\\epsilon.$\\n\\n$\\exists\\, N_2\\in\\mathbb N_{>0}$ such that\\nn\\ge N_2\\ \\Rightarrow\\ |c_n-a|<\\epsilon\\ \\Rightarrow\\ c_n<a+\\epsilon.$\\n\\nSet $N:=\\max(N_1,N_2)$. Then\\nn\\ge N\\ \\Rightarrow\\ a-\\epsilon<a_n\\le b_n\\le c_n<a+\\epsilon$.\\nTherefore $|b_n-a|<\\epsilon$. "
+      "question_content": "![pictureTag](3_2025_07_29_62fff12b7847de9f2d97g-3.jpg)\n(b)\n![pictureTag](4_2025_07_29_62fff12b7847de9f2d97g-3.jpg)\n(c)\n\nIf the magnitude of the force exerted by the child in all cases is 5 N and the radius of the steering wheel is 10 cm , calculate the moment applied to the steering wheel.\n[0.5 N m anti-clockwise; 0.5 N m clockwise; zero].\n\n## Problem 1.5\n\nA 4000 N force $F=4000 \\mathrm{~N}$ is applied at the trailer hitch shown below.",
+      "solution_content": "![pictureTag](5_2025_07_29_62fff12b7847de9f2d97g-3.jpg)",
+      "images": [
+        "4_2025_07_29_62fff12b7847de9f2d97g-3.jpg",
+        "5_2025_07_29_62fff12b7847de9f2d97g-3.jpg",
+        "3_2025_07_29_62fff12b7847de9f2d97g-3.jpg"
       ]
     },
     {
-      "title": "Convergence of product of sequences",
-      "content": "Suppose that $a_n\\to0$ and $(b_n)$ is bounded. Prove that\n$a_nb_n\\to0$.",
-      "parts": [
-        "Suppose that $a_n\\to0$ and $(b_n)$ is bounded. Prove that\n$a_nb_n\\to0$."
-      ],
-      "images": [],
-      "parts_solutions": [
-        "$\\exists\\, B>0$ such that $|b_n|\\le B\\ \\forall n$.\n\nGiven $\\epsilon>0,\\ \\exists\\, N\\in\\mathbb N_{>0}$ such that\n$n\\ge N\\ \\Rightarrow\\ |a_n|<\\epsilon/B$.\n\nTherefore $|a_nb_n|=|a_n||b_n|\\le(\\epsilon/B)B=\\epsilon$, as\nrequired."
-      ]
-    },
-    {
-      "title": "Boundedness of the sequence and bound on $b_n$",
-      "content": "$\\!\\!$ Suppose that $(a_n)$ and $(b_n)$ are sequences of real\nnumbers such that $a_n\\to a$ and $b_n\\to b\\ne0$. Prove that the set\n$\\{a_n\\colon n\\in\\mathbb N_{>0}\\}$ is bounded and that\n$$\\exists\\, N\\in\\mathbb N_{>0} \\quad\\mathrm{such\\ that}\\quad n\\ge N\\ \\Rightarrow\\ |b_n|>|b|/2.$$",
-      "parts": [
-        "Prove that the set $\\{a_n\\colon n\\in\\mathbb N_{>0}\\}$ is bounded.",
-        "Prove that $$\\exists\\, N\\in\\mathbb N_{>0} \\quad\\mathrm{such\\ that}\\quad n\\ge N\\ \\Rightarrow\\ |b_n|>|b|/2.$$"
-      ],
-      "images": [],
-      "parts_solutions": [
-        "",
-        "Set $\\epsilon=|b|/2>0$. Then $\\exists\\, N\\in\\mathbb N_{>0}$ such that $$n\\ge N\\ \\Rightarrow\\ |b_n-b|<\\epsilon\\ \\Rightarrow\\ |b|<|b_n|+\\epsilon\\ \\Rightarrow\\ |b_n|>|b|-\\epsilon=|b|/2.$$"
-      ]
-    },
-    {
-      "title": "Limit of quotient of sequences",
-      "content": "Therefore $(a_n/b_n)_{n\\ge N}$ is a sequence of real numbers; prove\nit tends to $a/b$.",
-      "parts": [
-        "Therefore $(a_n/b_n)_{n\\ge N}$ is a sequence of real numbers; prove\nit tends to $a/b$."
-      ],
-      "images": [],
-      "parts_solutions": [
-        "$$\\left|\\frac{a_n}{b_n}-\\frac ab\\right|\\ =\\ \\left|\\frac{a_nb-ab_n}{bb_n}\\right|\\ =\\ \\left|\\frac{(a_n-a)b+a(b-b_n)}{bb_n}\\right|\\ \\le\\ \\left|\\frac{(a_n-a)}{b_n}\\right|+\n\\left|\\frac{a(b-b_n)}{bb_n}\\right|.$$ From above we can find\n$N_1\\in\\mathbb N_{>0}$ such that\n$n\\ge N_1\\ \\Rightarrow\\ |b_n|\\ge|b|/2$, which in turn implies that\n$$\\left|\\frac{a_n}{b_n}-\\frac ab\\right|\\ \\le\\ \\frac{|a_n-a|}{|b|/2}+\n|a|\\frac{|b-b_n|}{|b|.|b|/2}\\ =\\ \\frac{2}{|b|}|a_n-a|+\n\\frac{2|a|}{b^2}|b-b_n|.$$ Now fix any $\\epsilon>0$. There exists\n$N_2\\in\\mathbb N_{>0}$ such that\n$n\\ge N_2\\ \\Rightarrow\\ |a_n-a|<|b|\\epsilon/4$. And there exists\n$N_3\\in\\mathbb N_{>0}$ such that\n$n\\ge N_3\\ \\Rightarrow\\ |b_n-b|<|b|^2\\epsilon/4(1+|a|)$.\\n\nTherefore if we set $N:=\\max\\{N_1,N_2,N_3\\}$ then\n$$n\\ge N\\ \\ \\Rightarrow\\ \\ \\left|\\frac{a_n}{b_n}-\\frac ab\\right|\\ <\\ \\frac{2|b|\\epsilon/4}{|b|}+\\n\\frac{2|a|}{b^2}\\frac{b^2\\epsilon}{4(1+|a|)}\\ <\\ \\epsilon/2+\\epsilon/2\\ =\\ \\epsilon.$$"
-      ]
-    },
-    {
-      "title": "Sorta-Cauchy sequences and divergence",
-      "content": "We call a sequence *sorta-Cauchy* if it satisfies the condition\n$$\\forall\\epsilon>0\\ \\exists\\, N\\in\\mathbb N_{>0}\\ \\ n\\ge N\\ \\Rightarrow\\ |a_n-a_{n+1}|<\\epsilon.$$",
-      "parts": [
-        "Give an example of a sorta-Cauchy sequence which diverges to\n$+\\infty$. Conclude that sorta-Cauchy is not as strong as Cauchy."
-      ],
-      "images": [],
-      "parts_solutions": [
-        "Any $a_n$ that increases so slowly to infinity that $a_{n+1}-a_n$ converges to zero. Eg $a_n=\\sqrt n$ or $a_n=\\log n$ or $a_n=\\sum_{i=1}^n\\frac 1i$."
-      ]
-    },
-    {
-      "title": "Cauchy sequence in \\mathbb Q not converging in \\mathbb Q",
-      "content": "Give an example of a Cauchy sequence in $\\mathbb Q$ which does not\nconverge in $\\mathbb Q$.",
-      "parts": [
-        "We know that in $\\mathbb R$, a sequence is Cauchy if and only if it\nis convergent. Show that it is impossible to prove this using only\nthe arithmetic and order axioms of $\\mathbb R$ (i.e. all the axioms\nexcept the completeness axioms -- the one about the existence of\nleast upper bounds)."
-      ],
-      "images": [],
-      "parts_solutions": [
-        "Suppose that we could prove that a sequence is Cauchy if and only if\nit is convergent with only the arithmetic and order axioms. We know\nin $\\mathbb Q$ that the order and arithmetic axioms hold, this would\nsuggest that any Cauchy sequence in $\\mathbb Q$ must converge in\n$\\mathbb Q$. This is a contradiction since we have just shown that\nthere are Cauchy sequences in $\\mathbb Q$ that do not converge in\n$\\mathbb Q$ in the first part of this question."
-      ]
-    },
-    {
-      "title": "Bounded sequence and supremum of sets",
-      "content": "Let $(a_{n})_{n \\in \\mathbb N_{>0}}$ be a bounded sequence.",
-      "parts": [
-        "For each $n \\in \\mathbb N_{>0}$, define the set\n$S_{n} = \\{ a_{j}: j \\ge n\\}$. Prove that, for every\n$n \\in \\mathbb N_{>0}$, there exists some $b_{n} \\in \\mathbb{R}$\nsuch that $b_{n} = \\sup(S_{n})$.",
-        ""
-      ],
-      "images": [],
-      "parts_solutions": [
-        "Let $M$ be an upper bound for $(a_{n})_{n \\in \\mathbb N_{>0}}$, then the set $S_{n}$ is non-empty with $M$ as an upper bound, so by the completeness axiom $S_{n}$ has a supremum.",
-        ""
-      ]
-    },
-    {
-      "title": "Existence of the Limit Supremum of a Sequence",
-      "content": "Let $B = \\{ b_{n}: n \\in \\mathbb N_{>0}\\}$ where $b_{n}$ is\ndefined as above. Prove that there exists some\n$l \\in \\mathbb{R}$ such that $l = \\inf(B)$.",
-      "parts": [
-        "(Remark: $l$ is\ncalled the limit supremum of the sequence\n$(a_{n})_{n \\in \\mathbb N_{>0}}$, and the usual notation is\n$l = \\limsup_{n \\rightarrow \\infty} a_{n}$)."
-      ],
-      "images": [],
-      "parts_solutions": [
-        "The set $B$ is clearly non-empty. Let $\\tilde{M}$ be a lower\nbound for $(a_{n})_{n \\in \\mathbb N_{>0}}$. Then\n$b_{n} = \\sup(S_{n}) \\ge \\tilde{M}$. This means $\\tilde{M}$ is a\nlower bound for $B$ and so by the completeness axiom, $B$ has an\ninfimum."
-      ]
-    },
-    {
-      "title": "Limit superior of sequences",
-      "content": "For each of the sequences below, find the value of\n$\\limsup_{n \\rightarrow \\infty} a_{n}$ and give justification\nfor your answer.",
-      "parts": [
-        "$a_{n} = (-1)^{n}$"
-      ],
-      "images": [],
-      "parts_solutions": [
-        "$\\limsup_{n \\rightarrow \\infty} a_{n} = 1$. Note that, for\nevery $j \\in \\mathbb N_{>0}$, one has $S_{j} = \\{-1,1\\}$ so\nthat $b_{j} = \\sup(S_{j}) = 1$. Therefore\n$\\limsup_{n \\rightarrow \\infty} a_{n}  = \\inf \\{1\\} = 1$."
-      ]
-    },
-    {
-      "title": "Limit Superior and Infimum of a Sequence",
-      "content": "$a_{n} = \\frac{(-1)^n}{n}$",
-      "parts": [
-        "$a_{n} = \\frac{(-1)^n}{n}$"
-      ],
-      "images": [],
-      "parts_solutions": [
-        "$\\limsup_{n \\rightarrow \\infty} a_{n} = 0$. Note that, for\nevery $j \\in \\mathbb N_{>0}$, one has\n$b_{j} = \\sup(S_{j}) = \\frac{1}{j}$ for $j$ even and\n$\\frac{1}{j+1}$ for $j$ odd. Therefore we argue that\n$\\inf(B) = 0$. Clearly $0$ is a lower bound. To show that it\nis an infimum, we show that for any $\\epsilon > 0$, there\nexists $b \\in B$ such that $b - \\epsilon < 0$. Note that, by\nthe Archimedean Axiom, we can find an $j \\in \\mathbb N_{>0}$\nsuch that $j \\ge \\frac{1}{\\epsilon}$, so that\n$\\frac{1}{j} < \\epsilon$. It then follows that\n$b_{j} - \\epsilon < 0$, which finishes the proof since\n$b_{j} \\in B$."
-      ]
+      "question_content": "$\\left[\\mathrm{M}_{\\mathrm{A}}=600 \\mathrm{~N} \\mathrm{~m}\\right.$ anti-clockwise, $\\mathrm{M}_{\\mathrm{B}}=600 \\mathrm{~N} \\mathrm{~m}$ clockwise; $\\mathrm{M}_{\\mathrm{A}}=1039 \\mathrm{~N} \\mathrm{~m}$ anti- clockwise, $\\mathrm{M}_{\\mathrm{B}}$ $=0 \\mathrm{l}$.\n",
+      "solution_content": "",
+      "images": []
     }
   ]
 }
