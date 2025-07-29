@@ -8,8 +8,8 @@ Any answer files provided are expected to follow the same format as the question
 from typing import Optional
 
 import panflute as pf
-
-from in2lambda.api.module import Module
+from in2lambda.api.set import Set
+from in2lambda.api.set import Module
 from in2lambda.filters.markdown import filter
 
 
@@ -17,7 +17,7 @@ from in2lambda.filters.markdown import filter
 def pandoc_filter(
     elem: pf.Element,
     doc: pf.elements.Doc,
-    module: Module,
+    set: Set,
     parsing_answers: bool,
 ) -> Optional[pf.Str]:
     """A Pandoc filter that parses and translates various TeX elements.
@@ -26,7 +26,7 @@ def pandoc_filter(
         elem: The current TeX element being processed. This could be a paragraph,
             ordered list, etc.
         doc: A Pandoc document container - essentially the Pandoc AST.
-        module: The Python API that is used to store the result after processing
+        set: The Python API that is used to store the result after processing
             the TeX file.
         parsing_answers: Whether an answers-only document is currently being parsed.
 
@@ -39,7 +39,7 @@ def pandoc_filter(
         for numbered_part in elem.content:
             if parsing_answers:
                 # Denotes that we've reached the answer for a new question
-                module.increment_current_question()
+                set.increment_current_question()
             # For each numbered question, extract blurb and parts
             blurb: list[str] = []
             lettered_parts: list[str] = []
@@ -64,17 +64,17 @@ def pandoc_filter(
 
             # Answers for questions with no parts
             if parsing_answers and not lettered_parts:
-                module.current_question.add_solution(spaced_blurb)
+                set.current_question.add_solution(spaced_blurb)
             # Add the main question text as the Lambda Feedback blurb
             elif not parsing_answers:
-                module.add_question(main_text=spaced_blurb)
+                set.add_question(main_text=spaced_blurb)
 
             # Add each part solution/text
             # For the solution, prepend any top level answer text to each part answer
             for part in lettered_parts:
                 (
-                    module.current_question.add_solution(spaced_blurb + part)
+                    set.current_question.add_solution(spaced_blurb + part)
                     if parsing_answers
-                    else module.current_question.add_part_text(part)
+                    else set.current_question.add_part_text(part)
                 )
     return None

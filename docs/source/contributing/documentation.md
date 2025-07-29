@@ -50,5 +50,5 @@ The [CLT reference](../reference/command-line) is generated based on the output 
 [API documentation](../reference/library) is built based on [docstrings](https://peps.python.org/pep-0257/#what-is-a-docstring) found within the code base. This is done using [sphinx.ext.autosummary](https://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html).
 
 :::{tip}
-See the [Module docs](../reference/_autosummary/in2lambda.api.module.Module) and the source code buttons on its page for good examples on how to write the docstrings effectively.
+See the [Set docs](../reference/_autosummary/in2lambda.api.set.Set) and the source code buttons on its page for good examples on how to write the docstrings effectively.
 :::

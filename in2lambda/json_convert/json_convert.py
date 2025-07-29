@@ -1,4 +1,4 @@
-"""Converts questions from a Python module object into Lambda Feedback JSON."""
+"""Converts questions from a Python set object into Lambda Feedback JSON."""
 
 import json
 import os
@@ -9,7 +9,7 @@ from typing import Any
 
 from in2lambda.api.question import Question
 
-MINIMAL_TEMPLATE = "minimal_template.json"
+MINIMAL_TEMPLATE = "minimal_template_question.json"
 
 
 def converter(

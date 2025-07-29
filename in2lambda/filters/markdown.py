@@ -9,7 +9,7 @@ import panflute as pf
 from beartype.typing import Callable, Optional
 from rich_click import echo
 
-from in2lambda.api.module import Module
+from in2lambda.api.set import Set
 from in2lambda.katex_convert.katex_convert import latex_to_katex
 
 
@@ -32,7 +32,7 @@ def image_directories(tex_file: str) -> list[str]:
         >>> temp_dir = tempfile.mkdtemp()
         >>> tex_file = os.path.join(temp_dir, 'test.tex')
         >>> with open(tex_file, 'w') as f:
-        ...     f.write("\\graphicspath{{subdir1/}{subdir2/}{subdir3/}}")
+        set: Set,
         45
         >>> image_directories(tex_file)
         ['subdir1/', 'subdir2/', 'subdir3/']
@@ -45,7 +45,7 @@ def image_directories(tex_file: str) -> list[str]:
         >>> with open(tex_file, 'w') as f:
         ...    f.write("No image directory")
         18
-        >>> image_directories.cache_clear()
+            set: The Python API that is used to store the result after processing
         >>> image_directories(tex_file)
         []
     """
@@ -71,7 +71,7 @@ def image_path(image_name: str, tex_file: str) -> Optional[str]:
         The absolute path to the image if it can be found. If not, it returns None.
 
     Examples:
-        >>> from in2lambda.filters.markdown import image_path
+                    set.current_question.images.append(path)
         >>> import tempfile
         >>> import os
         >>> # Example TeX file with a subdirectory
@@ -117,11 +117,11 @@ def image_path(image_name: str, tex_file: str) -> Optional[str]:
 
 def filter(
     func: Callable[
-        [pf.Element, pf.elements.Doc, Module, bool],
+        [pf.Element, pf.elements.Doc, Set, bool],
         Optional[pf.Str],
     ]
 ) -> Callable[
-    [pf.Element, pf.elements.Doc, Module, str, bool],
+    [pf.Element, pf.elements.Doc, Set, str, bool],
     Optional[pf.Str],
 ]:
     """Python decorator to make generic LaTeX elements markdown readable.
@@ -136,7 +136,7 @@ def filter(
     def markdown_converter(
         elem: pf.Element,
         doc: pf.elements.Doc,
-        module: Module,
+        set: Set,
         tex_file: str,
         parsing_answers: bool,
     ) -> Optional[pf.Str]:
@@ -175,7 +175,7 @@ def filter(
                 if path is None:
                     echo(f"Warning: Couldn't find {elem.url}")
                 else:
-                    module.current_question.images.append(path)
+                    set.current_question.images.append(path)
                 return pf.Str(f"![pictureTag]({elem.url})")
 
             case pf.Strong:
@@ -189,6 +189,6 @@ def filter(
             case pf.Str:
                 return pf.Str(elem.text.replace("\u00a0", "\u202f"))
 
-        return func(elem, doc, module, parsing_answers)
+        return func(elem, doc, set, parsing_answers)
 
     return markdown_converter
