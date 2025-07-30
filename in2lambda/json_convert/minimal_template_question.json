@@ -1,24 +1,22 @@
 {
   "orderNumber": 0,
+  "title": "Question title here",
+  "masterContent": "Top level question here",
+  "publish": false,
   "displayFinalAnswer": true,
   "displayStructuredTutorial": true,
   "displayWorkedSolution": true,
-  "masterContent": "Top level question here",
+  "displayChatbot": false,
   "parts": [
     {
-      "answer": "",
-      "content": "Part text here",
       "orderNumber": 0,
+      "content": "Part text here",
       "responseAreas": [],
-      "tutorial": [],
-      "universalPartId": "N/A",
       "workedSolution": {
+        "title": "",
         "content": "Part worked solution here",
-        "id": "N/A",
-        "title": ""
+        "children": []
       }
     }
-  ],
-  "publish": false,
-  "title": "Question title here"
+  ]
 }

@@ -9,16 +9,18 @@ from typing import Any
 
 from in2lambda.api.question import Question
 
-MINIMAL_TEMPLATE = "minimal_template_question.json"
+MINIMAL_QUESTION_TEMPLATE = "minimal_template_question.json"
+MINIMAL_SET_TEMPLATE = "minimal_template_set.json"
 
 
 def converter(
-    template: dict[str, Any], ListQuestions: list[Question], output_dir: str
+    question_template: dict[str, Any], set_template: dict[str, Any], ListQuestions: list[Question], output_dir: str
 ) -> None:
     """Turns a list of question objects into Lambda Feedback JSON.
 
     Args:
-        template: The loaded JSON from the minimal template (it needs to be in sync).
+        question_template: The loaded JSON from the minimal question template (it needs to be in sync).
+        set_template: The loaded JSON from the minimal set template (it needs to be in sync).
         ListQuestions: A list of question objects.
         output_dir: The absolute path for where to produced the final JSON/zip files.
     """
@@ -33,8 +35,14 @@ def converter(
     output_image = os.path.join(output_question, "media")
     os.makedirs(output_image, exist_ok=True)
 
+    # create the set file
+    with open(f"{output_question}/set_a_simple_example.json", "w") as file:
+        json.dump(set_template, file)
+    shutil.make_archive(output_question, "zip", output_question)
+
+
     for i in range(len(ListQuestions)):
-        output = deepcopy(template)
+        output = deepcopy(question_template)
 
         output["orderNumber"] = i  # order number starts at 0
         # add title to the question file
@@ -53,7 +61,7 @@ def converter(
                 ListQuestions[i].parts[0].worked_solution
             )
             for j in range(1, len(ListQuestions[i].parts)):
-                output["parts"].append(deepcopy(template["parts"][0]))
+                output["parts"].append(deepcopy(question_template["parts"][0]))
                 output["parts"][j]["content"] = ListQuestions[i].parts[j].text
                 output["parts"][j]["orderNumber"] = j
                 output["parts"][j]["workedSolution"]["content"] = (
@@ -61,7 +69,7 @@ def converter(
                 )
 
         # Output file
-        filename = "question_" + str(i + 1)
+        filename = "question_" + str(i).zfill(3) + "_" + output['title'].replace(" ", "_")
 
         # write questions into directory
         with open(f"{output_question}/{filename}.json", "w") as file:
@@ -74,8 +82,8 @@ def converter(
             )  # converts computer path into python path
             shutil.copy(image_path, output_image)  # copies image into the directory
 
-        # output zip file in destination folder
-        shutil.make_archive(output_question, "zip", output_question)
+    # output zip file in destination folder
+    shutil.make_archive(output_question, "zip", output_question)
 
 
 def main(questions: list[Question], output_dir: str) -> None:
@@ -88,8 +96,11 @@ def main(questions: list[Question], output_dir: str) -> None:
         output_dir: Where to output the final Lambda Feedback JSON/ZIP files.
     """
     # Use path so minimal template can be found regardless of where the user is running python from.
-    with open(Path(__file__).with_name(MINIMAL_TEMPLATE), "r") as file:
-        template = json.load(file)
+    with open(Path(__file__).with_name(MINIMAL_QUESTION_TEMPLATE), "r") as file:
+        question_template = json.load(file)
+
+    with open(Path(__file__).with_name(MINIMAL_SET_TEMPLATE), "r") as file:
+        set_template = json.load(file)
 
     # check if directory exists in file
     if os.path.isdir(output_dir):
@@ -97,4 +108,4 @@ def main(questions: list[Question], output_dir: str) -> None:
             shutil.rmtree(output_dir)
         except OSError as e:
             print("Error: %s : %s" % (output_dir, e.strerror))
-    converter(template, questions, output_dir)
+    converter(question_template, set_template, questions, output_dir)
