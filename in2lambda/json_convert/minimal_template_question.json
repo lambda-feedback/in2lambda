@@ -11,6 +11,7 @@
     {
       "orderNumber": 0,
       "content": "Part text here",
+      "answerContent": "",
       "responseAreas": [],
       "workedSolution": {
         "title": "",

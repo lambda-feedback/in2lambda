@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+import zipfile
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,20 @@ from in2lambda.api.question import Question
 MINIMAL_QUESTION_TEMPLATE = "minimal_template_question.json"
 MINIMAL_SET_TEMPLATE = "minimal_template_set.json"
 
+
+def zip_sorted_folder(folder_path, zip_path):
+    """Zips the contents of a folder, preserving the directory structure.
+    Args:
+        folder_path: The path to the folder to zip.
+        zip_path: The path where the zip file will be created.
+    """
+    with zipfile.ZipFile(zip_path, 'w') as zf:
+        for root, dirs, files in os.walk(folder_path):
+            # Sort files for deterministic order
+            for file in sorted(files):
+                abs_path = os.path.join(root, file)
+                rel_path = os.path.relpath(abs_path, folder_path)
+                zf.write(abs_path, arcname=rel_path)
 
 def converter(
     question_template: dict[str, Any], set_template: dict[str, Any], ListQuestions: list[Question], output_dir: str
@@ -28,12 +43,8 @@ def converter(
 
     # create directory to put the questions
     os.makedirs(output_dir, exist_ok=True)
-    output_question = os.path.join(output_dir, "set")
+    output_question = os.path.join(output_dir, "set_a_simple_example")
     os.makedirs(output_question, exist_ok=True)
-
-    # create directory to put images - should be in set
-    output_image = os.path.join(output_question, "media")
-    os.makedirs(output_image, exist_ok=True)
 
     # create the set file
     with open(f"{output_question}/set_a_simple_example.json", "w") as file:
@@ -80,10 +91,13 @@ def converter(
             image_path = os.path.abspath(
                 ListQuestions[i].images[k]
             )  # converts computer path into python path
+            # If images exist, create a media directory
+            output_image = os.path.join(output_question, "media")
+            os.makedirs(output_image, exist_ok=True)
             shutil.copy(image_path, output_image)  # copies image into the directory
 
     # output zip file in destination folder
-    shutil.make_archive(output_question, "zip", output_question)
+    zip_sorted_folder(output_question, output_question + ".zip")
 
 
 def main(questions: list[Question], output_dir: str) -> None:
