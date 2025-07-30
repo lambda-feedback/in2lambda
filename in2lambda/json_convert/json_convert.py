@@ -8,13 +8,14 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from in2lambda.api.set import Set
 from in2lambda.api.question import Question
 
 MINIMAL_QUESTION_TEMPLATE = "minimal_template_question.json"
 MINIMAL_SET_TEMPLATE = "minimal_template_set.json"
 
 
-def zip_sorted_folder(folder_path, zip_path):
+def _zip_sorted_folder(folder_path, zip_path):
     """Zips the contents of a folder, preserving the directory structure.
     Args:
         folder_path: The path to the folder to zip.
@@ -22,35 +23,38 @@ def zip_sorted_folder(folder_path, zip_path):
     """
     with zipfile.ZipFile(zip_path, 'w') as zf:
         for root, dirs, files in os.walk(folder_path):
-            # Sort files for deterministic order
+            # Sort files for deterministic, alphabetical order
             for file in sorted(files):
                 abs_path = os.path.join(root, file)
                 rel_path = os.path.relpath(abs_path, folder_path)
                 zf.write(abs_path, arcname=rel_path)
 
 def converter(
-    question_template: dict[str, Any], set_template: dict[str, Any], ListQuestions: list[Question], output_dir: str
+    question_template: dict[str, Any], set_template: dict[str, Any], SetQuestions: Set, output_dir: str
 ) -> None:
-    """Turns a list of question objects into Lambda Feedback JSON.
+    """Turns a set of question objects into Lambda Feedback JSON.
 
     Args:
         question_template: The loaded JSON from the minimal question template (it needs to be in sync).
         set_template: The loaded JSON from the minimal set template (it needs to be in sync).
-        ListQuestions: A list of question objects.
+        SetQuestions: A Set object containing questions.
         output_dir: The absolute path for where to produced the final JSON/zip files.
     """
-    # Create output by copying template
+    ListQuestions = SetQuestions.questions
+    set_name = SetQuestions._name
+    set_description = SetQuestions._description
 
     # create directory to put the questions
     os.makedirs(output_dir, exist_ok=True)
-    output_question = os.path.join(output_dir, "set_a_simple_example")
+    output_question = os.path.join(output_dir, set_name)
     os.makedirs(output_question, exist_ok=True)
 
-    # create the set file
-    with open(f"{output_question}/set_a_simple_example.json", "w") as file:
-        json.dump(set_template, file)
-    shutil.make_archive(output_question, "zip", output_question)
 
+    set_template["name"] = set_name
+    set_template["description"] = set_description
+    # create the set file
+    with open(f"{output_question}/set_{set_name}.json", "w") as file:
+        json.dump(set_template, file)
 
     for i in range(len(ListQuestions)):
         output = deepcopy(question_template)
@@ -97,16 +101,16 @@ def converter(
             shutil.copy(image_path, output_image)  # copies image into the directory
 
     # output zip file in destination folder
-    zip_sorted_folder(output_question, output_question + ".zip")
+    _zip_sorted_folder(output_question, output_question + ".zip")
 
 
-def main(questions: list[Question], output_dir: str) -> None:
+def main(set_questions: Set, output_dir: str) -> None:
     """Preliminary defensive programming before calling the main converter function.
 
     This ultimately then produces the Lambda Feedback JSON/ZIP files.
 
     Args:
-        questions: A list of question objects.
+        set_questions: A Set object containing questions.
         output_dir: Where to output the final Lambda Feedback JSON/ZIP files.
     """
     # Use path so minimal template can be found regardless of where the user is running python from.
@@ -122,4 +126,4 @@ def main(questions: list[Question], output_dir: str) -> None:
             shutil.rmtree(output_dir)
         except OSError as e:
             print("Error: %s : %s" % (output_dir, e.strerror))
-    converter(question_template, set_template, questions, output_dir)
+    converter(question_template, set_template, set_questions, output_dir)

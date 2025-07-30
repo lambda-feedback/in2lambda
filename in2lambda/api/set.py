@@ -6,12 +6,14 @@ from typing import Union
 import panflute as pf
 
 from in2lambda.api.question import Question
-from in2lambda.json_convert import json_convert
 
 
 @dataclass
 class Set:
     """Represents a list of questions."""
+
+    _name: str = field(default="set")
+    _description: str = field(default="")
 
     questions: list[Question] = field(default_factory=list)
     _current_question_index = -1
@@ -122,4 +124,36 @@ class Set:
             Question 1's title: Question 1
 
         """
-        json_convert.main(self.questions, output_dir)
+        
+        from in2lambda.json_convert import json_convert
+        json_convert.main(self, output_dir)
+
+    def set_name(self, name: str) -> None:
+        """Sets the name of the set.
+
+        Args:
+            name: The name to set for the set.
+
+        Examples:
+            >>> from in2lambda.api.set import Set
+            >>> s = Set()
+            >>> s.set_name("My Question Set")
+            >>> s._name
+            'My Question Set'
+        """
+        self._name = name
+
+    def set_description(self, description: str) -> None:
+        """Sets the description of the set.
+
+        Args:
+            description: The description to set for the set.
+
+        Examples:
+            >>> from in2lambda.api.set import Set
+            >>> s = Set()
+            >>> s.set_description("This is my question set.")
+            >>> s._description
+            'This is my question set.'
+        """
+        self._description = description
