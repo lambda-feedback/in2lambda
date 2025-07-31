@@ -9,7 +9,6 @@ from typing import Optional
 
 import panflute as pf
 from in2lambda.api.set import Set
-from in2lambda.api.set import Module
 from in2lambda.filters.markdown import filter
 
 

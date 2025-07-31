@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 from in2lambda.api.set import Set
-from in2lambda.api.question import Question
 
 MINIMAL_QUESTION_TEMPLATE = "minimal_template_question.json"
 MINIMAL_SET_TEMPLATE = "minimal_template_set.json"
