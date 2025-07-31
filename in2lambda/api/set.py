@@ -122,7 +122,6 @@ class Set:
             ['set', 'set.zip']
             ['media', 'question_1.json', 'question_2.json']
             Question 1's title: Question 1
-
         """
 
         from in2lambda.json_convert import json_convert

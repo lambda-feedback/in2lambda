@@ -16,6 +16,7 @@ MINIMAL_SET_TEMPLATE = "minimal_template_set.json"
 
 def _zip_sorted_folder(folder_path, zip_path):
     """Zips the contents of a folder, preserving the directory structure.
+    
     Args:
         folder_path: The path to the folder to zip.
         zip_path: The path where the zip file will be created.
