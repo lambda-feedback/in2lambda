@@ -8,6 +8,7 @@ Any answer files provided are expected to follow the same format as the question
 from typing import Optional
 
 import panflute as pf
+
 from in2lambda.api.set import Set
 from in2lambda.filters.markdown import filter
 
