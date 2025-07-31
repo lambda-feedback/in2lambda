@@ -124,8 +124,9 @@ class Set:
             Question 1's title: Question 1
 
         """
-        
+
         from in2lambda.json_convert import json_convert
+
         json_convert.main(self, output_dir)
 
     def set_name(self, name: str) -> None:

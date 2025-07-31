@@ -49,9 +49,7 @@ def pandoc_filter(
                         if not isinstance(item, pf.Div)
                     ]
                     set.current_question.add_part_text("\n".join(part))
-                    set.current_question.add_solution(
-                        pandoc_filter.solutions.popleft()
-                    )
+                    set.current_question.add_solution(pandoc_filter.solutions.popleft())
 
     if isinstance(elem, pf.Div):
         pandoc_filter.solutions.append(pf.stringify(elem))

@@ -20,7 +20,7 @@ def _zip_sorted_folder(folder_path, zip_path):
         folder_path: The path to the folder to zip.
         zip_path: The path where the zip file will be created.
     """
-    with zipfile.ZipFile(zip_path, 'w') as zf:
+    with zipfile.ZipFile(zip_path, "w") as zf:
         for root, dirs, files in os.walk(folder_path):
             # Sort files for deterministic, alphabetical order
             for file in sorted(files):
@@ -28,8 +28,12 @@ def _zip_sorted_folder(folder_path, zip_path):
                 rel_path = os.path.relpath(abs_path, folder_path)
                 zf.write(abs_path, arcname=rel_path)
 
+
 def converter(
-    question_template: dict[str, Any], set_template: dict[str, Any], SetQuestions: Set, output_dir: str
+    question_template: dict[str, Any],
+    set_template: dict[str, Any],
+    SetQuestions: Set,
+    output_dir: str,
 ) -> None:
     """Turns a set of question objects into Lambda Feedback JSON.
 
@@ -47,7 +51,6 @@ def converter(
     os.makedirs(output_dir, exist_ok=True)
     output_question = os.path.join(output_dir, set_name)
     os.makedirs(output_question, exist_ok=True)
-
 
     set_template["name"] = set_name
     set_template["description"] = set_description
@@ -83,7 +86,9 @@ def converter(
                 )
 
         # Output file
-        filename = "question_" + str(i).zfill(3) + "_" + output['title'].replace(" ", "_")
+        filename = (
+            "question_" + str(i).zfill(3) + "_" + output["title"].replace(" ", "_")
+        )
 
         # write questions into directory
         with open(f"{output_question}/{filename}.json", "w") as file:
