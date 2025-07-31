@@ -59,7 +59,7 @@ class Set:
             >>> s = Set()
             >>> s.add_question("Some title", pf.Para(pf.Str("hello"), pf.Space, pf.Str("there")))
             >>> s
-            Set(questions=[Question(title='Some title', parts=[], images=[], main_text='hello there')])
+            Set(_name='set', _description='', questions=[Question(title='Some title', parts=[], images=[], main_text='hello there')])
             >>> s.add_question(main_text="Normal string text")
             >>> s.questions[1].main_text
             'Normal string text'
@@ -117,10 +117,10 @@ class Set:
             ...     # Check the contents of the set directory
             ...     sorted(os.listdir(f"{temp_dir}/set"))
             ...     # Check the title of the first question
-            ...     with open(f"{temp_dir}/set/question_1.json") as file:
+            ...     with open(f"{temp_dir}/set/question_000_Question_1.json") as file:
             ...         print(f"Question 1's title: {json.load(file)['title']}")
             ['set', 'set.zip']
-            ['media', 'question_1.json', 'question_2.json']
+            ['question_000_Question_1.json', 'question_001_Question_2.json', 'set_set.json']
             Question 1's title: Question 1
         """
         from in2lambda.json_convert import json_convert

@@ -32,7 +32,7 @@ def image_directories(tex_file: str) -> list[str]:
         >>> temp_dir = tempfile.mkdtemp()
         >>> tex_file = os.path.join(temp_dir, 'test.tex')
         >>> with open(tex_file, 'w') as f:
-        set: Set,
+        ...    f.write("\\graphicspath{{subdir1/}{subdir2/}{subdir3/}}")
         45
         >>> image_directories(tex_file)
         ['subdir1/', 'subdir2/', 'subdir3/']
@@ -45,7 +45,7 @@ def image_directories(tex_file: str) -> list[str]:
         >>> with open(tex_file, 'w') as f:
         ...    f.write("No image directory")
         18
-            set: The Python API that is used to store the result after processing
+        >>> image_directories.cache_clear()
         >>> image_directories(tex_file)
         []
     """
