@@ -6,6 +6,7 @@ from typing import Union
 import panflute as pf
 
 from in2lambda.api.question import Question
+from in2lambda.api.visibility_status import VisibilityController, VisibilityStatus
 
 
 @dataclass
@@ -14,6 +15,9 @@ class Set:
 
     _name: str = field(default="set")
     _description: str = field(default="")
+    _finalAnswerVisibility: VisibilityController = field(default_factory=lambda: VisibilityController(VisibilityStatus.OPEN_WITH_WARNINGS))
+    _workedSolutionVisibility: VisibilityController = field(default_factory=lambda: VisibilityController(VisibilityStatus.OPEN_WITH_WARNINGS))
+    _structuredTutorialVisibility: VisibilityController = field(default_factory=lambda: VisibilityController(VisibilityStatus.OPEN))
 
     questions: list[Question] = field(default_factory=list)
     _current_question_index = -1
@@ -58,8 +62,8 @@ class Set:
             >>> import panflute as pf
             >>> s = Set()
             >>> s.add_question("Some title", pf.Para(pf.Str("hello"), pf.Space, pf.Str("there")))
-            >>> s
-            Set(_name='set', _description='', questions=[Question(title='Some title', parts=[], images=[], main_text='hello there')])
+            >>> s.questions
+            [Question(title='Some title', parts=[], images=[], main_text='hello there')]
             >>> s.add_question(main_text="Normal string text")
             >>> s.questions[1].main_text
             'Normal string text'
