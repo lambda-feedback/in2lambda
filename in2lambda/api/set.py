@@ -160,3 +160,16 @@ class Set:
             'This is my question set.'
         """
         self._description = description
+
+    def __repr__(self):
+        """Custom representation showing visibility status values instead of memory addresses."""
+        return (
+            f"Set("
+            f"_name={self._name!r}, "
+            f"_description={self._description!r}, "
+            f"_finalAnswerVisibility={str(self._finalAnswerVisibility)!r}, "
+            f"_workedSolutionVisibility={str(self._workedSolutionVisibility)!r}, "
+            f"_structuredTutorialVisibility={str(self._structuredTutorialVisibility)!r}, "
+            f"questions={self.questions!r}"
+            f")"
+        )

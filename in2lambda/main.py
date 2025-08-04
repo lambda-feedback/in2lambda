@@ -100,9 +100,9 @@ def runner(
         >>> from in2lambda.main import runner
         >>> # Retrieve an example TeX file and run the given filter.
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
-        Set(_name='set', _description='', questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='This is a sample question\n\n'), ...])
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='This is a sample question\n\n'), ...])
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
-        Set(_name='set', _description='', questions=[Question(title='', parts=[Part(text='This is part (a)\n\n', worked_solution=''), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...)
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...])
     """
     # The list of questions for Lambda Feedback as a Python API.
     set_obj = Set()

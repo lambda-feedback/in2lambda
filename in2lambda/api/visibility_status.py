@@ -9,6 +9,10 @@ class VisibilityStatus(Enum):
     def __str__(self):
         return self.value
     
+    def __repr__(self) -> str:
+        """Return a string representation for debugging."""
+        return str(self)
+    
 class VisibilityController:
     """Controller for managing visibility status with easy-to-use methods."""
     
@@ -20,19 +24,45 @@ class VisibilityController:
         return self._status
     
     def to_open(self):
-        """Change status to OPEN."""
+        """Change status to OPEN.
+        
+        Example:
+            >>> vc = VisibilityController()
+            >>> vc.to_open()
+            >>> vc.status
+            OPEN
+        """
         self._status = VisibilityStatus.OPEN
-        return self
     
     def to_hide(self):
-        """Change status to HIDE."""
+        """Change status to HIDE.
+
+        Example:
+            >>> vc = VisibilityController()
+            >>> vc.to_hide()
+            >>> vc.status
+            HIDE
+        """
         self._status = VisibilityStatus.HIDE
-        return self
     
     def to_open_with_warnings(self):
-        """Change status to OPEN_WITH_WARNINGS."""
+        """Change status to OPEN_WITH_WARNINGS.
+
+        Example:
+            >>> vc = VisibilityController()
+            >>> vc.to_open_with_warnings()
+            >>> vc.status
+            OPEN_WITH_WARNINGS
+        """
         self._status = VisibilityStatus.OPEN_WITH_WARNINGS
-        return self
     
     def __str__(self):
         return str(self._status)
+    
+    def __repr__(self) -> str:
+        """Return a string representation for debugging."""
+        return str(self)
+    
+    def to_dict(self):
+        """Convert VisibilityController to dictionary for JSON serialization."""
+        return {"status": str(self._status)}

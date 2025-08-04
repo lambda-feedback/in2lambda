@@ -55,6 +55,9 @@ def converter(
 
     set_template["name"] = set_name
     set_template["description"] = set_description
+    set_template["finalAnswerVisibility"] = str(SetQuestions._finalAnswerVisibility.status)
+    set_template["workedSolutionVisibility"] = str(SetQuestions._workedSolutionVisibility.status)
+    set_template["structuredTutorialVisibility"] = str(SetQuestions._structuredTutorialVisibility.status)
     # create the set file
     with open(f"{output_question}/set_{set_name}.json", "w") as file:
         json.dump(set_template, file)
