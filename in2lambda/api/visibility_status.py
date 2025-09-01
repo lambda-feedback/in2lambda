@@ -1,5 +1,6 @@
-from enum import Enum
+"""Module for managing visibility status of questions and sets."""
 
+from enum import Enum
 
 class VisibilityStatus(Enum):
     """Enum representing the visibility status of a question or set."""
