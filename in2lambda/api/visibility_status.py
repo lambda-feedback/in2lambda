@@ -9,6 +9,7 @@ class VisibilityStatus(Enum):
     OPEN_WITH_WARNINGS = "OPEN_WITH_WARNINGS"
 
     def __str__(self):
+        """Return the string representation of the visibility status."""
         return self.value
 
     def __repr__(self) -> str:
@@ -20,10 +21,12 @@ class VisibilityController:
     """Controller for managing visibility status with easy-to-use methods."""
 
     def __init__(self, initial_status: VisibilityStatus = VisibilityStatus.OPEN):
+        """Initialize the VisibilityController with a specific status."""
         self._status = initial_status
 
     @property
     def status(self) -> VisibilityStatus:
+        """Return the current visibility status."""
         return self._status
 
     def to_open(self):
@@ -60,6 +63,7 @@ class VisibilityController:
         self._status = VisibilityStatus.OPEN_WITH_WARNINGS
 
     def __str__(self):
+        """Return the string representation of the visibility status."""
         return str(self._status)
 
     def __repr__(self) -> str:
