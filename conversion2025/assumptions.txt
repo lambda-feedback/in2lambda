@@ -4,3 +4,6 @@ assumptions:
     - parts are only 1 level deep (i.e. no Q1, part a), i)
     - individual questions and solutions are seperatable by using just lines
     - all parts are explicitly enumerated
+
+
+parts needs to be ordered
