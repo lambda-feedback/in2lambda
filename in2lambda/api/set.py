@@ -6,8 +6,7 @@ from typing import Union
 import panflute as pf
 
 from in2lambda.api.question import Question
-from in2lambda.api.visibility_status import (VisibilityController,
-                                             VisibilityStatus)
+from in2lambda.api.visibility_status import (VisibilityController, VisibilityStatus)
 
 
 @dataclass
