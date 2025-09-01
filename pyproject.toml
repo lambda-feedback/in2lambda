@@ -57,6 +57,9 @@ sphinx-togglebutton = "^0.3.2"
 # panflute is missing type hints
 ignore_missing_imports = true
 
+[tool.isort]
+profile = "black"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
