@@ -4,6 +4,7 @@ assumptions:
     - parts are only 1 level deep (i.e. no Q1, part a), i)
     - individual questions and solutions are seperatable by using just lines
     - all parts are explicitly enumerated
+    - Chunky Independent Maths are deperated (otherwise Mathpix will not be able to seperate them)
 
 
 parts needs to be ordered
