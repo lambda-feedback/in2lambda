@@ -26,6 +26,7 @@ python = "^3.10"
 panflute = "^2.3.1"
 rich-click = "^1.7.4"
 beartype = "^0.17.2"
+requests = "<2.32.0"
 
 [tool.poetry.scripts]
 in2lambda = "in2lambda.main:cli"
@@ -55,6 +56,9 @@ sphinx-togglebutton = "^0.3.2"
 [tool.mypy]
 # panflute is missing type hints
 ignore_missing_imports = true
+
+[tool.isort]
+profile = "black"
 
 [build-system]
 requires = ["poetry-core"]

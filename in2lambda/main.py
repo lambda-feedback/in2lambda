@@ -15,7 +15,7 @@ import panflute as pf
 import rich_click as click
 
 import in2lambda.filters
-from in2lambda.api.module import Module
+from in2lambda.api.set import Set
 
 
 def docx_to_md(docx_file: str) -> str:
@@ -81,7 +81,7 @@ def runner(
     chosen_filter: str,
     output_dir: Optional[str] = None,
     answer_file: Optional[str] = None,
-) -> Module:
+) -> Set:
     r"""Takes in a TeX file for a given subject and outputs how it's broken down within Lambda Feedback.
 
     Args:
@@ -100,12 +100,12 @@ def runner(
         >>> from in2lambda.main import runner
         >>> # Retrieve an example TeX file and run the given filter.
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
-        Module(questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='This is a sample question\n\n'), ...])
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='This is a sample question\n\n'), ...])
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
-        Module(questions=[Question(title='', parts=[Part(text='This is part (a)\n\n', worked_solution=''), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...)
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...])
     """
     # The list of questions for Lambda Feedback as a Python API.
-    module = Module()
+    set_obj = Set()
 
     # Dynamically import the correct pandoc filter depending on the subject.
     filter_module = importlib.import_module(f"in2lambda.filters.{chosen_filter}.filter")
@@ -124,7 +124,7 @@ def runner(
     pf.run_filter(
         filter_module.pandoc_filter,
         doc=pf.convert_text(text, input_format=input_format, standalone=True),
-        module=module,
+        set=set_obj,
         tex_file=question_file,
         parsing_answers=False,
     )
@@ -146,16 +146,16 @@ def runner(
             doc=pf.convert_text(
                 answer_text, input_format=answer_format, standalone=True
             ),
-            module=module,
+            set=set_obj,
             tex_file=answer_file,
             parsing_answers=True,
         )
 
     # Read the Python API format and convert to JSON.
     if output_dir is not None:
-        module.to_json(output_dir)
+        set_obj.to_json(output_dir)
 
-    return module
+    return set_obj
 
 
 @click.command(

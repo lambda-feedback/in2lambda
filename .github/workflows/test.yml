@@ -16,7 +16,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade setuptools wheel virtualenv
+          python -m pip install --upgrade setuptools wheel
           pip install poetry
           poetry config virtualenvs.create true
           poetry install --with dev

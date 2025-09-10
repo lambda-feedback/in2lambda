@@ -9,7 +9,7 @@ from typing import Optional
 
 import panflute as pf
 
-from in2lambda.api.module import Module
+from in2lambda.api.set import Set
 from in2lambda.filters.markdown import filter
 
 
@@ -17,7 +17,7 @@ from in2lambda.filters.markdown import filter
 def pandoc_filter(
     elem: pf.Element,
     doc: pf.elements.Doc,
-    module: Module,
+    set: Set,
     parsing_answers: bool,
 ) -> Optional[pf.Str]:
     """A Pandoc filter that parses and translates various TeX elements.
@@ -26,7 +26,7 @@ def pandoc_filter(
         elem: The current TeX element being processed. This could be a paragraph,
             ordered list, etc.
         doc: A Pandoc document container - essentially the Pandoc AST.
-        module: The Python API that is used to store the result after processing
+        set: The Python API that is used to store the result after processing
             the TeX file.
         parsing_answers: Whether an answers-only document is currently being parsed.
 
@@ -42,17 +42,17 @@ def pandoc_filter(
                 isinstance(elem.prev, pf.Header)
                 and pf.stringify(elem.prev) != "Solution"
             ):
-                module.add_question(main_text=elem)
+                set.add_question(main_text=elem)
 
         # Parts are denoted via ordered lists
         case pf.OrderedList:
             for item in elem.content:
-                module.current_question.add_part_text(item)
+                set.current_question.add_part_text(item)
 
         # Solution is in a Div with nested content being "Solution"
         case pf.Div:
             if pf.stringify(elem.content[0].content) == "Solution":
-                module.current_question.add_solution(
+                set.current_question.add_solution(
                     pf.stringify(elem)  # [len("Solution") :] - For Jon Rackham
                 )
 
