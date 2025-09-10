@@ -1,4 +1,4 @@
-"""A full question with optional parts that's contained in a module."""
+"""A full question with optional parts that's contained in a set."""
 
 from dataclasses import dataclass, field
 from typing import Union

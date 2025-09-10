@@ -1,0 +1,9 @@
+{
+    "name": "a simple example",
+    "description": "description here",
+    "manuallyHidden": true,
+    "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+    "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+    "structuredTutorialVisibility": "OPEN",
+    "chatbotVisibility": "HIDE"
+}
