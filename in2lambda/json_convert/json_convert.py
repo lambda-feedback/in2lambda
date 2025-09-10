@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import zipfile
 from copy import deepcopy
@@ -97,7 +98,7 @@ def converter(
 
         # Output file
         filename = (
-            "question_" + str(i).zfill(3) + "_" + output["title"].replace(" ", "_")
+            "question_" + str(i).zfill(3) + "_" + re.sub(r'[^\w\-_.]', '_', output['title'].strip())
         )
 
         # write questions into directory
