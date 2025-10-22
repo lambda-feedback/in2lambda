@@ -1,10 +1,8 @@
 assumptions:
-    - only 1 set of questions
-    - the set of question contains the questions AND solutions
-    - parts are only 1 level deep (i.e. no Q1, part a), i)
-    - individual questions and solutions are seperatable by using just lines
-    - all parts are explicitly enumerated
-    - Chunky Independent Maths are deperated (otherwise Mathpix will not be able to seperate them)
-
-
-parts needs to be ordered
+    - there is only 1 set of questions in the pdf.
+    - the set of question contains the questions AND solutions.
+    - parts are only 1 level deep (i.e. no subquestions within a subquestion)
+    - individual questions and solutions are seperatable by using just lines (the chunk of text where the question/solution is contains all and only the question/solution, this includes images)
+    - all parts are explicitly enumerated (may struggle with implied subquestions)
+    - independent math equations are deperated (if equations belonging to different questions are clustered together, MathPix may see it as one and put them under the same maths delimiter, this rarely happens)
+    - dollar signs are used as math delimiters only.
