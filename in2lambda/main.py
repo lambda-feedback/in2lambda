@@ -16,6 +16,13 @@ import rich_click as click
 
 import in2lambda.filters
 from in2lambda.api.set import Set
+from in2lambda.validation import check_markdown
+
+
+def _warn_markdown_issues(text: str, source: str) -> None:
+    """Echo a warning for each math-delimiter problem found in a markdown source."""
+    for problem in check_markdown(text):
+        click.echo(f"Warning: {source}: {problem.value}")
 
 
 def docx_to_md(docx_file: str) -> str:
@@ -120,6 +127,9 @@ def runner(
 
         input_format = file_type(question_file)
 
+    if input_format == "markdown":
+        _warn_markdown_issues(text, question_file)
+
     # Parse the Pandoc AST using the relevant panflute filter.
     pf.run_filter(
         filter_module.pandoc_filter,
@@ -140,6 +150,9 @@ def runner(
             with open(answer_file, "r", encoding="utf-8") as file:
                 answer_text = file.read()
             answer_format = file_type(answer_file)
+
+        if answer_format == "markdown":
+            _warn_markdown_issues(answer_text, answer_file)
 
         pf.run_filter(
             filter_module.pandoc_filter,

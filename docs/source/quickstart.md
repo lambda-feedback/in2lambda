@@ -69,6 +69,12 @@ Another filter might be used if [the answers are in a separate file](filters/_au
 $ in2lambda questions.tex -a solutions.tex PartsSepSol
 ```
 
+If you would rather write the questions yourself, the [`Markdown` filter](filters/_autosummary/Markdown) reads a plain markdown file where `#` starts a question, `##` starts a part, and `## Solution` gives a worked solution:
+
+```bash
+$ in2lambda questions.md Markdown
+```
+
 By default, this generates an `out` directory in the same place that the command was run in. It contains the zipped question files.
 
 Check the [command line tool reference](reference/command-line) for more information.

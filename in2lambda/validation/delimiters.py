@@ -1,4 +1,4 @@
-"""Checks that ``$ ... $`` and ``$$ ... $$`` math delimiters are balanced and placed correctly.
+"""Check that inline and display math delimiters are balanced and placed correctly.
 
 KaTeX (and Lambda Feedback) expect inline math wrapped in single dollar signs on
 one line, and display math wrapped in ``$$`` that each sit alone on their own
