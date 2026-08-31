@@ -2,6 +2,7 @@
 
 from enum import Enum
 
+
 class VisibilityStatus(Enum):
     """Enum representing the visibility status of a question or set."""
 
