@@ -19,7 +19,7 @@ jobs:
           python -m pip install --upgrade setuptools wheel
           pip install poetry
           poetry config virtualenvs.create true
-          poetry install --with dev
+          poetry install --with dev --all-extras
       - name: Install Pandoc  # apt version seems too old
         uses: r-lib/actions/setup-pandoc@v2
       - name: Linting Checks
