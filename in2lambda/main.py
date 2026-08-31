@@ -171,10 +171,15 @@ def runner(
     return set_obj
 
 
-@click.command(
+@click.group(
     no_args_is_help=True,
     epilog="See the docs at https://lambda-feedback.github.io/in2lambda/ for more details.",
 )
+def cli() -> None:
+    """Convert documents into Lambda Feedback compatible question sets."""
+
+
+@cli.command(no_args_is_help=True)
 @click.argument(  # Use resolve_path to get absolute path
     "question_file", type=click.Path(exists=True, readable=True, resolve_path=True)
 )
@@ -207,11 +212,11 @@ def runner(
     help="File containing solutions for QUESTION_FILE.",
     type=click.Path(resolve_path=True, exists=True, dir_okay=False),
 )
-def cli(
+def convert(
     question_file: str, chosen_filter: str, output_dir: str, answer_file: Optional[str]
 ) -> None:
-    """Takes in a QUESTION_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
-    # main() is made separate from click() so that it can be easily imported as part of a library.
+    """Take a QUESTION_FILE and CHOSEN_FILTER and produce Lambda Feedback json/zip files."""
+    # Kept separate from runner() so runner() can be imported as part of the library.
     runner(question_file, chosen_filter, output_dir, answer_file)
 
 
