@@ -10,3 +10,9 @@ Find out more in the [documentation](https://lambda-feedback.github.io/in2lambda
 ```
 $ pip install in2lambda
 ```
+
+To also use `in2lambda wizard` (OCR + LLM extraction of unstructured documents), install the `llm` extra:
+
+```
+$ pip install 'in2lambda[llm]'
+```

@@ -220,5 +220,37 @@ def convert(
     runner(question_file, chosen_filter, output_dir, answer_file)
 
 
+@cli.command(no_args_is_help=True)
+@click.argument(
+    "input_file", type=click.Path(exists=True, dir_okay=False, resolve_path=True)
+)
+@click.option(
+    "--out",
+    "-o",
+    "output_file",
+    default="./wizard.md",
+    show_default=True,
+    help="Markdown file to write for review.",
+    type=click.Path(resolve_path=True),
+)
+@click.option(
+    "--model",
+    "-m",
+    default=None,
+    help="OpenRouter model slug (default: $IN2LAMBDA_MODEL or a built-in default).",
+)
+def wizard(input_file: str, output_file: str, model: Optional[str]) -> None:
+    """Turn an unstructured INPUT_FILE (PDF/docx/tex/md) into #/## markdown for review.
+
+    Needs the 'llm' extra (pip install 'in2lambda[llm]') and an OPENROUTER_API_KEY.
+    Review the output, then run: in2lambda convert OUTPUT Markdown
+    """
+    # Imported lazily so the rest of the CLI works without the optional llm extra.
+    from in2lambda.wizard.run import run_wizard
+
+    written = run_wizard(input_file, output_file, model)
+    click.echo(f"Wrote {written}")
+
+
 if __name__ == "__main__":
     cli()
