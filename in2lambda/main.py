@@ -88,6 +88,7 @@ def runner(
     chosen_filter: str,
     output_dir: Optional[str] = None,
     answer_file: Optional[str] = None,
+    set_name: Optional[str] = None,
 ) -> Set:
     r"""Takes in a TeX file for a given subject and outputs how it's broken down within Lambda Feedback.
 
@@ -96,6 +97,7 @@ def runner(
         chosen_filter: The filter chosen to parse the TeX file.
         output_dir: An optional argument for where to output the Lambda Feedback compatible json/zip files.
         answer_file: The absolute path to a TeX answer file.
+        set_name: An optional name for the question set. Defaults to "set" when not provided.
 
     Returns:
         A list of questions and how they would be broken down into different Lambda Feedback sections
@@ -113,6 +115,8 @@ def runner(
     """
     # The list of questions for Lambda Feedback as a Python API.
     set_obj = Set()
+    if set_name is not None:
+        set_obj.set_name(set_name)
 
     # Dynamically import the correct pandoc filter depending on the subject.
     filter_module = importlib.import_module(f"in2lambda.filters.{chosen_filter}.filter")
@@ -212,12 +216,24 @@ def cli() -> None:
     help="File containing solutions for QUESTION_FILE.",
     type=click.Path(resolve_path=True, exists=True, dir_okay=False),
 )
+@click.option(
+    "--name",
+    "-n",
+    "set_name",
+    default=None,
+    help="Name for the question set (default: 'set'). Determines the set_<name>.json "
+    "filename and the name Lambda Feedback shows on import.",
+)
 def convert(
-    question_file: str, chosen_filter: str, output_dir: str, answer_file: Optional[str]
+    question_file: str,
+    chosen_filter: str,
+    output_dir: str,
+    answer_file: Optional[str],
+    set_name: Optional[str],
 ) -> None:
     """Take a QUESTION_FILE and CHOSEN_FILTER and produce Lambda Feedback json/zip files."""
     # Kept separate from runner() so runner() can be imported as part of the library.
-    runner(question_file, chosen_filter, output_dir, answer_file)
+    runner(question_file, chosen_filter, output_dir, answer_file, set_name)
 
 
 @cli.command(no_args_is_help=True)

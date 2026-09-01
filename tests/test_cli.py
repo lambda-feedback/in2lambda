@@ -46,6 +46,33 @@ def test_convert_accepts_case_insensitive_filter_and_markdown(
     assert (out_dir / "set" / "set_set.json").is_file()
 
 
+def test_convert_name_option_sets_set_name(filters_dir: str, tmp_path) -> None:
+    import json
+
+    example = os.path.join(filters_dir, "Markdown", "example.md")
+    out_dir = tmp_path / "out"
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "convert",
+            example,
+            "Markdown",
+            "-o",
+            str(out_dir),
+            "--name",
+            "Problem Sheet 4",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    # The name is slugified for paths but kept verbatim in the set JSON.
+    assert (out_dir / "Problem_Sheet_4" / "set_Problem_Sheet_4.json").is_file()
+    assert (out_dir / "Problem_Sheet_4.zip").is_file()
+    with open(out_dir / "Problem_Sheet_4" / "set_Problem_Sheet_4.json") as file:
+        assert json.load(file)["name"] == "Problem Sheet 4"
+
+
 def test_convert_rejects_unknown_filter(filters_dir: str, tmp_path) -> None:
     example = os.path.join(filters_dir, "PartsSepSol", "example.tex")
 

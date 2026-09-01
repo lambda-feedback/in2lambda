@@ -42,6 +42,14 @@ Read through `draft.md`, fix anything the model got wrong, then convert it:
 $ in2lambda convert draft.md Markdown
 ```
 
+Every set is called `set` unless you say otherwise. Pass `--name` (`-n`) to give
+it a distinct name, which is what Lambda Feedback shows on import and also names
+the `set_<name>.json` / `<name>.zip` output:
+
+```bash
+$ in2lambda convert draft.md Markdown --name "Problem Sheet 4"
+```
+
 :::{note}
 `.docx`, `.tex` and `.md` inputs skip the OCR step and go straight to the LLM.
 :::
