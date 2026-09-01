@@ -110,3 +110,32 @@ def test_extract_set_raises_when_model_returns_nothing():
 
     with pytest.raises(RuntimeError, match="parseable"):
         extract_set("anything", client, "test/model")
+
+
+def test_extract_set_repairs_json_unescaped_latex_commands():
+    from in2lambda.wizard.extract import extract_set
+
+    # A model that under-escapes "\text"/"\frac"/"\beta"/"\rho" in its structured
+    # output lands a bare TAB/FF/BS/CR glued to the rest of the command here.
+    mangled = WizardSet(
+        questions=[
+            WizardQuestion(
+                title="Units and symbols",
+                text="Height $h = 45\\,\text{m}$ at angle $\theta$.",  # TAB from \t
+                parts=[
+                    WizardPart(
+                        text="State the coefficient.\nKeep this newline.",
+                        solution="$\frac12$ with $\beta$ and $\rho$.",  # FF, BS, CR
+                    )
+                ],
+            )
+        ]
+    )
+
+    result = extract_set("anything", _fake_client(mangled), "test/model")
+    question = result.questions[0]
+
+    assert question.text == "Height $h = 45\\,\\text{m}$ at angle $\\theta$."
+    assert question.parts[0].solution == "$\\frac12$ with $\\beta$ and $\\rho$."
+    # Real newlines must survive - only control chars glued to letters are touched.
+    assert question.parts[0].text == "State the coefficient.\nKeep this newline."

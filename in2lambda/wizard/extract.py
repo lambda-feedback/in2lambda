@@ -6,6 +6,7 @@ renders it in the ``#``/``##`` form the :mod:`Markdown filter
 <in2lambda.filters.Markdown.filter>` reads.
 """
 
+import re
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -76,6 +77,27 @@ _FEWSHOT_OUTPUT = (
 )
 
 
+# ``\t``, ``\r``, ``\f`` and ``\b`` are all valid JSON string escapes, so a model
+# that emits ``\text`` / ``\rho`` / ``\frac`` / ``\beta`` with a single backslash
+# in its structured output has that backslash swallowed: the parsed JSON then
+# holds a bare control character glued to the rest of the command (``<TAB>ext``,
+# ``<FF>rac`` ...). None of those control characters is ever real text in a
+# problem sheet, so a C0 control character immediately followed by a letter can
+# only be a mangled LaTeX control word - put the backslash back. Newlines are
+# left untouched: they carry real structure in the extracted text.
+_CTRL_ESCAPES = {"\t": r"\t", "\r": r"\r", "\f": r"\f", "\b": r"\b"}
+_MANGLED_COMMAND = re.compile(r"([\t\r\f\b])(?=[A-Za-z])")
+
+
+def _demangle(text: str) -> str:
+    r"""Restore LaTeX control words whose backslash was lost to JSON un-escaping.
+
+    A TAB/CR/FF/BS glued to a letter (e.g. ``<TAB>ext{m}`` from ``\text``) becomes
+    ``\`` + that escape letter again. Newlines are deliberately left as-is.
+    """
+    return _MANGLED_COMMAND.sub(lambda match: _CTRL_ESCAPES[match.group(1)], text)
+
+
 def extract_set(source_markdown: str, client, model: str) -> WizardSet:
     """Ask ``model`` (via ``client``) to turn ``source_markdown`` into a WizardSet.
 
@@ -105,6 +127,14 @@ def extract_set(source_markdown: str, client, model: str) -> WizardSet:
     parsed: Optional[WizardSet] = completion.choices[0].message.parsed
     if parsed is None:
         raise RuntimeError("The model did not return a parseable question set.")
+
+    for question in parsed.questions:
+        question.title = _demangle(question.title)
+        question.text = _demangle(question.text)
+        question.solution = _demangle(question.solution)
+        for part in question.parts:
+            part.text = _demangle(part.text)
+            part.solution = _demangle(part.solution)
     return parsed
 
 
