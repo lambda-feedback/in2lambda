@@ -687,3 +687,9 @@ log
 **/_autosummary
 *.pdf
 /tex
+
+# Sphinx build output (see also docs/_build/ above)
+docs/_bt/
+
+# Scratch directory for manual wizard/convert end-to-end runs
+/e2e/
