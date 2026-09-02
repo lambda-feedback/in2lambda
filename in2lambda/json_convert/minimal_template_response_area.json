@@ -1,0 +1,28 @@
+{
+  "cases": [],
+  "commonFeedbackColor": "#C4CDD5",
+  "contentAfter": "",
+  "correctFeedbackColor": "#22C55E",
+  "correctFeedbackPrefix": "Correct",
+  "displayInputSymbols": false,
+  "evaluationFunctionName": "",
+  "gradeParams": {},
+  "includeInPdf": false,
+  "incorrectFeedbackColor": "#FF5630",
+  "incorrectFeedbackPrefix": "Incorrect",
+  "inputSymbols": [],
+  "livePreview": false,
+  "orderNumber": 0,
+  "postResponseText": "",
+  "preResponseText": "",
+  "response": {
+    "responseInput": {
+      "answer": "",
+      "config": {},
+      "responseType": ""
+    }
+  },
+  "saveAllowed": false,
+  "separateFeedback": false,
+  "tests": []
+}

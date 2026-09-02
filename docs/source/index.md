@@ -72,6 +72,7 @@ wizard
 contributing/installation
 contributing/high_level
 contributing/writing-a-filter
+contributing/response-areas
 contributing/documentation
 contributing/new_version
 ```

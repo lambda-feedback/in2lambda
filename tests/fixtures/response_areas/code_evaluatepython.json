@@ -1,0 +1,33 @@
+{
+  "cases": [],
+  "commonFeedbackColor": "#C4CDD5",
+  "contentAfter": "",
+  "correctFeedbackColor": "#22C55E",
+  "correctFeedbackPrefix": "Correct",
+  "displayInputSymbols": false,
+  "evaluationFunctionName": "evaluatePython",
+  "gradeParams": {
+    "mode": "unit_test",
+    "use_answer_as_test_code": true
+  },
+  "includeInPdf": false,
+  "incorrectFeedbackColor": "#FF5630",
+  "incorrectFeedbackPrefix": "Incorrect",
+  "inputSymbols": [],
+  "livePreview": false,
+  "orderNumber": 0,
+  "postResponseText": "",
+  "preResponseText": "",
+  "response": {
+    "responseInput": {
+      "answer": "def test_f_value():\n    import math\n    x = 1e8\n    ref = 1 / (math.sqrt(x * x + 1) + x)\n    assert abs(f_value - ref) < 1e-12\n    assert f_value > 0\n",
+      "config": {
+        "language": "python"
+      },
+      "responseType": "CODE"
+    }
+  },
+  "saveAllowed": false,
+  "separateFeedback": false,
+  "tests": []
+}

@@ -2,24 +2,40 @@
 
 The markdown produced by the wizard (and hand-written by users) is the shared
 contract between the wizard, the ``Markdown`` filter and Lambda Feedback. These
-checks catch structural mistakes - currently unbalanced/misplaced math
-delimiters - before the markdown is converted.
+checks catch structural mistakes - unbalanced/misplaced math delimiters and
+malformed ``lambda-feedback`` response-area blocks - before the markdown is
+converted.
 """
 
+from typing import Union
+
 from in2lambda.validation.delimiters import MathDelimiterError, math_delimiter_checker
+from in2lambda.validation.response_area import (
+    ResponseAreaError,
+    response_area_checker,
+)
 
-__all__ = ["MathDelimiterError", "math_delimiter_checker", "check_markdown"]
+__all__ = [
+    "MathDelimiterError",
+    "math_delimiter_checker",
+    "ResponseAreaError",
+    "response_area_checker",
+    "check_markdown",
+]
 
 
-def check_markdown(md_content: str) -> list[MathDelimiterError]:
+def check_markdown(
+    md_content: str,
+) -> list[Union[MathDelimiterError, ResponseAreaError]]:
     """Run every markdown check and return the problems found.
 
     Args:
         md_content: The markdown text to validate.
 
     Returns:
-        A list of :class:`MathDelimiterError` members, one per problem found.
-        An empty list means the markdown passed every check.
+        A list with one member per problem found (:class:`MathDelimiterError` or
+        :class:`ResponseAreaError`). An empty list means the markdown passed
+        every check.
 
     Examples:
         >>> from in2lambda.validation import check_markdown
@@ -28,10 +44,12 @@ def check_markdown(md_content: str) -> list[MathDelimiterError]:
         >>> check_markdown("Unbalanced $x = y")
         [<MathDelimiterError.MISSING_CLOSING_SINGLE_DOLLAR: 'unclosed inline $ ... $'>]
     """
-    problems: list[MathDelimiterError] = []
+    problems: list[Union[MathDelimiterError, ResponseAreaError]] = []
 
     result = math_delimiter_checker(md_content)
     if result is not MathDelimiterError.PASSED:
         problems.append(result)
+
+    problems.extend(response_area_checker(md_content))
 
     return problems

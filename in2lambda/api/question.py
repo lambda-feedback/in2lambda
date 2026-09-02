@@ -6,6 +6,7 @@ from typing import Union
 import panflute as pf
 
 from in2lambda.api.part import Part
+from in2lambda.api.response_area import ResponseArea
 
 
 @dataclass
@@ -147,3 +148,36 @@ Part(text='part b', worked_solution='part b solution')], images=[], main_text=''
             self.parts[self._last_part["text"]].text = elem_text
 
         self._last_part["text"] += 1
+
+    def add_response_area(
+        self, response_area: ResponseArea, *, to_part: int = -1
+    ) -> None:
+        """Attach a response area to one of this question's parts.
+
+        If the question has no parts yet, an empty part is created to hold it,
+        mirroring how :meth:`add_solution` and :meth:`add_part_text` cope with
+        content arriving in an unexpected order.
+
+        Args:
+            response_area: The response area to attach.
+            to_part: Index of the part to attach to (default: the last part).
+
+        Examples:
+            >>> from in2lambda.api.question import Question
+            >>> from in2lambda.api.response_area import ResponseArea
+            >>> question = Question()
+            >>> question.add_part_text("What is 2 + 2?")
+            >>> question.add_response_area(ResponseArea("NUMBER", "4", "isExactEqual"))
+            >>> question.parts[0].response_areas
+            [ResponseArea(response_type='NUMBER', answer='4', \
+evaluation_function='isExactEqual', grade_params={}, config={}, \
+pre_response_text='', post_response_text='')]
+            >>> # Works even before any part text has been added.
+            >>> blank = Question()
+            >>> blank.add_response_area(ResponseArea("BOOLEAN", "True", "compareBoolean"))
+            >>> len(blank.parts)
+            1
+        """
+        if not self.parts:
+            self.parts.append(Part())
+        self.parts[to_part].response_areas.append(response_area)

@@ -10,4 +10,5 @@ except ImportError:  # pragma: no cover
     collect_ignore = [
         "in2lambda/wizard/extract.py",
         "in2lambda/wizard/run.py",
+        "in2lambda/wizard/confirm.py",
     ]

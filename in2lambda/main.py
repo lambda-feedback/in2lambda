@@ -20,7 +20,7 @@ from in2lambda.validation import check_markdown
 
 
 def _warn_markdown_issues(text: str, source: str) -> None:
-    """Echo a warning for each math-delimiter problem found in a markdown source."""
+    """Echo a warning for each problem :mod:`in2lambda.validation` finds in a markdown source."""
     for problem in check_markdown(text):
         click.echo(f"Warning: {source}: {problem.value}")
 
@@ -145,9 +145,7 @@ def runner(
 
     # If separate answer TeX file provided, parse that as well.
     if answer_file:
-
         if file_type(answer_file) == "docx":
-
             answer_text = docx_to_md(answer_file)
             answer_format = "markdown"
         else:
@@ -255,16 +253,43 @@ def convert(
     default=None,
     help="OpenRouter model slug (default: $IN2LAMBDA_MODEL or a built-in default).",
 )
-def wizard(input_file: str, output_file: str, model: Optional[str]) -> None:
+@click.option(
+    "--yes",
+    "-y",
+    "assume_yes",
+    is_flag=True,
+    help="Keep every proposed response area without prompting.",
+)
+@click.option(
+    "--no-response-areas",
+    "skip_response_areas",
+    is_flag=True,
+    help="Do not add response areas to the markdown.",
+)
+def wizard(
+    input_file: str,
+    output_file: str,
+    model: Optional[str],
+    assume_yes: bool,
+    skip_response_areas: bool,
+) -> None:
     """Turn an unstructured INPUT_FILE (PDF/docx/tex/md) into #/## markdown for review.
 
     Needs the 'llm' extra (pip install 'in2lambda[llm]') and an OPENROUTER_API_KEY.
+    For each part you confirm the proposed response area ([a]ccept / [e]dit /
+    [s]kip); use -y to accept all or --no-response-areas to add none.
     Review the output, then run: in2lambda convert OUTPUT Markdown
     """
     # Imported lazily so the rest of the CLI works without the optional llm extra.
     from in2lambda.wizard.run import run_wizard
 
-    written = run_wizard(input_file, output_file, model)
+    written = run_wizard(
+        input_file,
+        output_file,
+        model,
+        response_areas=not skip_response_areas,
+        assume_yes=assume_yes,
+    )
     click.echo(f"Wrote {written}")
 
 

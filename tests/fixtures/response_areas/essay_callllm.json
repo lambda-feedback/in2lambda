@@ -1,0 +1,38 @@
+{
+  "cases": [],
+  "commonFeedbackColor": "#C4CDD5",
+  "contentAfter": "",
+  "correctFeedbackColor": "#22C55E",
+  "correctFeedbackPrefix": "Correct",
+  "displayInputSymbols": false,
+  "evaluationFunctionName": "callLLM",
+  "gradeParams": {
+    "context": "",
+    "correctness_decision": "You are grading a student's response. The correct answer is: {{answer}}. Judge the response as correct if it conveys the same meaning as the correct answer, allowing for different wording, notation, or level of detail, and incorrect otherwise",
+    "feedback_guidance": "Give the student concise, constructive feedback in one or two sentences, written directly to them. If the response is correct, briefly affirm why. If it is incorrect, explain what is wrong and nudge them toward the correct answer without simply stating it outright\n",
+    "model": "openai/gpt-4o-mini"
+  },
+  "includeInPdf": false,
+  "incorrectFeedbackColor": "#FF5630",
+  "incorrectFeedbackPrefix": "Incorrect",
+  "inputSymbols": [],
+  "livePreview": false,
+  "orderNumber": 0,
+  "postResponseText": "",
+  "preResponseText": "",
+  "response": {
+    "responseInput": {
+      "answer": "For $x = 10^{8}$ both $\\sqrt{x^{2}+1}$ and $x$ are approximately $10^{8}$ and agree to about 16 significant figures. Subtracting them (*catastrophic cancellation*) leaves a value near $5\\times10^{-9}$ in which every significant digit has been destroyed by floating-point round-off, so the naive expression `math.sqrt(x*x + 1) - x` evaluates to exactly `0.0`.",
+      "config": {
+        "allowDraw": false,
+        "allowEmptySubmission": false,
+        "allowScan": false,
+        "repeatForSubjects": false
+      },
+      "responseType": "ESSAY"
+    }
+  },
+  "saveAllowed": false,
+  "separateFeedback": true,
+  "tests": []
+}

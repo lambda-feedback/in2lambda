@@ -73,6 +73,13 @@ def test_convert_name_option_sets_set_name(filters_dir: str, tmp_path) -> None:
         assert json.load(file)["name"] == "Problem Sheet 4"
 
 
+def test_wizard_help_lists_response_area_options() -> None:
+    result = CliRunner().invoke(cli, ["wizard", "--help"])
+    assert result.exit_code == 0
+    assert "--yes" in result.output
+    assert "--no-response-areas" in result.output
+
+
 def test_convert_rejects_unknown_filter(filters_dir: str, tmp_path) -> None:
     example = os.path.join(filters_dir, "PartsSepSol", "example.tex")
 

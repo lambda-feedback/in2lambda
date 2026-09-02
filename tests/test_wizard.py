@@ -6,7 +6,24 @@ from unittest.mock import MagicMock
 import pytest
 
 from in2lambda.main import runner
-from in2lambda.wizard.extract import WizardPart, WizardQuestion, WizardSet, to_markdown
+from in2lambda.wizard.confirm import confirm_response_areas
+from in2lambda.wizard.extract import (
+    WizardPart,
+    WizardQuestion,
+    WizardResponseArea,
+    WizardSet,
+    to_markdown,
+)
+
+
+def _ra(answer: str) -> WizardResponseArea:
+    return WizardResponseArea(
+        response_type="EXPRESSION",
+        answer=answer,
+        evaluation_function="compareExpressions",
+        reasoning="symbolic answer",
+    )
+
 
 SAMPLE_SET = WizardSet(
     questions=[
@@ -14,7 +31,11 @@ SAMPLE_SET = WizardSet(
             title="Projectile",
             text="A ball is thrown from height $h$.",
             parts=[
-                WizardPart(text="Find the flight time.", solution="$t=\\sqrt{2h/g}$."),
+                WizardPart(
+                    text="Find the flight time.",
+                    solution="$t=\\sqrt{2h/g}$.",
+                    response_area=_ra("sqrt(2*h/g)"),
+                ),
                 WizardPart(text="Find the range.", solution="$x=v_0 t$."),
             ],
         ),
@@ -51,6 +72,12 @@ def test_to_markdown_roundtrips_through_markdown_filter(tmp_path):
     assert projectile.parts[0].worked_solution == "$t=\\sqrt{2h/g}$."
     assert result.questions[1].parts[0].worked_solution == "$F = ma$."
 
+    # The proposed response area round-trips as a lambda-feedback block.
+    response_area = projectile.parts[0].response_areas[0]
+    assert response_area.evaluation_function == "compareExpressions"
+    assert response_area.answer == "sqrt(2*h/g)"
+    assert projectile.parts[1].response_areas == []
+
 
 def test_run_wizard_writes_reviewable_markdown(tmp_path, monkeypatch):
     from in2lambda.wizard import run as run_module
@@ -68,8 +95,44 @@ def test_run_wizard_writes_reviewable_markdown(tmp_path, monkeypatch):
     text = out.read_text()
     assert text.startswith("# Projectile")
     assert "## Part 1" in text and "## Solution" in text
+    # The confirmed response area is written as a lambda-feedback block.
+    assert "```lambda-feedback" in text
+    assert '"evaluationFunction": "compareExpressions"' in text
     # The extracted markdown must feed straight back into the Markdown filter.
-    assert len(runner(str(out), "Markdown").questions) == 2
+    converted = runner(str(out), "Markdown")
+    assert len(converted.questions) == 2
+    assert converted.questions[0].parts[0].response_areas[0].answer == "sqrt(2*h/g)"
+
+
+def test_no_response_areas_flag_drops_them(tmp_path, monkeypatch):
+    from in2lambda.wizard import run as run_module
+
+    monkeypatch.setattr(
+        run_module, "get_client", lambda: _fake_client(SAMPLE_SET.model_copy(deep=True))
+    )
+    monkeypatch.setattr(run_module, "resolve_model", lambda value: "test/model")
+
+    source = tmp_path / "raw.md"
+    source.write_text("notes")
+    out = tmp_path / "draft.md"
+
+    run_module.run_wizard(str(source), str(out), response_areas=False)
+
+    text = out.read_text()
+    assert "```lambda-feedback" not in text
+    assert runner(str(out), "Markdown").questions[0].parts[0].response_areas == []
+
+
+def test_confirm_response_areas_strips_when_disabled():
+    question_set = SAMPLE_SET.model_copy(deep=True)
+    confirm_response_areas(question_set, enabled=False)
+    assert question_set.questions[0].parts[0].response_area is None
+
+
+def test_confirm_response_areas_accept_all_keeps_suggestions():
+    question_set = SAMPLE_SET.model_copy(deep=True)
+    confirm_response_areas(question_set, accept_all=True)
+    assert question_set.questions[0].parts[0].response_area.answer == "sqrt(2*h/g)"
 
 
 def test_run_wizard_uses_mathpix_for_pdfs(tmp_path, monkeypatch):

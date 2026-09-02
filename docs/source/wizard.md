@@ -36,6 +36,36 @@ $ in2lambda wizard problem_sheet.pdf -o draft.md
 sub-questions, and `## Solution` blocks. Any figures found in a PDF are saved
 next to it under `media/`.
 
+### Confirming response areas
+
+For every part that has a worked solution the wizard also proposes a **response
+area** - the input type a student uses and the evaluation function that marks it
+(see [Response areas](contributing/response-areas)). It stops on each one so you
+can check it:
+
+```text
+Question 2, part 1
+  Q: Find the time it takes to reach the ground.
+  Solution: $t = \sqrt{2h/g}$.
+  Proposed: EXPRESSION / compareExpressions answer='sqrt(2*h/g)' params={}
+  Why: The answer is a symbolic expression in h and g.
+  [a]ccept / [e]dit / [s]kip [a]:
+```
+
+`e` walks you through picking the response type, the evaluation function and its
+parameters; `s` drops it. Confirmed response areas are written into `draft.md` as
+```` ```lambda-feedback ```` blocks, which `in2lambda convert ... Markdown` turns
+into real response areas on import.
+
+| Flag | Effect |
+| --- | --- |
+| _(default, in a terminal)_ | prompt for each part |
+| `--yes` / `-y` | keep every proposed response area without prompting |
+| `--no-response-areas` | do not add any response areas |
+
+The prompt is also skipped (all suggestions kept) when the wizard is not attached
+to a terminal, so scripts keep working.
+
 Read through `draft.md`, fix anything the model got wrong, then convert it:
 
 ```bash

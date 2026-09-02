@@ -22,15 +22,54 @@ This is the format the ``in2lambda wizard`` command emits, and the validator in
 :mod:`in2lambda.validation` checks it before conversion.
 """
 
+import json
 from typing import Optional
 
 import panflute as pf
 
 from in2lambda.api.part import Part
+from in2lambda.api.response_area import ResponseArea
 from in2lambda.api.set import Set
 from in2lambda.filters.markdown import filter
 
 _SOLUTION_HEADING = "solution"
+_RESPONSE_AREA_CLASS = "lambda-feedback"
+
+
+def _attach_response_area(block_text: str, state: "_State", set: Set) -> None:
+    """Parse a ``lambda-feedback`` fenced block and attach it to the current part.
+
+    Malformed blocks are ignored here - :mod:`in2lambda.validation` reports them
+    to the user before conversion.
+
+    Args:
+        block_text: The raw JSON body of the fenced block.
+        state: The current parser state (its ``part`` receives the response area).
+        set: The Python API the question is being built into.
+    """
+    try:
+        data = json.loads(block_text)
+    except json.JSONDecodeError:
+        return
+    if not isinstance(data, dict):
+        return
+
+    grade_params = data.get("gradeParams")
+    config = data.get("config")
+    response_area = ResponseArea(
+        response_type=str(data.get("responseType", "")),
+        answer=str(data.get("answer", "")),
+        evaluation_function=str(data.get("evaluationFunction", "")),
+        grade_params=grade_params if isinstance(grade_params, dict) else {},
+        config=config if isinstance(config, dict) else {},
+        pre_response_text=str(data.get("preResponseText", "")),
+        post_response_text=str(data.get("postResponseText", "")),
+    )
+
+    if state.part is None:
+        state.part = Part()
+        set.current_question.parts.append(state.part)
+    state.part.response_areas.append(response_area)
 
 
 class _State:
@@ -86,6 +125,15 @@ def pandoc_filter(
         return None
 
     state = _state_for(doc)
+
+    # A ```lambda-feedback fenced block configures a response area for the
+    # current part. Handle it before the generic text handling below, which
+    # would otherwise fold the JSON into the part or solution text.
+    if isinstance(elem, pf.CodeBlock) and _RESPONSE_AREA_CLASS in elem.classes:
+        if not parsing_answers:
+            _attach_response_area(elem.text, state, set)
+        return None
+
     is_heading = isinstance(elem, pf.Header)
     text = pf.stringify(elem).strip()
 
