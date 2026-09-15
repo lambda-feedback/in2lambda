@@ -1,6 +1,9 @@
 # TODO: Add isort
 # See: https://github.com/PyCQA/isort/pull/2122
 
+# Real exports are test data: they must stay byte-for-byte as Lambda Feedback wrote them.
+exclude: ^tests/fixtures/exports/
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0
