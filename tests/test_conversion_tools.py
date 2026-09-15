@@ -43,4 +43,4 @@ def test_cli_exits_with_message(filters_dir: str, monkeypatch, tmp_path) -> None
 
     assert result.exit_code != 0
     assert PANFLUTE_HINT in result.output
-    assert "Traceback" not in result.output
+    assert isinstance(result.exception, SystemExit)
