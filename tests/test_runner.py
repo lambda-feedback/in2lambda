@@ -1,9 +1,9 @@
 """End-to-end tests for :func:`in2lambda.main.runner` across the built-in filters.
 
 Each built-in filter ships a self-contained ``example.tex`` that exercises the
-document structure it targets. These tests run every filter over its own example
-and check both the in-memory :class:`~in2lambda.api.set.Set` and the JSON/ZIP
-files written to disk.
+document structure it targets. These tests find every filter in the package, run
+it over its own example and check both the in-memory :class:`~in2lambda.api.set.Set`
+and the JSON/ZIP files written to disk, so a filter shipped without an example fails.
 """
 
 import json
@@ -12,15 +12,20 @@ import os
 import pytest
 
 from in2lambda.api.set import Set
+from in2lambda.filters import builtin_filters
 from in2lambda.main import runner
 
-BUILTIN_FILTERS = ["PartsSepSol", "PartsOneSol", "PartPartSolSol", "PartSolPartSol"]
+
+def _example(filters_dir: str, filter_name: str) -> str:
+    path = os.path.join(filters_dir, filter_name, "example.tex")
+    assert os.path.isfile(path), f"{filter_name} ships no example.tex to test it with"
+    return path
 
 
-@pytest.mark.parametrize("filter_name", BUILTIN_FILTERS)
+@pytest.mark.parametrize("filter_name", builtin_filters())
 def test_runner_returns_populated_set(filter_name: str, filters_dir: str) -> None:
     """Every filter turns its example into a Set with at least one usable question."""
-    result = runner(os.path.join(filters_dir, filter_name, "example.tex"), filter_name)
+    result = runner(_example(filters_dir, filter_name), filter_name)
 
     assert isinstance(result, Set)
     assert result.questions, f"{filter_name} produced no questions"
@@ -29,17 +34,13 @@ def test_runner_returns_populated_set(filter_name: str, filters_dir: str) -> Non
         assert question.main_text or question.parts
 
 
-@pytest.mark.parametrize("filter_name", BUILTIN_FILTERS)
+@pytest.mark.parametrize("filter_name", builtin_filters())
 def test_runner_writes_importable_json(
     filter_name: str, filters_dir: str, tmp_path
 ) -> None:
     """Passing an output directory produces the Lambda Feedback set/ dir and zip."""
     out_dir = tmp_path / "out"
-    result = runner(
-        os.path.join(filters_dir, filter_name, "example.tex"),
-        filter_name,
-        str(out_dir),
-    )
+    result = runner(_example(filters_dir, filter_name), filter_name, str(out_dir))
 
     set_dir = out_dir / "set"
     assert set_dir.is_dir()

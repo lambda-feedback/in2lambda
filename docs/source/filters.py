@@ -1,6 +1,5 @@
 import importlib
 import os
-import pkgutil
 import shutil
 import subprocess
 from pathlib import Path
@@ -19,13 +18,7 @@ def generate_filters_docs():
     autosummary_directory.mkdir(exist_ok=True, parents=True)
     static_pdf_directory.mkdir(exist_ok=True)
 
-    filters = (
-        i.name
-        for i in pkgutil.iter_modules(in2lambda.filters.__path__)
-        if i.name != "markdown"
-    )
-
-    for filter_name in filters:
+    for filter_name in in2lambda.filters.builtin_filters():
         filter_module = importlib.import_module(
             f"in2lambda.filters.{filter_name}.filter"
         )
