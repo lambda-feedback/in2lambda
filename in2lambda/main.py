@@ -171,8 +171,31 @@ def runner(
     return set_obj
 
 
+class _Cli(click.RichGroup):
+    """A group that always errors on an unresolved subcommand.
+
+    Click's default resolution silently exits 0 (printing help) instead of
+    erroring when the unresolved name starts with a non-alphanumeric
+    character (e.g. an absolute or ./relative path), because it mistakes
+    the token for a global option and re-parses remaining args. Skip that
+    so every unrecognised command fails loudly with a pointer to `convert`.
+    """
+
+    def resolve_command(self, ctx, args):  # type: ignore[override]
+        cmd_name = str(args[0])
+        cmd = self.get_command(ctx, cmd_name)
+        if cmd is None:
+            ctx.fail(
+                f"No such command {cmd_name!r}.\n\n"
+                "As of in2lambda 2.0.0, conversion requires the `convert` "
+                f"subcommand, e.g.:\n  in2lambda convert {' '.join(args)}"
+            )
+        return cmd_name, cmd, args[1:]
+
+
 @click.group(
     no_args_is_help=True,
+    cls=_Cli,
     epilog="See the docs at https://lambda-feedback.github.io/in2lambda/ for more details.",
 )
 def cli() -> None:
