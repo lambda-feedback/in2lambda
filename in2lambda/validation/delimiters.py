@@ -53,17 +53,58 @@ def math_delimiter_checker(md_content: str) -> MathDelimiterError:
         <MathDelimiterError.PASSED: 'ok'>
         >>> math_delimiter_checker("Broken $x = y")
         <MathDelimiterError.MISSING_CLOSING_SINGLE_DOLLAR: 'unclosed inline $ ... $'>
+        >>> math_delimiter_checker("Run `echo $PATH` now.")
+        <MathDelimiterError.PASSED: 'ok'>
     """
     # False once we are inside a math expression and awaiting its closing delimiter.
     expect_open_delimiter = True
     # While inside an expression, whether it opened with a single "$" (inline) or "$$" (display).
     expect_single_dollar = True
 
+    # Backtick code spans/fences are not markdown math and must not be scanned for
+    # "$" delimiters, e.g. a shell variable like `echo $PATH` or a fenced snippet.
+    in_fence = False
+    fence_marker_len = 0
+    in_code_span = False
+    code_span_marker_len = 0
+
     idx = 0
     while idx < len(md_content):
         prev_character = md_content[idx - 1] if idx > 0 else None
         character = md_content[idx]
         next_character = md_content[idx + 1] if idx + 1 < len(md_content) else None
+
+        if character == "`" and prev_character != "`":
+            run_len = 0
+            while idx + run_len < len(md_content) and md_content[idx + run_len] == "`":
+                run_len += 1
+            line_start = md_content.rfind("\n", 0, idx) + 1
+            at_line_start = md_content[line_start:idx].strip() == ""
+
+            if in_fence:
+                line_end = md_content.find("\n", idx + run_len)
+                if line_end == -1:
+                    line_end = len(md_content)
+                if (
+                    run_len >= fence_marker_len
+                    and at_line_start
+                    and md_content[idx + run_len : line_end].strip() == ""
+                ):
+                    in_fence, fence_marker_len = False, 0
+            elif in_code_span:
+                if run_len == code_span_marker_len:
+                    in_code_span, code_span_marker_len = False, 0
+            elif run_len >= 3 and at_line_start:
+                in_fence, fence_marker_len = True, run_len
+            else:
+                in_code_span, code_span_marker_len = True, run_len
+
+            idx += 1
+            continue
+
+        if in_fence or in_code_span:
+            idx += 1
+            continue
 
         if character == "$" and prev_character != "\\":
             if expect_open_delimiter:
