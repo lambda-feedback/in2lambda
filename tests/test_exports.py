@@ -1,21 +1,22 @@
 """Round-trips every real Lambda Feedback export through the in2lambda model.
 
-Each folder in ``fixtures/exports`` is loaded into a :class:`~in2lambda.api.set.Set`,
-written back with :meth:`~in2lambda.api.set.Set.to_json` and compared with the
-original. The model holds far less than an export, so the comparison covers what it
-does hold, the file names written, and that the writer emits no key Lambda Feedback
-does not.
+Each folder in ``fixtures/exports`` is loaded with
+:meth:`~in2lambda.api.set.Set.from_json`, written back with
+:meth:`~in2lambda.api.set.Set.to_json` and compared with the original. The model holds
+far less than an export, so the comparison covers what it does hold, the file names
+written, and that the writer emits no key Lambda Feedback does not.
 """
 
 import json
+import re
 from pathlib import Path
 
 import pytest
-from conftest import EXPORTS, load_export
+from conftest import EXPORTS
 
 from in2lambda.api.set import Set
 
-pytestmark = pytest.mark.parametrize("export_dir", EXPORTS, ids=lambda path: path.name)
+each_export = pytest.mark.parametrize("export_dir", EXPORTS, ids=lambda path: path.name)
 
 
 def _write_back(question_set: Set, tmp_path: Path) -> Path:
@@ -74,21 +75,30 @@ def _unexported_keys(written: dict, exported: dict) -> list[str]:
     return sorted(missing)
 
 
+@each_export
 def test_export_round_trips(export_dir: Path, tmp_path: Path) -> None:
     """Writing a loaded export reproduces its file names and reloads to the same set."""
-    loaded = load_export(export_dir)
+    loaded = Set.from_json(str(export_dir))
     assert loaded.questions
     assert all(question.main_text or question.parts for question in loaded.questions)
 
     written = _write_back(loaded, tmp_path)
 
     assert _relative_files(written) == _relative_files(export_dir)
-    assert _modelled(load_export(written)) == _modelled(loaded)
+    assert _modelled(Set.from_json(str(written))) == _modelled(loaded)
+    assert _modelled(Set.from_json(f"{written}.zip")) == _modelled(loaded)
+
+    # Text added to a loaded question is a new part, not a rewrite of the first.
+    question = Set.from_json(str(export_dir)).questions[0]
+    texts_before = [part.text for part in question.parts]
+    question.add_part_text("added")
+    assert [part.text for part in question.parts] == texts_before + ["added"]
 
 
+@each_export
 def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
     """The writer emits no key, at any depth, that Lambda Feedback never exports there."""
-    written = _write_back(load_export(export_dir), tmp_path)
+    written = _write_back(Set.from_json(str(export_dir)), tmp_path)
 
     missing = {}
     for file in written.glob("*.json"):
@@ -97,3 +107,10 @@ def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
         if keys:
             missing[file.name] = keys
     assert not missing, missing
+
+
+def test_from_json_rejects_folder_without_set(tmp_path: Path) -> None:
+    """A folder with no set file is refused with an error that says where it looked."""
+    (tmp_path / "question_000_Q.json").write_text("{}")
+    with pytest.raises(ValueError, match=re.escape(str(tmp_path))):
+        Set.from_json(str(tmp_path))

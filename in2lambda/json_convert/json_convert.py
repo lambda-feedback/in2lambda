@@ -1,15 +1,19 @@
-"""Converts questions from a Python set object into Lambda Feedback JSON."""
+"""Converts questions between a Python set object and Lambda Feedback JSON."""
 
 import json
 import os
 import re
 import shutil
+import tempfile
 import zipfile
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from in2lambda.api.part import Part
+from in2lambda.api.question import Question
 from in2lambda.api.set import Set
+from in2lambda.api.visibility_status import VisibilityController, VisibilityStatus
 
 MINIMAL_QUESTION_TEMPLATE = "minimal_template_question.json"
 MINIMAL_SET_TEMPLATE = "minimal_template_set.json"
@@ -147,3 +151,84 @@ def main(set_questions: Set, output_dir: str) -> None:
         except OSError as e:
             print("Error: %s : %s" % (output_dir, e.strerror))
     converter(question_template, set_template, set_questions, output_dir)
+
+
+def load(path: str) -> Set:
+    """Reads a Lambda Feedback export into a Set, keeping only what the model holds.
+
+    A zip is extracted to a new temporary directory, which is left for the operating
+    system to clear: the loaded images point into it and must still exist when the
+    set is written out.
+
+    Args:
+        path: An exported set, as a folder or a zip, with or without a top-level folder.
+
+    Returns:
+        The set, with each question's images as absolute paths into ``media/``.
+
+    Raises:
+        ValueError: If the export does not hold exactly one ``set_*.json``.
+    """
+    root = Path(path)
+    if root.suffix == ".zip":
+        extracted = tempfile.mkdtemp(prefix="in2lambda-")
+        with zipfile.ZipFile(root) as zf:
+            zf.extractall(extracted)
+        root = Path(extracted)
+
+    set_files = list(root.rglob("set_*.json"))
+    if len(set_files) != 1:
+        raise ValueError(f"Expected one set_*.json in {path}, found {len(set_files)}")
+    (set_file,) = set_files
+    export_dir = set_file.parent
+
+    set_json = json.loads(set_file.read_text())
+    question_set = Set(
+        _name=set_json["name"],
+        _description=set_json["description"],
+        _finalAnswerVisibility=VisibilityController(
+            VisibilityStatus(set_json["finalAnswerVisibility"])
+        ),
+        _workedSolutionVisibility=VisibilityController(
+            VisibilityStatus(set_json["workedSolutionVisibility"])
+        ),
+        _structuredTutorialVisibility=VisibilityController(
+            VisibilityStatus(set_json["structuredTutorialVisibility"])
+        ),
+    )
+
+    question_files = sorted(
+        export_dir.glob("question_*.json"),
+        key=lambda file: json.loads(file.read_text())["orderNumber"],
+    )
+    media = sorted((export_dir / "media").glob("*"))
+    for question_file in question_files:
+        question_json = json.loads(question_file.read_text())
+        parts = [
+            Part(
+                text=part["content"],
+                worked_solution=(
+                    part["workedSolution"]["content"]
+                    if "workedSolution" in part
+                    else ""
+                ),
+            )
+            for part in question_json["parts"]
+        ]
+        question_set.questions.append(
+            Question(
+                title=question_json["title"],
+                main_text=question_json["masterContent"],
+                parts=parts,
+                images=[
+                    str(image)
+                    for image in media
+                    if image.name.startswith(f"{question_file.stem}_")
+                ],
+                # Every loaded part already has its text and solution, so further
+                # add_part_text/add_solution calls must add parts after them rather
+                # than overwrite the first.
+                _last_part={"solution": len(parts), "text": len(parts)},
+            )
+        )
+    return question_set
