@@ -1,4 +1,4 @@
-"""Checks that ``$ ... $`` and ``$$ ... $$`` math delimiters are balanced and placed correctly.
+"""Check that inline and display math delimiters are balanced and placed correctly.
 
 Lambda Feedback renders inline math (via KaTeX) wrapped in single dollar
 signs, and display math wrapped in ``$$``. Requiring each ``$$`` delimiter to

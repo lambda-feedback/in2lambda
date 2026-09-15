@@ -37,26 +37,56 @@ def generate_filters_docs():
         If absolute were needed: f"{os.path.dirname(filter_module.__file__)}/filename"
         """
         filter_file = f"{relative_directory}/filter.py"
-        tex_file = f"{relative_directory}/example.tex"
+
+        # Filters ship either a LaTeX example (rendered to an embedded PDF) or,
+        # for the plain-markdown filter, a markdown example shown inline.
+        source_directory = Path(os.path.dirname(filter_module.__file__))
+        if (source_directory / "example.tex").is_file():
+            example_file = f"{relative_directory}/example.tex"
+            example_language = "LaTeX"
+            example_is_latex = True
+        else:
+            example_file = f"{relative_directory}/example.md"
+            example_language = "markdown"
+            example_is_latex = False
 
         # Different path likely needed since GitHub Actions builds with dirhtml builder.
         # This is relative to the auto-generated filter file.
         pdf_file = f"../../{'../' if os.getenv('GITHUB_ACTIONS') == 'true' else './'}{static_pdf_directory}/{filter_name}.pdf"
 
-        if shutil.which("pdflatex"):
+        if example_is_latex and shutil.which("pdflatex"):
             subprocess.run(
                 [
                     "pdflatex",
                     f"-output-directory={static_pdf_directory}",
                     f"-jobname={filter_name}",
                     "-interaction=nonstopmode",
-                    tex_file,
+                    example_file,
                 ],
                 check=True,
             )
 
             if not os.path.exists(f"{static_pdf_directory}/{filter_name}.pdf"):
                 raise RuntimeError("PDF output not found")
+
+        if example_is_latex:
+            example_rst = f"""\
+A PDF which this filter parses correctly is shown below:
+
+.. dropdown:: 📄 LaTeX Code
+
+   .. literalinclude:: {example_file}
+      :language: {example_language}
+
+:pdfembed:`src: {pdf_file}, height:700, width:100%, align:middle`
+"""
+        else:
+            example_rst = f"""\
+A markdown document which this filter parses correctly is shown below:
+
+.. literalinclude:: {example_file}
+   :language: {example_language}
+"""
 
         rst_content = f"""\
 {filter_name}
@@ -67,15 +97,7 @@ def generate_filters_docs():
 Minimal Example
 ----------------
 
-A PDF which this filter parses correctly is shown below:
-
-.. dropdown:: 📄 LaTeX Code
-
-   .. literalinclude:: {tex_file}
-      :language: LaTeX
-
-:pdfembed:`src: {pdf_file}, height:700, width:100%, align:middle`
-
+{example_rst}
 .. dropdown:: 🐍 Python Filter
 
    .. literalinclude:: {filter_file}

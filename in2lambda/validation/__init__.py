@@ -1,4 +1,4 @@
-"""Pre-flight checks for the ``#``/``##`` markdown that flows through in2lambda.
+"""Pre-flight checks for the markdown that flows through in2lambda.
 
 The markdown produced by the wizard (and hand-written by users) is the shared
 contract between the wizard, the ``Markdown`` filter and Lambda Feedback. These
