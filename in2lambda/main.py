@@ -22,7 +22,7 @@ from in2lambda.validation import check_markdown
 def _warn_markdown_issues(text: str, source: str) -> None:
     """Echo a warning for each math-delimiter problem found in a markdown source."""
     for problem in check_markdown(text):
-        click.echo(f"Warning: {source}: {problem.value}")
+        click.echo(f"Warning: {source}: {problem}")
 
 
 def docx_to_md(docx_file: str) -> str:
