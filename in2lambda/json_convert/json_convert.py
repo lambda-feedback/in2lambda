@@ -96,12 +96,13 @@ def converter(
                     ListQuestions[i].parts[j].worked_solution
                 )
 
-        # Output file
+        # Lambda Feedback names the file after the title with only spaces made
+        # underscores; path separators go too, so a title cannot leave the set folder.
         filename = (
             "question_"
             + str(i).zfill(3)
             + "_"
-            + re.sub(r"[^\w\-_.]", "_", output["title"].strip())
+            + re.sub(r"[\s/\\]", "_", output["title"].strip())
         )
 
         # write questions into directory
