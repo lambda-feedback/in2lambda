@@ -39,6 +39,7 @@ class MathDelimiterProblem:
     error: MathDelimiterError
 
     def __str__(self) -> str:
+        """Render as ``line <n>: <message>``."""
         return f"line {self.line}: {self.error.value}"
 
 
