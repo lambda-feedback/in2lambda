@@ -31,14 +31,16 @@ The container is stopped and deleted after exiting, although the image remains d
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/in2lambda?style=flat-square&logo=python&logoColor=white)](https://pypi.org/project/in2lambda/)
 
 
-:::{important}
-Ensure that [pandoc](https://pandoc.org/installing.html) is already installed.
-:::
-
-in2lambda can be installed via [pip](https://pip.pypa.io/en/stable/):
+in2lambda can be installed via [pip](https://pip.pypa.io/en/stable/). To author questions in Python:
 
 ```shell
 $ pip install in2lambda
+```
+
+To convert documents, install the `convert` extra and [pandoc](https://pandoc.org/installing.html):
+
+```shell
+$ pip install 'in2lambda[convert]'
 $ in2lambda --help
 ```
 
