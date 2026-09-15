@@ -1,9 +1,11 @@
 """Checks that ``$ ... $`` and ``$$ ... $$`` math delimiters are balanced and placed correctly.
 
-KaTeX (and Lambda Feedback) expect inline math wrapped in single dollar signs on
-one line, and display math wrapped in ``$$`` that each sit alone on their own
-line. This module scans markdown character by character and reports the first
-delimiter mistake it finds.
+Lambda Feedback renders inline math (via KaTeX) wrapped in single dollar
+signs, and display math wrapped in ``$$``. Requiring each ``$$`` delimiter to
+sit alone on its own line is this project's own authoring convention, not a
+KaTeX requirement. This module scans markdown character by character,
+skipping fenced and inline code, and reports every delimiter mistake it
+finds together with the line it occurred on.
 """
 
 from dataclasses import dataclass
