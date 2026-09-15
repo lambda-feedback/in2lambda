@@ -1,14 +1,34 @@
 """The main input for in2lambda, defining both the CLT and main library function."""
 
+# This commented block makes it run the local files rather than the pip library (I think, I don't understand it. Kevin wrote it.)
+#
+# import sys
+# import os
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import importlib
 import pkgutil
+import subprocess
 from typing import Optional
 
 import panflute as pf
 import rich_click as click
 
 import in2lambda.filters
-from in2lambda.api.module import Module
+from in2lambda.api.set import Set
+
+
+def docx_to_md(docx_file: str) -> str:
+    """Converts .docx files to markdown.
+
+    Args:
+        docx_file: A file path with the file extension included.
+
+    Returns:
+        the contents of the .docx file in markdown formatting
+    """
+    md_output = subprocess.check_output(["pandoc", docx_file, "-t", "markdown"])
+    return md_output.decode("utf-8")
 
 
 def file_type(file: str) -> str:
@@ -52,7 +72,7 @@ def file_type(file: str) -> str:
         ):
             return "markdown"
         case "docx":
-            return "docx"  # Pandoc doesn't seem to support doc
+            return "docx"  # Pandoc doesn't seem to support .doc, and panflute doesn't like .docx.
     raise RuntimeError(f"Unsupported file extension: .{extension}")
 
 
@@ -61,7 +81,7 @@ def runner(
     chosen_filter: str,
     output_dir: Optional[str] = None,
     answer_file: Optional[str] = None,
-) -> Module:
+) -> Set:
     r"""Takes in a TeX file for a given subject and outputs how it's broken down within Lambda Feedback.
 
     Args:
@@ -80,50 +100,62 @@ def runner(
         >>> from in2lambda.main import runner
         >>> # Retrieve an example TeX file and run the given filter.
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
-        Module(questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='This is a sample question\n\n'), ...])
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='This is a sample question\n\n'), ...])
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
-        Module(questions=[Question(title='', parts=[Part(text='This is part (a)\n\n', worked_solution=''), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...)
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...])
     """
     # The list of questions for Lambda Feedback as a Python API.
-    module = Module()
+    set_obj = Set()
 
     # Dynamically import the correct pandoc filter depending on the subject.
     filter_module = importlib.import_module(f"in2lambda.filters.{chosen_filter}.filter")
 
-    with open(question_file, "r", encoding="utf-8") as file:
-        text = file.read()
+    if file_type(question_file) == "docx":
+        # Convert .docx to md using Pandoc and proceed
+        text = docx_to_md(question_file)
+        input_format = "markdown"
+    else:
+        with open(question_file, "r", encoding="utf-8") as file:
+            text = file.read()
+
+        input_format = file_type(question_file)
 
     # Parse the Pandoc AST using the relevant panflute filter.
     pf.run_filter(
         filter_module.pandoc_filter,
-        doc=pf.convert_text(
-            text, input_format=file_type(question_file), standalone=True
-        ),
-        module=module,
+        doc=pf.convert_text(text, input_format=input_format, standalone=True),
+        set=set_obj,
         tex_file=question_file,
         parsing_answers=False,
     )
 
     # If separate answer TeX file provided, parse that as well.
     if answer_file:
-        with open(answer_file, "r", encoding="utf-8") as file:
-            answer_text = file.read()
+
+        if file_type(answer_file) == "docx":
+
+            answer_text = docx_to_md(answer_file)
+            answer_format = "markdown"
+        else:
+            with open(answer_file, "r", encoding="utf-8") as file:
+                answer_text = file.read()
+            answer_format = file_type(answer_file)
 
         pf.run_filter(
             filter_module.pandoc_filter,
             doc=pf.convert_text(
-                answer_text, input_format=file_type(answer_file), standalone=True
+                answer_text, input_format=answer_format, standalone=True
             ),
-            module=module,
+            set=set_obj,
             tex_file=answer_file,
             parsing_answers=True,
         )
 
     # Read the Python API format and convert to JSON.
     if output_dir is not None:
-        module.to_json(output_dir)
+        set_obj.to_json(output_dir)
 
-    return module
+    return set_obj
 
 
 @click.command(

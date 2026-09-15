@@ -7,7 +7,7 @@ from typing import Optional
 
 import panflute as pf
 
-from in2lambda.api.module import Module
+from in2lambda.api.set import Set
 from in2lambda.filters.markdown import filter
 
 
@@ -15,7 +15,7 @@ from in2lambda.filters.markdown import filter
 def pandoc_filter(
     elem: pf.Element,
     doc: pf.elements.Doc,
-    module: Module,
+    set: Set,
     parsing_answers: bool,
 ) -> Optional[pf.Str]:
     """A Pandoc filter that parses and translates various TeX elements.
@@ -24,7 +24,7 @@ def pandoc_filter(
         elem: The current TeX element being processed. This could be a paragraph,
             ordered list, etc.
         doc: A Pandoc document container - essentially the Pandoc AST.
-        module: The Python API that is used to store the result after processing
+        set: The Python API that is used to store the result after processing
             the TeX file.
         parsing_answers: Whether an answers-only document is currently being parsed.
 
@@ -48,16 +48,14 @@ def pandoc_filter(
                         for item in listItem.content
                         if not isinstance(item, pf.Div)
                     ]
-                    module.current_question.add_part_text("\n".join(part))
-                    module.current_question.add_solution(
-                        pandoc_filter.solutions.popleft()
-                    )
+                    set.current_question.add_part_text("\n".join(part))
+                    set.current_question.add_solution(pandoc_filter.solutions.popleft())
 
     if isinstance(elem, pf.Div):
         pandoc_filter.solutions.append(pf.stringify(elem))
         if pandoc_filter.question:
-            module.add_question(main_text="\n".join(pandoc_filter.question))
-            module.current_question.add_solution(pf.stringify(elem))
-            module.current_question._last_part["solution"] -= 1
+            set.add_question(main_text="\n".join(pandoc_filter.question))
+            set.current_question.add_solution(pf.stringify(elem))
+            set.current_question._last_part["solution"] -= 1
         pandoc_filter.question = []
     return None

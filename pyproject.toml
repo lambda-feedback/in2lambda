@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "in2lambda"
-version = "0.3.2"
+version = "1.0.0"
 description = "Converts content ready for import into Lambda Feedback"
 authors = []
 license = "MIT"
@@ -26,6 +26,7 @@ python = "^3.10"
 panflute = "^2.3.1"
 rich-click = "^1.7.4"
 beartype = "^0.17.2"
+requests = "<2.32.0"
 
 [tool.poetry.scripts]
 in2lambda = "in2lambda.main:cli"
@@ -55,6 +56,14 @@ sphinx-togglebutton = "^0.3.2"
 [tool.mypy]
 # panflute is missing type hints
 ignore_missing_imports = true
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+# Collect both the unit tests in tests/ and the doctests embedded in the package.
+testpaths = ["tests", "in2lambda"]
+addopts = "--doctest-modules"
 
 [build-system]
 requires = ["poetry-core"]
