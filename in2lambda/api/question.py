@@ -45,7 +45,9 @@ class Question:
 
     # Settings are left out of the repr so that printing a question still shows its
     # content rather than nine lines of configuration.
-    skill: Optional[float] = field(default=None, repr=False)
+    # An int too: Lambda Feedback's export is written by JavaScript, which writes the
+    # lowest and highest skill levels as 0 and 1.
+    skill: Optional[Union[int, float]] = field(default=None, repr=False)
     guidance: Optional[str] = field(default=None, repr=False)
     duration_lower_bound: Optional[int] = field(default=None, repr=False)
     duration_upper_bound: Optional[int] = field(default=None, repr=False)

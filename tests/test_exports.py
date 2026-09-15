@@ -118,7 +118,9 @@ def test_question_settings_are_written(tmp_path: Path) -> None:
     question_set.questions = [
         Question(
             title="Configured",
-            skill=1 / 3,
+            # A whole number, as an export holds the highest skill level; the
+            # fixture's questions cover fractional ones.
+            skill=1,
             guidance="Try part a first.",
             duration_lower_bound=5,
             duration_upper_bound=10,
@@ -147,7 +149,7 @@ def test_question_settings_are_written(tmp_path: Path) -> None:
             "displayChatbot",
         ]
     } == {
-        "skill": 1 / 3,
+        "skill": 1,
         "guidance": "Try part a first.",
         "durationLowerBound": 5,
         "durationUpperBound": 10,
