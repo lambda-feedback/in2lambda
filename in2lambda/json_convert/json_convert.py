@@ -97,12 +97,13 @@ def converter(
                 )
 
         # Lambda Feedback names the file after the title with only spaces made
-        # underscores; path separators go too, so a title cannot leave the set folder.
+        # underscores. Path separators go too, so a title cannot leave the set folder,
+        # and so do the characters Windows forbids in file names.
         filename = (
             "question_"
             + str(i).zfill(3)
             + "_"
-            + re.sub(r"[\s/\\]", "_", output["title"].strip())
+            + re.sub(r'[\s/\\<>:"|?*]', "_", output["title"].strip())
         )
 
         # write questions into directory

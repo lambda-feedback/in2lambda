@@ -57,18 +57,21 @@ def _key_paths(value, path: str = "") -> set[str]:
             paths |= {f"{path}.{key}"} | _key_paths(item, f"{path}.{key}")
         return paths
     if isinstance(value, list):
-        return set().union(*(_key_paths(item, f"{path}[]") for item in value))
+        return set().union(
+            *(_key_paths(item, f"{path}[{i}]") for i, item in enumerate(value))
+        )
     return set()
 
 
-def _keys_by_kind(directory: Path) -> dict[str, set[str]]:
-    # Pooled over every set_ or question_ file rather than matched file to file:
-    # exports leave out components with no content, such as a part's worked solution.
-    keys: dict[str, set[str]] = {}
-    for file in directory.glob("*.json"):
-        kind = file.name.split("_")[0]
-        keys.setdefault(kind, set()).update(_key_paths(json.loads(file.read_text())))
-    return keys
+def _unexported_keys(written: dict, exported: dict) -> list[str]:
+    missing = _key_paths(written) - _key_paths(exported)
+    # Lambda Feedback leaves a part's workedSolution out of its export when the part
+    # has none, but the writer always emits one, so only then may it be absent.
+    for i, part in enumerate(written.get("parts", [])):
+        if not part["workedSolution"]["content"]:
+            prefix = f".parts[{i}].workedSolution"
+            missing = {key for key in missing if not key.startswith(prefix)}
+    return sorted(missing)
 
 
 def test_export_round_trips(export_dir: Path, tmp_path: Path) -> None:
@@ -85,12 +88,12 @@ def test_export_round_trips(export_dir: Path, tmp_path: Path) -> None:
 
 def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
     """The writer emits no key, at any depth, that Lambda Feedback never exports there."""
-    written = _keys_by_kind(_write_back(load_export(export_dir), tmp_path))
-    exported = _keys_by_kind(export_dir)
+    written = _write_back(load_export(export_dir), tmp_path)
 
-    missing = {
-        kind: sorted(keys - exported[kind])
-        for kind, keys in written.items()
-        if keys - exported[kind]
-    }
+    missing = {}
+    for file in written.glob("*.json"):
+        exported = json.loads((export_dir / file.name).read_text())
+        keys = _unexported_keys(json.loads(file.read_text()), exported)
+        if keys:
+            missing[file.name] = keys
     assert not missing, missing
