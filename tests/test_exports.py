@@ -17,7 +17,7 @@ from conftest import EXPORTS
 
 from in2lambda.api.part import Part
 from in2lambda.api.question import Question
-from in2lambda.api.response_area import Case, ResponseArea, Test
+from in2lambda.api.response_area import Case, InputSymbol, ResponseArea, Test
 from in2lambda.api.set import Set
 
 each_export = pytest.mark.parametrize("export_dir", EXPORTS, ids=lambda path: path.name)
@@ -132,21 +132,75 @@ def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
     assert not missing, missing
 
 
-def test_response_area_built_in_python_writes_distinct_ids(tmp_path: Path) -> None:
-    """Tests and cases given no id are written with a distinct uuid each, as import needs."""
-    area = ResponseArea(
-        tests=[Test("x", True), Test("y", False)],
-        cases=[Case("x", "", True), Case("y", "", False)],
+def _area_shape(area: dict) -> frozenset[str]:
+    # Without indices, an area's shape is the keys it has, not how many tests, cases
+    # or symbols it lists.
+    return frozenset(re.sub(r"\[\d+\]", "[]", path) for path in _key_paths(area))
+
+
+def test_response_areas_built_in_python_write_as_exported(tmp_path: Path) -> None:
+    """Boxes of each exported type built in Python reload unchanged, shaped as exported."""
+    part = Part(
+        text="Find the drag, then say whether it scales.",
+        response_areas=[
+            ResponseArea(
+                response_type="MATH_SINGLE_LINE",
+                answer="(pi/6)*rho*U**2*R**2",
+                config={
+                    "allowPhoto": True,
+                    "allowHandwrite": True,
+                    "enableRefinement": True,
+                },
+                evaluation_function="symbolicEqual",
+                grade_params={"strict_syntax": False},
+                pre_text="$D=$",
+                content_after="Now put in the numbers.",
+                input_symbols=[InputSymbol("\\(R\\)", "R", ["r"])],
+                tests=[Test("(pi/6)*rho*U**2*R**2", True)],
+                cases=[Case("pi*rho*U**2*R**2", "A factor is missing.", False)],
+            ),
+            ResponseArea(
+                response_type="NUMERIC_UNITS",
+                answer="30 N",
+                evaluation_function="comparePhysicalQuantities",
+                grade_params={"rtol": 0.05, "strict_syntax": False},
+                tests=[Test("30 N", True), Test("30", False)],
+                cases=[
+                    Case("30 kg m s-2", "Put negative exponents in brackets.", False)
+                ],
+            ),
+            ResponseArea(
+                response_type="MULTIPLE_CHOICE",
+                answer=[True, False],
+                config={"single": True, "options": ["Yes", "No"], "randomise": False},
+                evaluation_function="arrayEqual",
+            ),
+        ],
     )
-    question_set = Set(questions=[Question(parts=[Part(response_areas=[area])])])
+    written = _write_back(Set(questions=[Question(parts=[part])]), tmp_path)
 
-    written = _write_back(question_set, tmp_path)
+    # Equality includes the ids, so reloading must keep the ones that were written.
+    assert Set.from_json(str(written)).questions[0].parts == [part]
+
     (question_file,) = written.glob("question_*.json")
-    (written_area,) = json.loads(question_file.read_text())["parts"][0]["responseAreas"]
+    written_areas = json.loads(question_file.read_text())["parts"][0]["responseAreas"]
 
-    ids = [item["id"] for item in written_area["tests"] + written_area["cases"]]
-    assert len(set(ids)) == 4
+    # Import needs every test and case given no id to be written with its own uuid.
+    ids = [
+        item["id"] for area in written_areas for item in area["tests"] + area["cases"]
+    ]
+    assert len(set(ids)) == 5
     assert all(uuid.UUID(id_) for id_ in ids)
+
+    exported_shapes = {
+        _area_shape(area)
+        for export_dir in EXPORTS
+        for file in export_dir.glob("question_*.json")
+        for exported_part in json.loads(file.read_text())["parts"]
+        for area in exported_part["responseAreas"]
+    }
+    for area in written_areas:
+        assert _area_shape(area) in exported_shapes, area["response"]
 
 
 def test_from_json_rejects_folder_without_set(tmp_path: Path) -> None:
