@@ -96,6 +96,21 @@ def test_export_round_trips(export_dir: Path, tmp_path: Path) -> None:
     assert _modelled(Set.from_json(str(written))) == _modelled(loaded)
     assert _modelled(Set.from_json(f"{written}.zip")) == _modelled(loaded)
 
+    # Reloading alone would pass if answers and areas were dropped or mismapped the
+    # same way both ways, so compare what is written with the export itself.
+    for file in written.glob("question_*.json"):
+        written_parts = json.loads(file.read_text())["parts"]
+        exported_parts = json.loads((export_dir / file.name).read_text())["parts"]
+        assert [
+            (part["answerContent"], part["responseAreas"]) for part in written_parts
+        ] == [
+            (
+                part["answerContent"],
+                sorted(part["responseAreas"], key=lambda area: area["orderNumber"]),
+            )
+            for part in exported_parts
+        ], file.name
+
     # Text added to a loaded question is a new part, not a rewrite of the first.
     question = Set.from_json(str(export_dir)).questions[0]
     texts_before = [part.text for part in question.parts]
