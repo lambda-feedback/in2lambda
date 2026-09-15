@@ -5,7 +5,10 @@ $v_0 = 15\,\text{m/s}$. Take $g = 9.8\,\text{m/s}^2$.
 
 ## Time of flight
 
-How long does the ball take to reach the ground?
+How long does the ball take to reach the ground, using:
+
+- the vertical motion equation
+- the given height and gravity
 
 ## Solution
 
@@ -14,6 +17,8 @@ Vertical motion is independent of the horizontal throw:
 $$
 h = \frac{1}{2} g t^2 \implies t = \sqrt{\frac{2h}{g}}
 $$
+
+---
 
 So $t \approx 2.0\,\text{s}$.
 
