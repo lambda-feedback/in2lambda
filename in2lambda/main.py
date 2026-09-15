@@ -7,7 +7,6 @@
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import importlib
-import pkgutil
 import subprocess
 from typing import Optional
 
@@ -100,9 +99,9 @@ def runner(
         >>> from in2lambda.main import runner
         >>> # Retrieve an example TeX file and run the given filter.
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
-        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='This is a sample question\n\n'), ...])
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution='', answer='', response_areas=[]), ...], images=[], main_text='This is a sample question\n\n'), ...])
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
-        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution=''), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...])
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution='', answer='', response_areas=[]), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...])
     """
     # The list of questions for Lambda Feedback as a Python API.
     set_obj = Set()
@@ -168,14 +167,7 @@ def runner(
 # Python files in the subjects directory
 @click.argument(
     "chosen_filter",
-    type=click.Choice(
-        [
-            i.name
-            for i in pkgutil.iter_modules(in2lambda.filters.__path__)
-            if i.name != "markdown"
-        ],
-        case_sensitive=False,
-    ),
+    type=click.Choice(in2lambda.filters.builtin_filters(), case_sensitive=False),
 )
 @click.option(
     "--out",
