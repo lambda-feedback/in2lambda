@@ -56,8 +56,14 @@ A list of available filters can be found [here](filters/index).
 For instance, the following takes in `questions.tex` and uses a filter that expects [each part to be directly followed by the solution](filters/_autosummary/PartSolPartSol):
 
 ```bash
-$ in2lambda questions.tex PartSolPartSol
+$ in2lambda convert questions.tex PartSolPartSol
 ```
+
+:::{important}
+File conversion lives under the `convert` subcommand (`in2lambda convert ...`,
+not `in2lambda ...`). This leaves room for other subcommands, such as one that
+turns unstructured documents into markdown.
+:::
 
 :::{note}
 The filter name is case-insensitive. Don't worry about the capital letters.
@@ -66,13 +72,13 @@ The filter name is case-insensitive. Don't worry about the capital letters.
 Another filter might be used if [the answers are in a separate file](filters/_autosummary/PartsSepSol):
 
 ```bash
-$ in2lambda questions.tex -a solutions.tex PartsSepSol
+$ in2lambda convert questions.tex -a solutions.tex PartsSepSol
 ```
 
 If you would rather write the questions yourself, the [`Markdown` filter](filters/_autosummary/Markdown) reads a plain markdown file where `#` starts a question, `##` starts a part, and `## Solution` gives a worked solution:
 
 ```bash
-$ in2lambda questions.md Markdown
+$ in2lambda convert questions.md Markdown
 ```
 
 By default, this generates an `out` directory in the same place that the command was run in. It contains the zipped question files.

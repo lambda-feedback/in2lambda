@@ -171,10 +171,38 @@ def runner(
     return set_obj
 
 
-@click.command(
+class _Cli(click.RichGroup):
+    """A group that always errors on an unresolved subcommand.
+
+    Click's default resolution silently exits 0 (printing help) instead of
+    erroring when the unresolved name starts with a non-alphanumeric
+    character (e.g. an absolute or ./relative path), because it mistakes
+    the token for a global option and re-parses remaining args. Skip that
+    so every unrecognised command fails loudly with a pointer to `convert`.
+    """
+
+    def resolve_command(self, ctx, args):  # type: ignore[override]
+        cmd_name = str(args[0])
+        cmd = self.get_command(ctx, cmd_name)
+        if cmd is None:
+            ctx.fail(
+                f"No such command {cmd_name!r}.\n\n"
+                "As of in2lambda 2.0.0, conversion requires the `convert` "
+                f"subcommand, e.g.:\n  in2lambda convert {' '.join(args)}"
+            )
+        return cmd_name, cmd, args[1:]
+
+
+@click.group(
     no_args_is_help=True,
+    cls=_Cli,
     epilog="See the docs at https://lambda-feedback.github.io/in2lambda/ for more details.",
 )
+def cli() -> None:
+    """Convert documents into Lambda Feedback compatible question sets."""
+
+
+@cli.command(no_args_is_help=True)
 @click.argument(  # Use resolve_path to get absolute path
     "question_file", type=click.Path(exists=True, readable=True, resolve_path=True)
 )
@@ -207,11 +235,11 @@ def runner(
     help="File containing solutions for QUESTION_FILE.",
     type=click.Path(resolve_path=True, exists=True, dir_okay=False),
 )
-def cli(
+def convert(
     question_file: str, chosen_filter: str, output_dir: str, answer_file: Optional[str]
 ) -> None:
-    """Takes in a QUESTION_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
-    # main() is made separate from click() so that it can be easily imported as part of a library.
+    """Take a QUESTION_FILE and CHOSEN_FILTER and produce Lambda Feedback json/zip files."""
+    # Kept separate from runner() so runner() can be imported as part of the library.
     runner(question_file, chosen_filter, output_dir, answer_file)
 
 
