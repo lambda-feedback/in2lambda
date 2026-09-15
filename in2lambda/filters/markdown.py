@@ -164,9 +164,11 @@ def filter(
                 except Exception:
                     expression = elem.text
                 return pf.RawInline(
-                    f"${expression}$"
-                    if elem.format == "InlineMath"
-                    else f"\n\n$$\n{expression}\n$$\n\n",
+                    (
+                        f"${expression}$"
+                        if elem.format == "InlineMath"
+                        else f"\n\n$$\n{expression}\n$$\n\n"
+                    ),
                     format="markdown",
                 )
 

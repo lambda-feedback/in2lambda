@@ -24,7 +24,9 @@ def test_example_parses_into_questions_parts_and_solutions(filters_dir: str) -> 
         "How long does the ball take to reach the ground, using:\n\n"
         "- the vertical motion equation\n- the given height and gravity"
     )
-    assert projectile.parts[1].text == "How far from the launch point does the ball land?"
+    assert (
+        projectile.parts[1].text == "How far from the launch point does the ball land?"
+    )
     assert projectile.parts[0].worked_solution.startswith("Vertical motion is")
     # The ``---`` separator survives as a literal step boundary.
     assert "\n\n---\n\n" in projectile.parts[0].worked_solution
