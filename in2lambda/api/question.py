@@ -89,20 +89,20 @@ class Question:
             >>> question.add_part_text("part a")
             >>> question.add_solution("part a solution")
             >>> question
-            Question(title='', parts=[Part(text='part a', worked_solution='part a solution')], images=[], main_text='')
+            Question(title='', parts=[Part(text='part a', worked_solution='part a solution', answer='', response_areas=[])], images=[], main_text='')
             >>> question.add_part_text("part b")
             >>> question.add_part_text("part c")
             >>> question.add_solution("Solution for b")
             >>> # Note that since c doesn't have a solution, it's set to b's solution
             >>> question
-            Question(title='', parts=[Part(text='part a', worked_solution='part a solution'), \
-Part(text='part b', worked_solution='Solution for b'), \
-Part(text='part c', worked_solution='Solution for b')], images=[], main_text='')
+            Question(title='', parts=[Part(text='part a', worked_solution='part a solution', answer='', response_areas=[]), \
+Part(text='part b', worked_solution='Solution for b', answer='', response_areas=[]), \
+Part(text='part c', worked_solution='Solution for b', answer='', response_areas=[])], images=[], main_text='')
             >>> question.add_solution("We now have a solution for c!")
             >>> question
-            Question(title='', parts=[Part(text='part a', worked_solution='part a solution'), \
-Part(text='part b', worked_solution='Solution for b'), \
-Part(text='part c', worked_solution='We now have a solution for c!')], images=[], main_text='')
+            Question(title='', parts=[Part(text='part a', worked_solution='part a solution', answer='', response_areas=[]), \
+Part(text='part b', worked_solution='Solution for b', answer='', response_areas=[]), \
+Part(text='part c', worked_solution='We now have a solution for c!', answer='', response_areas=[])], images=[], main_text='')
         """
         elem_text = elem if isinstance(elem, str) else pf.stringify(elem)
 
@@ -131,13 +131,13 @@ Part(text='part c', worked_solution='We now have a solution for c!')], images=[]
             >>> question.add_part_text("part a")
             >>> question.add_solution("part a solution")
             >>> question
-            Question(title='', parts=[Part(text='part a', worked_solution='part a solution')], images=[], main_text='')
+            Question(title='', parts=[Part(text='part a', worked_solution='part a solution', answer='', response_areas=[])], images=[], main_text='')
             >>> # Supports adding the answer first.
             >>> question.add_solution("part b solution")
             >>> question.add_part_text("part b")
             >>> question
-            Question(title='', parts=[Part(text='part a', worked_solution='part a solution'), \
-Part(text='part b', worked_solution='part b solution')], images=[], main_text='')
+            Question(title='', parts=[Part(text='part a', worked_solution='part a solution', answer='', response_areas=[]), \
+Part(text='part b', worked_solution='part b solution', answer='', response_areas=[])], images=[], main_text='')
         """
         elem_text = elem if isinstance(elem, str) else pf.stringify(elem)
 

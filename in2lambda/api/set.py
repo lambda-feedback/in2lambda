@@ -102,8 +102,8 @@ class Set:
             >>> s.increment_current_question()
             >>> s.current_question.add_solution("Question 2 answer")
             >>> s.questions
-            [Question(title='Question 1', parts=[Part(text='', worked_solution='Question 1 answer')], images=[], main_text=''),\
- Question(title='Question 2', parts=[Part(text='', worked_solution='Question 2 answer')], images=[], main_text='')]
+            [Question(title='Question 1', parts=[Part(text='', worked_solution='Question 1 answer', answer='', response_areas=[])], images=[], main_text=''),\
+ Question(title='Question 2', parts=[Part(text='', worked_solution='Question 2 answer', answer='', response_areas=[])], images=[], main_text='')]
         """
         self._current_question_index += 1
 

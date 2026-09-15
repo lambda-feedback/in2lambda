@@ -9,11 +9,15 @@ written, and that the writer emits no key Lambda Feedback does not.
 
 import json
 import re
+import uuid
 from pathlib import Path
 
 import pytest
 from conftest import EXPORTS
 
+from in2lambda.api.part import Part
+from in2lambda.api.question import Question
+from in2lambda.api.response_area import Case, ResponseArea, Test
 from in2lambda.api.set import Set
 
 each_export = pytest.mark.parametrize("export_dir", EXPORTS, ids=lambda path: path.name)
@@ -65,6 +69,10 @@ def _key_paths(value, path: str = "") -> set[str]:
 
 
 def _unexported_keys(written: dict, exported: dict) -> list[str]:
+    # An export may list a part's areas out of order; the writer puts them in order,
+    # so compare each written area with the exported one of the same number.
+    for part in exported.get("parts", []):
+        part["responseAreas"].sort(key=lambda area: area["orderNumber"])
     missing = _key_paths(written) - _key_paths(exported)
     # Lambda Feedback leaves a part's workedSolution out of its export when the part
     # has none, but the writer always emits one, so only then may it be absent.
@@ -107,6 +115,23 @@ def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
         if keys:
             missing[file.name] = keys
     assert not missing, missing
+
+
+def test_response_area_built_in_python_writes_distinct_ids(tmp_path: Path) -> None:
+    """Tests and cases given no id are written with a distinct uuid each, as import needs."""
+    area = ResponseArea(
+        tests=[Test("x", True), Test("y", False)],
+        cases=[Case("x", "", True), Case("y", "", False)],
+    )
+    question_set = Set(questions=[Question(parts=[Part(response_areas=[area])])])
+
+    written = _write_back(question_set, tmp_path)
+    (question_file,) = written.glob("question_*.json")
+    (written_area,) = json.loads(question_file.read_text())["parts"][0]["responseAreas"]
+
+    ids = [item["id"] for item in written_area["tests"] + written_area["cases"]]
+    assert len(set(ids)) == 4
+    assert all(uuid.UUID(id_) for id_ in ids)
 
 
 def test_from_json_rejects_folder_without_set(tmp_path: Path) -> None:
