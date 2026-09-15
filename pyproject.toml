@@ -32,7 +32,7 @@ requests = "<2.34.0"
 in2lambda = "in2lambda.main:cli"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.3.0"
+black = ">=24.3,<27.0"
 isort = "^5.13.2"
 pydocstyle = "^6.3.0"
 mypy = "^1.9.0"

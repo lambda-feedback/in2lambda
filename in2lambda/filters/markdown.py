@@ -119,7 +119,7 @@ def filter(
     func: Callable[
         [pf.Element, pf.elements.Doc, Set, bool],
         Optional[pf.Str],
-    ]
+    ],
 ) -> Callable[
     [pf.Element, pf.elements.Doc, Set, str, bool],
     Optional[pf.Str],
