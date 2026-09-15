@@ -9,11 +9,13 @@ written, and that the writer emits no key Lambda Feedback does not.
 
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from conftest import EXPORTS
 
+from in2lambda.api.question import Question
 from in2lambda.api.set import Set
 
 each_export = pytest.mark.parametrize("export_dir", EXPORTS, ids=lambda path: path.name)
@@ -35,7 +37,8 @@ def _relative_files(directory: Path) -> list[str]:
 
 def _modelled(question_set: Set) -> dict:
     # Visibility controllers have no equality, and image paths differ by where the
-    # set was read from, so compare their values and file names.
+    # set was read from, so compare their values and file names. Questions are
+    # compared whole, so a field added to Question is compared without editing this.
     return {
         "name": question_set._name,
         "description": question_set._description,
@@ -45,7 +48,7 @@ def _modelled(question_set: Set) -> dict:
             str(question_set._structuredTutorialVisibility),
         ],
         "questions": [
-            (q.title, q.main_text, q.parts, [Path(image).name for image in q.images])
+            replace(q, images=[Path(image).name for image in q.images])
             for q in question_set.questions
         ],
     }
@@ -107,6 +110,53 @@ def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
         if keys:
             missing[file.name] = keys
     assert not missing, missing
+
+
+def test_question_settings_are_written(tmp_path: Path) -> None:
+    """A question's settings reach its JSON, and unset optional ones are left out."""
+    question_set = Set(_name="Settings")
+    question_set.questions = [
+        Question(
+            title="Configured",
+            skill=1 / 3,
+            guidance="Try part a first.",
+            duration_lower_bound=5,
+            duration_upper_bound=10,
+            publish=False,
+            display_chatbot=False,
+        ),
+        Question(title="Default"),
+    ]
+    written = _write_back(question_set, tmp_path)
+
+    configured = json.loads((written / "question_000_Configured.json").read_text())
+    assert {
+        key: configured[key]
+        for key in [
+            "skill",
+            "guidance",
+            "durationLowerBound",
+            "durationUpperBound",
+            "publish",
+            "displayFinalAnswer",
+            "displayChatbot",
+        ]
+    } == {
+        "skill": 1 / 3,
+        "guidance": "Try part a first.",
+        "durationLowerBound": 5,
+        "durationUpperBound": 10,
+        "publish": False,
+        "displayFinalAnswer": True,
+        "displayChatbot": False,
+    }
+
+    default = json.loads((written / "question_001_Default.json").read_text())
+    assert default["publish"] is True
+    assert default["displayChatbot"] is True
+    assert not {"skill", "guidance", "durationLowerBound", "durationUpperBound"} & set(
+        default
+    )
 
 
 def test_from_json_rejects_folder_without_set(tmp_path: Path) -> None:

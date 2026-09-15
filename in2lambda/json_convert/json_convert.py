@@ -35,6 +35,47 @@ def _zip_sorted_folder(folder_path, zip_path):
                 zf.write(abs_path, arcname=rel_path)
 
 
+def _question_json(
+    question: Question, i: int, template: dict[str, Any]
+) -> dict[str, Any]:
+    output = deepcopy(template)
+
+    output["orderNumber"] = i  # order number starts at 0
+    output["title"] = question.title if question.title != "" else f"Question {i + 1}"
+    output["masterContent"] = question.main_text
+
+    output["publish"] = question.publish
+    output["displayFinalAnswer"] = question.display_final_answer
+    output["displayWorkedSolution"] = question.display_worked_solution
+    output["displayStructuredTutorial"] = question.display_structured_tutorial
+    output["displayChatbot"] = question.display_chatbot
+    # Unset optional settings are omitted rather than given a value Lambda Feedback
+    # never chose.
+    for key, value in {
+        "skill": question.skill,
+        "guidance": question.guidance,
+        "durationLowerBound": question.duration_lower_bound,
+        "durationUpperBound": question.duration_upper_bound,
+    }.items():
+        if value is not None:
+            output[key] = value
+
+    if question.parts:
+        output["parts"][0]["content"] = question.parts[0].text
+        output["parts"][0]["workedSolution"]["content"] = question.parts[
+            0
+        ].worked_solution
+        for j in range(1, len(question.parts)):
+            output["parts"].append(deepcopy(template["parts"][0]))
+            output["parts"][j]["content"] = question.parts[j].text
+            output["parts"][j]["orderNumber"] = j
+            output["parts"][j]["workedSolution"]["content"] = question.parts[
+                j
+            ].worked_solution
+
+    return output
+
+
 def converter(
     question_template: dict[str, Any],
     set_template: dict[str, Any],
@@ -74,31 +115,7 @@ def converter(
         json.dump(set_template, file)
 
     for i in range(len(ListQuestions)):
-        output = deepcopy(question_template)
-
-        output["orderNumber"] = i  # order number starts at 0
-        # add title to the question file
-        if ListQuestions[i].title != "":
-            output["title"] = ListQuestions[i].title
-        else:
-            output["title"] = "Question " + str(i + 1)
-
-        # add main text to the question file
-        output["masterContent"] = ListQuestions[i].main_text
-
-        # add parts to the question file
-        if ListQuestions[i].parts:
-            output["parts"][0]["content"] = ListQuestions[i].parts[0].text
-            output["parts"][0]["workedSolution"]["content"] = (
-                ListQuestions[i].parts[0].worked_solution
-            )
-            for j in range(1, len(ListQuestions[i].parts)):
-                output["parts"].append(deepcopy(question_template["parts"][0]))
-                output["parts"][j]["content"] = ListQuestions[i].parts[j].text
-                output["parts"][j]["orderNumber"] = j
-                output["parts"][j]["workedSolution"]["content"] = (
-                    ListQuestions[i].parts[j].worked_solution
-                )
+        output = _question_json(ListQuestions[i], i, question_template)
 
         # Lambda Feedback names the file after the title with only spaces made
         # underscores. Path separators go too, so a title cannot leave the set folder,
@@ -155,6 +172,9 @@ def main(set_questions: Set, output_dir: str) -> None:
 
 def load(path: str) -> Set:
     """Reads a Lambda Feedback export into a Set, keeping only what the model holds.
+
+    That is the set's name, description and visibilities, and each question's title,
+    main text, parts, worked solutions, images and settings.
 
     A zip is extracted to a new temporary directory, which is left for the operating
     system to clear: the loaded images point into it and must still exist when the
@@ -229,6 +249,15 @@ def load(path: str) -> Set:
                 # add_part_text/add_solution calls must add parts after them rather
                 # than overwrite the first.
                 _last_part={"solution": len(parts), "text": len(parts)},
+                skill=question_json.get("skill"),
+                guidance=question_json.get("guidance"),
+                duration_lower_bound=question_json.get("durationLowerBound"),
+                duration_upper_bound=question_json.get("durationUpperBound"),
+                publish=question_json["publish"],
+                display_final_answer=question_json["displayFinalAnswer"],
+                display_worked_solution=question_json["displayWorkedSolution"],
+                display_structured_tutorial=question_json["displayStructuredTutorial"],
+                display_chatbot=question_json["displayChatbot"],
             )
         )
     return question_set
