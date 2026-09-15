@@ -15,7 +15,7 @@ The project can then be installed using [poetry](https://python-poetry.org/):
 (make sure you are in the top folder, which is the folder that contains pyproject.toml file)
 
 ```shell
-$ poetry install
+$ poetry install --all-extras
 $ poetry shell
 $ pre-commit install
 $ in2lambda --help
@@ -41,7 +41,7 @@ $ source env/bin/activate
 Then install in [editable mode](https://pip.pypa.io/en/stable/topics/local-project-installs/#editable-installs):
 
 ```shell
-$ pip install -e .
+$ pip install -e '.[convert]'
 $ in2lambda --help
 ```
 :::

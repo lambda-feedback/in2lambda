@@ -23,10 +23,14 @@ documentation = "https://lambda-feedback.github.io/in2lambda"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-panflute = "^2.3.1"
+panflute = { version = "^2.3.1", optional = true }
 rich-click = "^1.7.4"
 beartype = "^0.17.2"
 requests = "<2.34.0"
+
+[tool.poetry.extras]
+# Only needed to convert documents; the Python API works without it.
+convert = ["panflute"]
 
 [tool.poetry.scripts]
 in2lambda = "in2lambda.main:cli"

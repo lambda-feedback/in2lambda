@@ -19,7 +19,7 @@ jobs:
           python -m pip install --upgrade setuptools wheel
           pip install poetry
           poetry config virtualenvs.create true
-          poetry install --with dev
+          poetry install --with dev --all-extras
       - name: Install Pandoc  # apt version seems too old
         uses: r-lib/actions/setup-pandoc@v2
       - name: Linting Checks
@@ -34,3 +34,28 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
+
+  # The build job always has panflute and pandoc; this proves the library works without them.
+  library-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install without extras
+        run: pip install .
+      - name: Author a set
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -c "
+          import tempfile
+          from in2lambda.api.set import Set
+          s = Set()
+          s.add_question('Q', 'text')
+          s.current_question.add_part_text('part a')
+          s.current_question.add_solution('solution a')
+          s.to_json(tempfile.mkdtemp())
+          "
+          in2lambda --help
