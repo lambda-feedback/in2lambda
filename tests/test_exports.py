@@ -113,7 +113,7 @@ def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
 
 
 def test_question_settings_are_written(tmp_path: Path) -> None:
-    """A question's settings reach its JSON, and unset optional ones are left out."""
+    """A question's settings reach its JSON, are left out when unset, and reload."""
     question_set = Set(_name="Settings")
     question_set.questions = [
         Question(
@@ -123,6 +123,9 @@ def test_question_settings_are_written(tmp_path: Path) -> None:
             duration_lower_bound=5,
             duration_upper_bound=10,
             publish=False,
+            display_final_answer=False,
+            display_worked_solution=False,
+            display_structured_tutorial=False,
             display_chatbot=False,
         ),
         Question(title="Default"),
@@ -139,6 +142,8 @@ def test_question_settings_are_written(tmp_path: Path) -> None:
             "durationUpperBound",
             "publish",
             "displayFinalAnswer",
+            "displayWorkedSolution",
+            "displayStructuredTutorial",
             "displayChatbot",
         ]
     } == {
@@ -147,7 +152,9 @@ def test_question_settings_are_written(tmp_path: Path) -> None:
         "durationLowerBound": 5,
         "durationUpperBound": 10,
         "publish": False,
-        "displayFinalAnswer": True,
+        "displayFinalAnswer": False,
+        "displayWorkedSolution": False,
+        "displayStructuredTutorial": False,
         "displayChatbot": False,
     }
 
@@ -157,6 +164,26 @@ def test_question_settings_are_written(tmp_path: Path) -> None:
     assert not {"skill", "guidance", "durationLowerBound", "durationUpperBound"} & set(
         default
     )
+
+    # Only the settings are compared: a question written without parts reloads with
+    # the template's placeholder part.
+    def settings(question: Question) -> list:
+        return [
+            question.skill,
+            question.guidance,
+            question.duration_lower_bound,
+            question.duration_upper_bound,
+            question.publish,
+            question.display_final_answer,
+            question.display_worked_solution,
+            question.display_structured_tutorial,
+            question.display_chatbot,
+        ]
+
+    reloaded = Set.from_json(str(written)).questions
+    assert [settings(q) for q in reloaded] == [
+        settings(q) for q in question_set.questions
+    ]
 
 
 def test_from_json_rejects_folder_without_set(tmp_path: Path) -> None:
