@@ -48,10 +48,13 @@ def converter(
     ListQuestions = SetQuestions.questions
     set_name = SetQuestions._name
     set_description = SetQuestions._description
+    # The name is used both as a path component and as the set file's suffix, so
+    # strip anything that isn't filesystem-safe (mirrors the question filenames below).
+    set_slug = re.sub(r"[^\w\-_.]", "_", set_name.strip()) or "set"
 
     # create directory to put the questions
     os.makedirs(output_dir, exist_ok=True)
-    output_question = os.path.join(output_dir, set_name)
+    output_question = os.path.join(output_dir, set_slug)
     os.makedirs(output_question, exist_ok=True)
 
     set_template["name"] = set_name
@@ -66,7 +69,7 @@ def converter(
         SetQuestions._structuredTutorialVisibility.status
     )
     # create the set file
-    with open(f"{output_question}/set_{set_name}.json", "w") as file:
+    with open(f"{output_question}/set_{set_slug}.json", "w") as file:
         json.dump(set_template, file)
 
     for i in range(len(ListQuestions)):

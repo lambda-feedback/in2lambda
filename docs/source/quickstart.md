@@ -81,6 +81,8 @@ If you would rather write the questions yourself, the [`Markdown` filter](filter
 $ in2lambda convert questions.md Markdown
 ```
 
+If your source is an unstructured PDF, Word or LaTeX document, [`in2lambda wizard`](wizard.md) can generate that markdown for you to review first.
+
 By default, this generates an `out` directory in the same place that the command was run in. It contains the zipped question files.
 
 Check the [command line tool reference](reference/command-line) for more information.
