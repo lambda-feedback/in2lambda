@@ -19,12 +19,26 @@ def _pdf(tmp_path):
     return pdf
 
 
-def test_pdf_to_markdown_writes_md_and_localises_figures(tmp_path):
+def _post(pdf_id="abc123", error=None):
+    post = MagicMock(status_code=200)
+    post.json.return_value = {"error": error} if error else {"pdf_id": pdf_id}
+    return post
+
+
+def _status(status, error=None):
+    body = {"status": status}
+    if error:
+        body["error"] = error
+    resp = MagicMock(status_code=200)
+    resp.json.return_value = body
+    return resp
+
+
+def test_pdf_to_markdown_returns_markdown_and_localises_figures(tmp_path):
     pdf = _pdf(tmp_path)
     out_dir = tmp_path / "out"
 
-    post = MagicMock(status_code=200)
-    post.json.return_value = {"pdf_id": "abc123"}
+    completed = _status("completed")
     md = MagicMock(
         status_code=200,
         text="# Heading\n\n![](https://cdn.mathpix.com/x/fig.png?width=8) done\n",
@@ -32,47 +46,87 @@ def test_pdf_to_markdown_writes_md_and_localises_figures(tmp_path):
     image = MagicMock(status_code=200, content=b"PNGBYTES")
 
     with patch("in2lambda.wizard.mathpix.requests") as req:
-        req.post.return_value = post
-        req.get.side_effect = [md, image]
-        md_path = pdf_to_markdown(str(pdf), str(out_dir), poll_interval=0.0)
+        req.post.return_value = _post()
+        req.get.side_effect = [completed, md, image]
+        markdown = pdf_to_markdown(str(pdf), str(out_dir), poll_interval=0.0)
 
-    assert md_path == out_dir / "paper.md"
-    text = md_path.read_text()
-    assert "![pictureTag](./media/0_fig.png)" in text
+    assert "![pictureTag](./media/0_fig.png)" in markdown
+    assert not (out_dir / "paper.md").exists()
     assert (out_dir / "media" / "0_fig.png").read_bytes() == b"PNGBYTES"
 
 
 def test_pdf_to_markdown_polls_until_ready(tmp_path):
     pdf = _pdf(tmp_path)
 
-    post = MagicMock(status_code=200)
-    post.json.return_value = {"pdf_id": "abc123"}
-    not_ready = MagicMock(status_code=202)
-    ready = MagicMock(status_code=200, text="# Only text, no figures\n")
+    processing = _status("processing")
+    completed = _status("completed")
+    md = MagicMock(status_code=200, text="# Only text, no figures\n")
 
     with patch("in2lambda.wizard.mathpix.requests") as req:
-        req.post.return_value = post
-        req.get.side_effect = [not_ready, not_ready, ready]
-        md_path = pdf_to_markdown(
+        req.post.return_value = _post()
+        req.get.side_effect = [processing, processing, completed, md]
+        markdown = pdf_to_markdown(
             str(pdf), str(tmp_path / "out"), poll_interval=0.0, max_polls=5
         )
 
-    assert md_path.read_text().startswith("# Only text")
+    assert markdown.startswith("# Only text")
 
 
 def test_pdf_to_markdown_times_out(tmp_path):
     pdf = _pdf(tmp_path)
 
-    post = MagicMock(status_code=200)
-    post.json.return_value = {"pdf_id": "abc123"}
-
     with patch("in2lambda.wizard.mathpix.requests") as req:
-        req.post.return_value = post
-        req.get.return_value = MagicMock(status_code=202)
+        req.post.return_value = _post()
+        req.get.return_value = _status("processing")
         with pytest.raises(RuntimeError, match="did not finish"):
             pdf_to_markdown(
                 str(pdf), str(tmp_path / "out"), poll_interval=0.0, max_polls=3
             )
+
+
+def test_pdf_to_markdown_raises_on_rejected_upload(tmp_path):
+    pdf = _pdf(tmp_path)
+
+    with patch("in2lambda.wizard.mathpix.requests") as req:
+        req.post.return_value = _post(error="Invalid file type")
+        with pytest.raises(RuntimeError, match="Mathpix rejected the PDF"):
+            pdf_to_markdown(str(pdf), str(tmp_path / "out"))
+
+
+def test_pdf_to_markdown_raises_immediately_on_conversion_error(tmp_path):
+    pdf = _pdf(tmp_path)
+
+    with patch("in2lambda.wizard.mathpix.requests") as req:
+        req.post.return_value = _post()
+        req.get.return_value = _status("error", error="conversion failed")
+        with pytest.raises(RuntimeError, match="conversion failed"):
+            pdf_to_markdown(
+                str(pdf), str(tmp_path / "out"), poll_interval=0.0, max_polls=60
+            )
+
+    # Only the single status poll should have happened, not all 60.
+    assert req.get.call_count == 1
+
+
+def test_pdf_to_markdown_warns_on_failed_figure_download(tmp_path):
+    pdf = _pdf(tmp_path)
+    out_dir = tmp_path / "out"
+
+    completed = _status("completed")
+    md = MagicMock(
+        status_code=200,
+        text="![](https://cdn.mathpix.com/x/fig.png) done\n",
+    )
+    image = MagicMock(status_code=404, content=b"")
+
+    with patch("in2lambda.wizard.mathpix.requests") as req:
+        req.post.return_value = _post()
+        req.get.side_effect = [completed, md, image]
+        with pytest.warns(UserWarning, match="figure download failed"):
+            markdown = pdf_to_markdown(str(pdf), str(out_dir), poll_interval=0.0)
+
+    assert "https://cdn.mathpix.com/x/fig.png" in markdown
+    assert not (out_dir / "media" / "0_fig.png").exists()
 
 
 def test_missing_credentials_raise(tmp_path, monkeypatch):

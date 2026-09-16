@@ -82,3 +82,33 @@ def test_convert_rejects_unknown_filter(filters_dir: str, tmp_path) -> None:
 
     assert result.exit_code != 0
     assert "NotAFilter" in result.output
+
+
+def test_old_style_absolute_path_invocation_fails(filters_dir: str) -> None:
+    """The pre-2.0.0 `in2lambda <file> <filter>` form must error, not no-op.
+
+    Click's default command resolution silently exits 0 here instead of
+    erroring, because it mistakes a leading "/" for an option prefix.
+    """
+    example = os.path.join(filters_dir, "PartsSepSol", "example.tex")
+    assert os.path.isabs(example)
+
+    result = CliRunner().invoke(cli, [example, "PartsSepSol"])
+
+    assert result.exit_code != 0
+    assert "convert" in result.output
+
+
+def test_old_style_dot_relative_path_invocation_fails(filters_dir: str) -> None:
+    """Same as above but for a `./relative` path, which hits the same bug."""
+    result = CliRunner().invoke(cli, ["./example.tex", "PartsSepSol"])
+
+    assert result.exit_code != 0
+    assert "convert" in result.output
+
+
+def test_old_style_bare_filename_invocation_fails() -> None:
+    result = CliRunner().invoke(cli, ["example.tex", "PartsSepSol"])
+
+    assert result.exit_code != 0
+    assert "convert" in result.output

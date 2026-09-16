@@ -12,8 +12,9 @@ import os
 from typing import Optional
 
 try:
-    from dotenv import load_dotenv
+    from dotenv import find_dotenv, load_dotenv
 except ImportError:  # pragma: no cover - provided by the `llm` extra
+    find_dotenv = None
     load_dotenv = None
 
 try:
@@ -63,7 +64,10 @@ def get_client() -> "openai.OpenAI":
         raise RuntimeError(_INSTALL_HINT)
 
     if load_dotenv is not None:
-        load_dotenv()
+        # find_dotenv()'s default search starts from the calling module's
+        # file location, which is inside site-packages once installed. Use
+        # usecwd=True so it searches from the user's project directory.
+        load_dotenv(find_dotenv(usecwd=True))
 
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
