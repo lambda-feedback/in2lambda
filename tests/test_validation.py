@@ -8,11 +8,13 @@ import pytest
 
 from in2lambda.validation import (
     MathDelimiterError,
+    MathDelimiterProblem,
     check_markdown,
     math_delimiter_checker,
 )
 
 E = MathDelimiterError
+P = MathDelimiterProblem
 
 VALID = [
     "This is an inline math expression: $x = y$.",
@@ -39,50 +41,117 @@ VALID = [
     "Price \\$50 for $x + y = z$ calculation.",
     "Expression: $cost = \\$100$.",
     "Display:\n$$\ncost = \\$100\n$$",
+    # A "$ ... $" expression may now span a newline before closing.
+    "This is an inline math expression:$x \n= y$.",
+    "This is an inline math expression:$\nx = y$.",
+    "This is an inline math expression:$x = y\n$.",
+    # A "$" inside a code span/fence is not math and must be ignored.
+    "Run `echo $PATH` now.\n",
+    "```bash\necho $HOME\n```\n",
 ]
 
 INVALID = [
-    ("This is an inline math expression: $x = y.", E.MISSING_CLOSING_SINGLE_DOLLAR),
-    ("This is an inline math expression: x = y$.", E.MISSING_CLOSING_SINGLE_DOLLAR),
-    ("This is an inline math expression:$x \n= y$.", E.INVALID_NEWLINE_INSIDE_INLINE),
-    ("This is an inline math expression:$\nx = y$.", E.INVALID_NEWLINE_INSIDE_INLINE),
-    ("This is an inline math expression:$x = y\n$.", E.INVALID_NEWLINE_INSIDE_INLINE),
-    ("Expression $x = y$$.", E.DOUBLE_DOLLAR_INSTEAD_OF_CLOSING_SINGLE),
-    ("Expression $x = y$ and $a = b$ and $c =", E.MISSING_CLOSING_SINGLE_DOLLAR),
-    ("Expression $$$x = y$$$.", E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY),
+    (
+        "This is an inline math expression: $x = y.",
+        [P(1, E.MISSING_CLOSING_SINGLE_DOLLAR)],
+    ),
+    (
+        "This is an inline math expression: x = y$.",
+        [P(1, E.MISSING_CLOSING_SINGLE_DOLLAR)],
+    ),
+    (
+        "Expression $x = y$$.",
+        [
+            P(1, E.DOUBLE_DOLLAR_INSTEAD_OF_CLOSING_SINGLE),
+            P(1, E.MISSING_CLOSING_SINGLE_DOLLAR),
+        ],
+    ),
+    (
+        "Expression $x = y$ and $a = b$ and $c =",
+        [P(1, E.MISSING_CLOSING_SINGLE_DOLLAR)],
+    ),
+    (
+        "Expression $$$x = y$$$.",
+        [
+            P(1, E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY),
+            P(1, E.DOUBLE_DOLLAR_INSTEAD_OF_CLOSING_SINGLE),
+            P(1, E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY),
+        ],
+    ),
     (
         "This is a display math expression:\n$$\nx = y\n",
-        E.MISSING_CLOSING_DOUBLE_DOLLAR,
+        [P(2, E.MISSING_CLOSING_DOUBLE_DOLLAR)],
     ),
     (
         "This is a display math expression:\nx = y\n$$",
-        E.MISSING_NEWLINE_AFTER_OPENING_DISPLAY,
+        [P(3, E.MISSING_NEWLINE_AFTER_OPENING_DISPLAY)],
     ),
     (
         "This is a display math expression:$$\nx = y\n$$.",
-        E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY,
+        [
+            P(1, E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY),
+            P(3, E.MISSING_NEWLINE_AFTER_OPENING_DISPLAY),
+        ],
     ),
     (
         "This is a display math expression:\n$$\nx = y\n$$.",
-        E.MISSING_NEWLINE_AFTER_CLOSING_DISPLAY,
+        [P(4, E.MISSING_NEWLINE_AFTER_CLOSING_DISPLAY)],
     ),
-    ("Expression:\n$$text\nx = y\n$$", E.MISSING_NEWLINE_AFTER_OPENING_DISPLAY),
-    ("Expression:\n$$\nx = y\ntext$$", E.MISSING_NEWLINE_BEFORE_CLOSING_DISPLAY),
-    ("Expression $$x = y$.", E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY),
-    ("Expression $x = y$$", E.DOUBLE_DOLLAR_INSTEAD_OF_CLOSING_SINGLE),
-    ("Expression $$x = y$", E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY),
+    (
+        "Expression:\n$$text\nx = y\n$$",
+        [
+            P(2, E.MISSING_NEWLINE_AFTER_OPENING_DISPLAY),
+            P(4, E.MISSING_NEWLINE_AFTER_OPENING_DISPLAY),
+        ],
+    ),
+    (
+        "Expression:\n$$\nx = y\ntext$$",
+        [P(4, E.MISSING_NEWLINE_BEFORE_CLOSING_DISPLAY)],
+    ),
+    (
+        "Expression $$x = y$.",
+        [
+            P(1, E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY),
+            P(1, E.MISSING_CLOSING_SINGLE_DOLLAR),
+        ],
+    ),
+    (
+        "Expression $x = y$$",
+        [
+            P(1, E.DOUBLE_DOLLAR_INSTEAD_OF_CLOSING_SINGLE),
+            P(1, E.MISSING_CLOSING_SINGLE_DOLLAR),
+        ],
+    ),
+    (
+        "Expression $$x = y$",
+        [
+            P(1, E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY),
+            P(1, E.MISSING_CLOSING_SINGLE_DOLLAR),
+        ],
+    ),
+    # An unclosed "$" must report MISSING_CLOSING_SINGLE_DOLLAR, not a
+    # newline-related error, however many lines it spans before EOF.
+    ("This $x is unclosed.\n", [P(1, E.MISSING_CLOSING_SINGLE_DOLLAR)]),
+    # Two independent problems on different lines are both reported.
+    (
+        "Expression $x = y$$.\nAnother $a = b$$.\n",
+        [
+            P(1, E.DOUBLE_DOLLAR_INSTEAD_OF_CLOSING_SINGLE),
+            P(2, E.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY),
+        ],
+    ),
 ]
 
 
 @pytest.mark.parametrize("content", VALID)
 def test_valid_markdown_passes(content: str) -> None:
-    assert math_delimiter_checker(content) is E.PASSED
+    assert math_delimiter_checker(content) == []
     assert check_markdown(content) == []
 
 
 @pytest.mark.parametrize("content, expected", INVALID)
 def test_invalid_markdown_is_reported(
-    content: str, expected: MathDelimiterError
+    content: str, expected: list[MathDelimiterProblem]
 ) -> None:
-    assert math_delimiter_checker(content) is expected
-    assert check_markdown(content) == [expected]
+    assert math_delimiter_checker(content) == expected
+    assert check_markdown(content) == expected

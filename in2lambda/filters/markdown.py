@@ -118,11 +118,11 @@ def image_path(image_name: str, tex_file: str) -> Optional[str]:
 def filter(
     func: Callable[
         [pf.Element, pf.elements.Doc, Set, bool],
-        Optional[pf.Str],
+        Optional[pf.Inline],
     ]
 ) -> Callable[
     [pf.Element, pf.elements.Doc, Set, str, bool],
-    Optional[pf.Str],
+    Optional[pf.Inline],
 ]:
     """Python decorator to make generic LaTeX elements markdown readable.
 
@@ -139,7 +139,7 @@ def filter(
         set: Set,
         tex_file: str,
         parsing_answers: bool,
-    ) -> Optional[pf.Str]:
+    ) -> Optional[pf.Inline]:
         """Handles LaTeX elements within the filter, before calling the original function.
 
         N.B. tex_file is required to determine where the relative image directory is.
@@ -163,10 +163,13 @@ def filter(
                     expression = latex_to_katex(elem.text)
                 except Exception:
                     expression = elem.text
-                return pf.Str(
-                    f"${expression}$"
-                    if elem.format == "InlineMath"
-                    else f"\n\n$$\n{expression}\n$$\n\n"
+                return pf.RawInline(
+                    (
+                        f"${expression}$"
+                        if elem.format == "InlineMath"
+                        else f"\n\n$$\n{expression}\n$$\n\n"
+                    ),
+                    format="markdown",
                 )
 
             case pf.Image:
@@ -176,13 +179,13 @@ def filter(
                     echo(f"Warning: Couldn't find {elem.url}")
                 else:
                     set.current_question.images.append(path)
-                return pf.Str(f"![pictureTag]({elem.url})")
+                return pf.RawInline(f"![pictureTag]({elem.url})", format="markdown")
 
             case pf.Strong:
-                return pf.Str(f"**{pf.stringify(elem)}**")
+                return pf.RawInline(f"**{pf.stringify(elem)}**", format="markdown")
 
             case pf.Emph:
-                return pf.Str(f"*{pf.stringify(elem)}*")
+                return pf.RawInline(f"*{pf.stringify(elem)}*", format="markdown")
 
             # Replace siunitx no-break space with narrow no-break space
             # This should be the space between the number and the units

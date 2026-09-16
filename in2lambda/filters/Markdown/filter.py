@@ -68,7 +68,7 @@ def pandoc_filter(
     doc: pf.elements.Doc,
     set: Set,
     parsing_answers: bool,
-) -> Optional[pf.Str]:
+) -> Optional[pf.Inline]:
     """Turn a ``#``/``##`` markdown document into questions, parts and solutions.
 
     Args:
@@ -87,12 +87,27 @@ def pandoc_filter(
 
     state = _state_for(doc)
     is_heading = isinstance(elem, pf.Header)
-    text = pf.stringify(elem).strip()
+    is_rule = isinstance(elem, pf.HorizontalRule)
+
+    if is_heading:
+        text = pf.stringify(elem).strip()
+    elif is_rule:
+        # HorizontalRule blocks (``---``) stringify to nothing, so they're matched
+        # separately and kept as literal text: in a Lambda Feedback worked solution
+        # they mark the boundary between the steps a student clicks through.
+        text = "---"
+    else:
+        # Serialized back to markdown (rather than flattened with pf.stringify) so
+        # that lists, tables and other markup survive into the question/part/
+        # solution text verbatim.
+        text = pf.convert_text(
+            elem, input_format="panflute", output_format="markdown"
+        ).strip()
 
     if parsing_answers:
         if is_heading and elem.level == 1:
             set.increment_current_question()
-        elif not is_heading and text:
+        elif (is_rule or not is_heading) and text:
             set.current_question.add_solution(text)
         return None
 
@@ -108,7 +123,7 @@ def pandoc_filter(
         state.part = Part()
         set.current_question.parts.append(state.part)
         state.target = "part"
-    elif not is_heading and text:
+    elif (is_rule or not is_heading) and text:
         if state.target == "main":
             set.current_question.main_text = text
         elif state.target == "part" and state.part is not None:

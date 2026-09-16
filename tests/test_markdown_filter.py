@@ -20,11 +20,16 @@ def test_example_parses_into_questions_parts_and_solutions(filters_dir: str) -> 
 
     projectile = result.questions[0]
     assert projectile.main_text.startswith("A ball is thrown horizontally")
-    assert [p.text for p in projectile.parts] == [
-        "How long does the ball take to reach the ground?",
-        "How far from the launch point does the ball land?",
-    ]
+    assert projectile.parts[0].text == (
+        "How long does the ball take to reach the ground, using:\n\n"
+        "- the vertical motion equation\n- the given height and gravity"
+    )
+    assert (
+        projectile.parts[1].text == "How far from the launch point does the ball land?"
+    )
     assert projectile.parts[0].worked_solution.startswith("Vertical motion is")
+    # The ``---`` separator survives as a literal step boundary.
+    assert "\n\n---\n\n" in projectile.parts[0].worked_solution
     assert "v_0 t" in projectile.parts[1].worked_solution
 
     # A question with no ``##`` parts keeps its solution on a single empty part.
@@ -41,13 +46,14 @@ def test_markdown_filter_writes_importable_json(filters_dir: str, tmp_path) -> N
     assert len(question_files) == 2
     first = json.loads(question_files[0].read_text())
     assert first["title"] == "Projectile motion"
-    assert (
-        first["parts"][0]["content"]
-        == "How long does the ball take to reach the ground?"
+    assert first["parts"][0]["content"].startswith(
+        "How long does the ball take to reach the ground, using:"
     )
+    assert "- the vertical motion equation" in first["parts"][0]["content"]
     assert first["parts"][0]["workedSolution"]["content"].startswith(
         "Vertical motion is"
     )
+    assert "\n\n---\n\n" in first["parts"][0]["workedSolution"]["content"]
 
 
 def test_bad_math_delimiters_warn_but_do_not_fail(tmp_path, capsys) -> None:
