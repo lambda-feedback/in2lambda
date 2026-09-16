@@ -26,6 +26,26 @@ SAMPLE_SET = WizardSet(
     ]
 )
 
+# A question with both per-part solutions and a closing overall solution: the
+# Markdown filter has no separate slot for a question-level solution once a
+# question has parts, so `to_markdown` must fold the overall solution into the
+# last part rather than drop it.
+SAMPLE_WITH_CLOSING_SOLUTION = WizardSet(
+    questions=[
+        WizardQuestion(
+            title="Circuit",
+            text="A resistor and capacitor are connected in series.",
+            parts=[
+                WizardPart(text="Find the time constant.", solution="$\\tau = RC$."),
+                WizardPart(
+                    text="Find the charge at $t=\\tau$.", solution="$Q = Q_0/e$."
+                ),
+            ],
+            solution="Check units throughout: $\\tau$ has units of seconds.",
+        )
+    ]
+)
+
 
 def _fake_client(question_set: WizardSet) -> MagicMock:
     client = MagicMock()
@@ -50,6 +70,20 @@ def test_to_markdown_roundtrips_through_markdown_filter(tmp_path):
     ]
     assert projectile.parts[0].worked_solution == "$t=\\sqrt{2h/g}$."
     assert result.questions[1].parts[0].worked_solution == "$F = ma$."
+
+
+def test_to_markdown_folds_closing_solution_into_last_part():
+    md_file_text = to_markdown(SAMPLE_WITH_CLOSING_SOLUTION)
+
+    # One "## Solution" heading per part (as usual) - no extra, ambiguous
+    # heading is emitted for the question-level solution. Its text is instead
+    # folded into the last part's, since that's the only heading the Markdown
+    # filter would attribute it to anyway.
+    assert md_file_text.count("## Solution") == 2
+    assert (
+        "$Q = Q_0/e$.\n\nCheck units throughout: $\\tau$ has units of seconds."
+        in md_file_text
+    )
 
 
 def test_run_wizard_writes_reviewable_markdown(tmp_path, monkeypatch):
@@ -98,6 +132,37 @@ def test_run_wizard_uses_mathpix_for_pdfs(tmp_path, monkeypatch):
     run_module.run_wizard(str(pdf), str(tmp_path / "out" / "reviewed.md"))
 
     assert seen["source"] == "# raw ocr\n\nstuff"
+
+
+def test_run_wizard_loads_client_before_running_ocr(tmp_path, monkeypatch):
+    # get_client() is what loads .env and validates OPENROUTER_API_KEY - it must
+    # run before the (paid) Mathpix OCR call, not after, so a missing key is
+    # caught before it's spent.
+    from in2lambda.wizard import run as run_module
+
+    pdf = tmp_path / "paper.pdf"
+    pdf.write_bytes(b"%PDF-1.4 fake")
+
+    call_order = []
+
+    def fake_pdf_to_markdown(src, out_dir):
+        call_order.append("pdf_to_markdown")
+        path = tmp_path / "out" / "paper.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# raw ocr\n\nstuff")
+        return path
+
+    def fake_get_client():
+        call_order.append("get_client")
+        return _fake_client(SAMPLE_SET)
+
+    monkeypatch.setattr(run_module, "pdf_to_markdown", fake_pdf_to_markdown)
+    monkeypatch.setattr(run_module, "get_client", fake_get_client)
+    monkeypatch.setattr(run_module, "resolve_model", lambda value: "test/model")
+
+    run_module.run_wizard(str(pdf), str(tmp_path / "out" / "reviewed.md"))
+
+    assert call_order == ["get_client", "pdf_to_markdown"]
 
 
 def test_extract_set_raises_when_model_returns_nothing():

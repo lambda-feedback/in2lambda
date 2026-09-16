@@ -41,9 +41,10 @@ def run_wizard(input_file: str, output_file: str, model: Optional[str] = None) -
     output = Path(output_file)
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    source_markdown = _load_markdown(source, output.parent)
-
+    # Load .env and validate the OpenRouter key before running (paid) Mathpix
+    # OCR, so a missing key is caught before it's spent, not after.
     client = get_client()
+    source_markdown = _load_markdown(source, output.parent)
     question_set = extract_set(source_markdown, client, resolve_model(model))
     markdown = to_markdown(question_set)
 

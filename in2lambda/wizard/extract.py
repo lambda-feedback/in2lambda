@@ -31,7 +31,10 @@ class WizardQuestion(BaseModel):
     )
     solution: str = Field(
         default="",
-        description="Worked solution when the question has no parts; empty otherwise.",
+        description=(
+            "Overall or closing worked solution for the question, whether or not "
+            "it has parts; empty if the document gives none."
+        ),
     )
 
 
@@ -49,8 +52,9 @@ Return every question with:
 - its stem (the text before any sub-questions),
 - its parts - sub-questions such as (a), (b) or i., ii. - each with the worked
   solution for that part,
-- or, if the question has no parts, a single worked solution for the whole
-  question.
+- and an overall worked solution for the whole question, if the document gives
+  one - whether that is the question's only solution (no parts) or a closing
+  solution on top of the per-part ones.
 
 Copy mathematics and LaTeX exactly, keeping $...$ and $$...$$ delimiters. Do not
 invent content: if a solution is not present, leave it empty. Do not include
@@ -93,7 +97,14 @@ def _demangle(text: str) -> str:
     r"""Restore LaTeX control words whose backslash was lost to JSON un-escaping.
 
     A TAB/CR/FF/BS glued to a letter (e.g. ``<TAB>ext{m}`` from ``\text``) becomes
-    ``\`` + that escape letter again. Newlines are deliberately left as-is.
+    ``\`` + that escape letter again. Newlines are deliberately left as-is: a
+    mangled ``\n``-command (``\nu``, ``\nabla``, ``\neq``, ...) is indistinguishable
+    from a genuine line break once JSON has swallowed the backslash, so those
+    commands are not repaired here and will surface as a broken line break rather
+    than maths. This is a best-effort heuristic, not a guarantee in the other
+    direction either: a genuine TAB/CR/FF/BS immediately followed by a letter
+    (e.g. a tab-separated table row) is equally indistinguishable from a mangled
+    command and will be incorrectly rewritten into a literal escape sequence.
     """
     return _MANGLED_COMMAND.sub(lambda match: _CTRL_ESCAPES[match.group(1)], text)
 
@@ -152,9 +163,22 @@ def to_markdown(question_set: WizardSet) -> str:
                 blocks.append(f"## Part {index}")
                 if part.text.strip():
                     blocks.append(part.text.strip())
-                if part.solution.strip():
+
+                solution = part.solution.strip()
+                if index == len(question.parts) and question.solution.strip():
+                    # The Markdown filter has no slot for a question-level
+                    # solution once a question has parts - a "## Solution"
+                    # heading after the last part is read back as that part's
+                    # own solution. Fold an overall/closing solution into the
+                    # last part instead of silently dropping it.
+                    solution = (
+                        f"{solution}\n\n{question.solution.strip()}"
+                        if solution
+                        else question.solution.strip()
+                    )
+                if solution:
                     blocks.append("## Solution")
-                    blocks.append(part.solution.strip())
+                    blocks.append(solution)
         elif question.solution.strip():
             blocks.append("## Solution")
             blocks.append(question.solution.strip())
