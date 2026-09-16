@@ -6,19 +6,28 @@ checks catch structural mistakes - currently unbalanced/misplaced math
 delimiters - before the markdown is converted.
 """
 
-from in2lambda.validation.delimiters import MathDelimiterError, math_delimiter_checker
+from in2lambda.validation.delimiters import (
+    MathDelimiterError,
+    MathDelimiterProblem,
+    math_delimiter_checker,
+)
 
-__all__ = ["MathDelimiterError", "math_delimiter_checker", "check_markdown"]
+__all__ = [
+    "MathDelimiterError",
+    "MathDelimiterProblem",
+    "math_delimiter_checker",
+    "check_markdown",
+]
 
 
-def check_markdown(md_content: str) -> list[MathDelimiterError]:
+def check_markdown(md_content: str) -> list[MathDelimiterProblem]:
     """Run every markdown check and return the problems found.
 
     Args:
         md_content: The markdown text to validate.
 
     Returns:
-        A list of :class:`MathDelimiterError` members, one per problem found.
+        A list of :class:`MathDelimiterProblem`, one per problem found.
         An empty list means the markdown passed every check.
 
     Examples:
@@ -26,12 +35,6 @@ def check_markdown(md_content: str) -> list[MathDelimiterError]:
         >>> check_markdown("Inline $x = y$ is fine.")
         []
         >>> check_markdown("Unbalanced $x = y")
-        [<MathDelimiterError.MISSING_CLOSING_SINGLE_DOLLAR: 'unclosed inline $ ... $'>]
+        [MathDelimiterProblem(line=1, error=<MathDelimiterError.MISSING_CLOSING_SINGLE_DOLLAR: 'unclosed inline $ ... $'>)]
     """
-    problems: list[MathDelimiterError] = []
-
-    result = math_delimiter_checker(md_content)
-    if result is not MathDelimiterError.PASSED:
-        problems.append(result)
-
-    return problems
+    return math_delimiter_checker(md_content)
