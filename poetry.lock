@@ -2385,4 +2385,4 @@ llm = ["openai", "pydantic", "python-dotenv"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "224a53166d1e1cbe568a86b74a0974914f2640bec1573f8516155bf22e954150"
+content-hash = "479ed40bd837553a14a96d0b02bbf6670c3d166e2d4400ee44661265dd22074c"
