@@ -1,9 +1,7 @@
 """Represents a list of questions."""
 
 from dataclasses import dataclass, field
-from typing import Union
-
-import panflute as pf
+from typing import Any
 
 from in2lambda.api.question import Question
 from in2lambda.api.visibility_status import VisibilityController, VisibilityStatus
@@ -57,21 +55,18 @@ class Set:
             else Question("INVALID")
         )
 
-    def add_question(
-        self, title: str = "", main_text: Union[pf.Element, str] = pf.Str("")
-    ) -> None:
+    def add_question(self, title: str = "", main_text: Any = "") -> None:
         """Inserts a new question into the set.
 
         Args:
             title: An optional string for the title of the question. If no title
                 is provided, the question title auto-increments i.e. Question 1, 2, etc.
-            main_text: An optional string or panflute element for the main question text.
+            main_text: An optional string, or panflute element, for the main question text.
 
         Examples:
             >>> from in2lambda.api.set import Set
-            >>> import panflute as pf
             >>> s = Set()
-            >>> s.add_question("Some title", pf.Para(pf.Str("hello"), pf.Space, pf.Str("there")))
+            >>> s.add_question("Some title", "hello there")
             >>> s.questions
             [Question(title='Some title', parts=[], images=[], main_text='hello there')]
             >>> s.add_question(main_text="Normal string text")

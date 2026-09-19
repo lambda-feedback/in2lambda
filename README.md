@@ -8,5 +8,6 @@ in2lambda is a Python command line tool and library that automagically uploads q
 Find out more in the [documentation](https://lambda-feedback.github.io/in2lambda/).
 
 ```
-$ pip install in2lambda
+$ pip install in2lambda              # Python library
+$ pip install 'in2lambda[convert]'   # also convert documents (needs pandoc)
 ```

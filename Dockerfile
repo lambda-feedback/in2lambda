@@ -13,7 +13,7 @@ WORKDIR /app
 COPY ./pyproject.toml ./README.md ./in2lambda /app/
 COPY ./in2lambda /app/in2lambda/
 
-RUN pip install .
+RUN pip install '.[convert]'
 
 FROM python:3.11.4-alpine
 

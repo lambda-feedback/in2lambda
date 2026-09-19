@@ -2,7 +2,6 @@
 
 import beartype
 import click
-import panflute
 import rich_click
 from beartype.claw import beartype_this_package
 from rich.traceback import install
@@ -10,4 +9,11 @@ from rich.traceback import install
 beartype_this_package()
 # TODO: Automate suppresion list for third party modules
 # See: https://rich.readthedocs.io/en/stable/traceback.html#suppressing-frames
-install(show_locals=True, suppress=[panflute, click, rich_click, beartype])
+_suppress = [click, rich_click, beartype]
+try:  # panflute is only installed with the convert extra.
+    import panflute
+
+    _suppress.append(panflute)
+except ImportError:
+    pass
+install(show_locals=True, suppress=_suppress)
