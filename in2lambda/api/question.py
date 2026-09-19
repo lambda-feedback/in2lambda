@@ -1,7 +1,7 @@
 """A full question with optional parts that's contained in a set."""
 
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Optional, Union
 
 import panflute as pf
 
@@ -14,10 +14,17 @@ class Question:
 
     Each question has a title and is composed of a list of parts.
 
+    It also carries the settings Lambda Feedback keeps per question: its skill level,
+    guidance for students, expected duration in minutes, whether it is published, and
+    whether students may see the final answer, worked solution, structured tutorial
+    and chatbot. Unset skill, guidance and durations are left out of the JSON.
+
     Examples:
         >>> from in2lambda.api.question import Question
         >>> Question(title="Some title", main_text="Some text")
         Question(title='Some title', parts=[], images=[], main_text='Some text')
+        >>> Question(title="Some title", publish=False).publish
+        False
     """
 
     title: str = ""
@@ -35,6 +42,20 @@ class Question:
     )
     """Keeps track of the last question part that contains a solution /
     text."""
+
+    # Settings are left out of the repr so that printing a question still shows its
+    # content rather than nine lines of configuration.
+    # An int too: Lambda Feedback's export is written by JavaScript, which writes the
+    # lowest and highest skill levels as 0 and 1.
+    skill: Optional[Union[int, float]] = field(default=None, repr=False)
+    guidance: Optional[str] = field(default=None, repr=False)
+    duration_lower_bound: Optional[int] = field(default=None, repr=False)
+    duration_upper_bound: Optional[int] = field(default=None, repr=False)
+    publish: bool = field(default=True, repr=False)
+    display_final_answer: bool = field(default=True, repr=False)
+    display_worked_solution: bool = field(default=True, repr=False)
+    display_structured_tutorial: bool = field(default=True, repr=False)
+    display_chatbot: bool = field(default=True, repr=False)
 
     @property
     def main_text(self) -> str:
