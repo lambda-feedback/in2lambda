@@ -1,9 +1,9 @@
-"""Pre-flight checks for the ``#``/``##`` markdown that flows through in2lambda.
+"""Pre-flight checks for the ``#``/``##`` and ``$``/``$$`` markdown delimiters.
 
-The markdown produced by the wizard (and hand-written by users) is the shared
-contract between the wizard, the ``Markdown`` filter and Lambda Feedback. These
-checks catch structural mistakes - currently unbalanced/misplaced math
-delimiters - before the markdown is converted.
+The markdown that in2lambda converts - however it was produced - is a shared
+contract with Lambda Feedback. These checks catch structural mistakes in that
+markdown, currently unbalanced or misplaced math delimiters, before it is
+converted.
 """
 
 from in2lambda.validation.delimiters import MathDelimiterError, math_delimiter_checker
