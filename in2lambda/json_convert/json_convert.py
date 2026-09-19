@@ -20,20 +20,38 @@ MINIMAL_QUESTION_TEMPLATE = "minimal_template_question.json"
 MINIMAL_SET_TEMPLATE = "minimal_template_set.json"
 
 
-def _zip_sorted_folder(folder_path, zip_path):
-    """Zips the contents of a folder, preserving the directory structure.
+def _templates() -> tuple[dict[str, Any], dict[str, Any]]:
+    """Loads the minimal question and set templates that the writer fills in.
+
+    Returns:
+        The question template and the set template.
+    """
+    # Use path so minimal template can be found regardless of where the user is running python from.
+    with open(Path(__file__).with_name(MINIMAL_QUESTION_TEMPLATE), "r") as file:
+        question_template = json.load(file)
+
+    with open(Path(__file__).with_name(MINIMAL_SET_TEMPLATE), "r") as file:
+        set_template = json.load(file)
+
+    return question_template, set_template
+
+
+def _zip(files: list[Path], root: Path, zip_path: str) -> None:
+    """Zips the given files, keeping where they sit relative to a folder.
+
+    Only what this run wrote is listed, so whatever else the folder holds is neither
+    uploaded nor removed.
 
     Args:
-        folder_path: The path to the folder to zip.
+        files: The files to include, all inside root.
+        root: The folder the archive names are relative to.
         zip_path: The path where the zip file will be created.
     """
+    # Sort by archive name for deterministic, alphabetical order
+    names = sorted((str(file.relative_to(root)), file) for file in files)
     with zipfile.ZipFile(zip_path, "w") as zf:
-        for root, dirs, files in os.walk(folder_path):
-            # Sort files for deterministic, alphabetical order
-            for file in sorted(files):
-                abs_path = os.path.join(root, file)
-                rel_path = os.path.relpath(abs_path, folder_path)
-                zf.write(abs_path, arcname=rel_path)
+        for name, file in names:
+            zf.write(file, arcname=name)
 
 
 def _response_area_to_json(area: ResponseArea, order: int) -> dict[str, Any]:
@@ -156,13 +174,29 @@ def _part_to_json(
     return output
 
 
+def _question_title(question: Question, i: int) -> str:
+    return question.title if question.title != "" else f"Question {i + 1}"
+
+
+def _question_stem(i: int, title: str) -> str:
+    # Lambda Feedback names the file after the title with only spaces made
+    # underscores. Path separators go too, so a title cannot leave the set folder,
+    # and so do the characters Windows forbids in file names.
+    return (
+        "question_"
+        + str(i).zfill(3)
+        + "_"
+        + re.sub(r'[\s/\\<>:"|?*]', "_", title.strip())
+    )
+
+
 def _question_json(
     question: Question, i: int, template: dict[str, Any]
 ) -> dict[str, Any]:
     output = deepcopy(template)
 
     output["orderNumber"] = i  # order number starts at 0
-    output["title"] = question.title if question.title != "" else f"Question {i + 1}"
+    output["title"] = _question_title(question, i)
     output["masterContent"] = question.main_text
 
     output["publish"] = question.publish
@@ -188,6 +222,59 @@ def _question_json(
         ]
 
     return output
+
+
+def _write_question(
+    question: Question, i: int, template: dict[str, Any], folder: Path
+) -> list[Path]:
+    """Writes one question's JSON, and any images it uses, into an existing folder.
+
+    Args:
+        question: The question to write.
+        i: Its order number, which also prefixes the file name.
+        template: The loaded JSON from the minimal question template.
+        folder: The folder to write into.
+
+    Returns:
+        The files written.
+    """
+    output = _question_json(question, i, template)
+
+    json_file = folder / f"{_question_stem(i, output['title'])}.json"
+    with open(json_file, "w") as file:
+        json.dump(output, file)
+    written = [json_file]
+
+    for image in question.images:
+        # If images exist, create a media directory
+        media = folder / "media"
+        media.mkdir(exist_ok=True)
+        # The JSON refers to an image by its file name, so copying keeps that name.
+        written.append(Path(shutil.copy(os.path.abspath(image), media)))
+
+    return written
+
+
+def write_question(question: Question, output_dir: str, number: int = 0) -> None:
+    """Writes a single question as its own Lambda Feedback import.
+
+    The question gets a folder named after it, holding its JSON and its images under
+    ``media``, and a zip of that folder. There is no set file: this is what Lambda
+    Feedback takes when importing one question into a set that already exists.
+
+    Args:
+        question: The question to write.
+        output_dir: Where to put the question's folder and zip.
+        number: The question's order number, which also prefixes its file names.
+    """
+    question_template, _ = _templates()
+
+    folder = Path(output_dir) / _question_stem(
+        number, _question_title(question, number)
+    )
+    folder.mkdir(parents=True, exist_ok=True)
+    written = _write_question(question, number, question_template, folder)
+    _zip(written, folder, f"{folder}.zip")
 
 
 def converter(
@@ -225,42 +312,21 @@ def converter(
         SetQuestions._structuredTutorialVisibility.status
     )
     # create the set file
-    with open(f"{output_question}/set_{set_name}.json", "w") as file:
+    folder = Path(output_question)
+    set_file = folder / f"set_{set_name}.json"
+    with open(set_file, "w") as file:
         json.dump(set_template, file)
 
-    for i in range(len(ListQuestions)):
-        output = _question_json(ListQuestions[i], i, question_template)
-
-        # Lambda Feedback names the file after the title with only spaces made
-        # underscores. Path separators go too, so a title cannot leave the set folder,
-        # and so do the characters Windows forbids in file names.
-        filename = (
-            "question_"
-            + str(i).zfill(3)
-            + "_"
-            + re.sub(r'[\s/\\<>:"|?*]', "_", output["title"].strip())
-        )
-
-        # write questions into directory
-        with open(f"{output_question}/{filename}.json", "w") as file:
-            json.dump(output, file)
-
-        # write image into directory
-        for k in range(len(ListQuestions[i].images)):
-            image_path = os.path.abspath(
-                ListQuestions[i].images[k]
-            )  # converts computer path into python path
-            # If images exist, create a media directory
-            output_image = os.path.join(output_question, "media")
-            os.makedirs(output_image, exist_ok=True)
-            shutil.copy(image_path, output_image)  # copies image into the directory
+    written = [set_file]
+    for i, question in enumerate(ListQuestions):
+        written += _write_question(question, i, question_template, folder)
 
     # output zip file in destination folder
-    _zip_sorted_folder(output_question, output_question + ".zip")
+    _zip(written, folder, output_question + ".zip")
 
 
 def main(set_questions: Set, output_dir: str) -> None:
-    """Preliminary defensive programming before calling the main converter function.
+    """Loads the templates and calls the main converter function.
 
     This ultimately then produces the Lambda Feedback JSON/ZIP files.
 
@@ -268,19 +334,7 @@ def main(set_questions: Set, output_dir: str) -> None:
         set_questions: A Set object containing questions.
         output_dir: Where to output the final Lambda Feedback JSON/ZIP files.
     """
-    # Use path so minimal template can be found regardless of where the user is running python from.
-    with open(Path(__file__).with_name(MINIMAL_QUESTION_TEMPLATE), "r") as file:
-        question_template = json.load(file)
-
-    with open(Path(__file__).with_name(MINIMAL_SET_TEMPLATE), "r") as file:
-        set_template = json.load(file)
-
-    # check if directory exists in file
-    if os.path.isdir(output_dir):
-        try:
-            shutil.rmtree(output_dir)
-        except OSError as e:
-            print("Error: %s : %s" % (output_dir, e.strerror))
+    question_template, set_template = _templates()
     converter(question_template, set_template, set_questions, output_dir)
 
 

@@ -105,7 +105,8 @@ class Set:
     def to_json(self, output_dir: str) -> None:
         """Turns this set into Lambda Feedback JSON/ZIP files.
 
-        WARNING: This will overwrite any existing files in the directory.
+        Files of the same name are overwritten; nothing else in the directory is
+        touched, and only what was written goes into the zip.
 
         Args:
             output_dir: Where to output the final Lambda Feedback JSON/ZIP files.

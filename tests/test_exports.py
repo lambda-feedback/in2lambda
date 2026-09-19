@@ -10,6 +10,7 @@ written, and that the writer emits no key Lambda Feedback does not.
 import json
 import re
 import uuid
+import zipfile
 from dataclasses import replace
 from pathlib import Path
 
@@ -132,6 +133,70 @@ def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
         if keys:
             missing[file.name] = keys
     assert not missing, missing
+
+
+@each_export
+def test_question_exports_alone(export_dir: Path, tmp_path: Path) -> None:
+    """Each question writes on its own as the set writes it, with the images it uses."""
+    loaded = Set.from_json(str(export_dir))
+    from_set = _write_back(loaded, tmp_path)
+    exported_media = _relative_files(export_dir / "media")
+
+    for i, question in enumerate(loaded.questions):
+        question.to_json(str(tmp_path / "single"), number=i)
+
+        # The question writes under the name the set gives it, so the files the set
+        # wrote for the same number say what to expect.
+        (set_file,) = from_set.glob(f"question_{i:03}_*.json")
+        folder = tmp_path / "single" / set_file.stem
+        expected = sorted(
+            [set_file.name]
+            + [
+                f"media/{name}"
+                for name in exported_media
+                if name.startswith(f"{set_file.stem}_")
+            ]
+        )
+
+        assert _relative_files(folder) == expected
+        with zipfile.ZipFile(f"{folder}.zip") as zf:
+            assert sorted(zf.namelist()) == expected
+
+        written = (folder / set_file.name).read_text()
+        assert json.loads(written) == json.loads(set_file.read_text())
+
+        # Every image the JSON points at must be beside it, or it will not resolve
+        # once the question is imported.
+        references = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", written)
+        assert all(
+            (folder / "media" / reference).is_file() for reference in references
+        ), references
+
+
+def test_writing_leaves_other_files(tmp_path: Path) -> None:
+    """Writing over an export keeps files it did not write and leaves them out of the zip."""
+    image = tmp_path / "diagram.png"
+    image.write_bytes(b"not really a png")
+    question_set = Set(questions=[Question(title="Q", images=[str(image)])])
+
+    written = _write_back(question_set, tmp_path)
+    strays = [
+        tmp_path / "out" / "notes.txt",
+        written / "notes.txt",
+        written / "media" / "notes.txt",
+    ]
+    for stray in strays:
+        stray.write_text("someone else's work")
+
+    _write_back(question_set, tmp_path)
+
+    assert [stray.read_text() for stray in strays] == ["someone else's work"] * 3
+    with zipfile.ZipFile(f"{written}.zip") as zf:
+        assert sorted(zf.namelist()) == [
+            "media/diagram.png",
+            "question_000_Q.json",
+            "set_set.json",
+        ]
 
 
 def _area_shape(area: dict) -> frozenset[str]:
