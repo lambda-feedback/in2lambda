@@ -136,6 +136,42 @@ class Set:
 
         json_convert.main(self, output_dir)
 
+    @classmethod
+    def from_json(cls, path: str) -> "Set":
+        """Loads a Lambda Feedback export, as a folder or a zip, into a Set.
+
+        Only what the Set holds is read: the name, description, visibilities, and each
+        question's title, main text, parts, worked solutions and images. A zip is
+        extracted to a temporary directory that is not removed afterwards, because the
+        loaded images point into it.
+
+        Args:
+            path: The exported set's folder or zip.
+
+        Returns:
+            The loaded set.
+
+        Raises:
+            ValueError: If the export does not hold exactly one ``set_*.json``.
+
+        Examples:
+            >>> import tempfile
+            >>> s = Set()
+            >>> s.add_question("Question 1")
+            >>> s.add_question("Question 2")
+            >>> with tempfile.TemporaryDirectory() as temp_dir:
+            ...     s.to_json(temp_dir)
+            ...     from_folder = Set.from_json(f"{temp_dir}/set")
+            ...     from_zip = Set.from_json(f"{temp_dir}/set.zip")
+            >>> [question.title for question in from_folder.questions]
+            ['Question 1', 'Question 2']
+            >>> [question.title for question in from_zip.questions]
+            ['Question 1', 'Question 2']
+        """
+        from in2lambda.json_convert import json_convert
+
+        return json_convert.load(path)
+
     def set_name(self, name: str) -> None:
         """Sets the name of the set.
 

@@ -8,7 +8,6 @@
 
 import importlib
 import importlib.util
-import pkgutil
 import shutil
 import subprocess
 from typing import Optional
@@ -191,14 +190,7 @@ def runner(
 # Python files in the subjects directory
 @click.argument(
     "chosen_filter",
-    type=click.Choice(
-        [
-            i.name
-            for i in pkgutil.iter_modules(in2lambda.filters.__path__)
-            if i.name != "markdown"
-        ],
-        case_sensitive=False,
-    ),
+    type=click.Choice(in2lambda.filters.builtin_filters(), case_sensitive=False),
 )
 @click.option(
     "--out",
