@@ -12,6 +12,7 @@ from typing import Any
 
 from in2lambda.api.part import Part
 from in2lambda.api.question import Question
+from in2lambda.api.response_area import Case, InputSymbol, ResponseArea, Test
 from in2lambda.api.set import Set
 from in2lambda.api.visibility_status import VisibilityController, VisibilityStatus
 
@@ -33,6 +34,160 @@ def _zip_sorted_folder(folder_path, zip_path):
                 abs_path = os.path.join(root, file)
                 rel_path = os.path.relpath(abs_path, folder_path)
                 zf.write(abs_path, arcname=rel_path)
+
+
+def _response_area_to_json(area: ResponseArea, order: int) -> dict[str, Any]:
+    return {
+        "orderNumber": order,
+        "contentAfter": area.content_after,
+        "preResponseText": area.pre_text,
+        "postResponseText": area.post_text,
+        "inputSymbols": [
+            {
+                "symbol": symbol.symbol,
+                "code": symbol.code,
+                "aliases": symbol.aliases,
+                "isVisible": symbol.is_visible,
+            }
+            for symbol in area.input_symbols
+        ],
+        "displayInputSymbols": area.display_input_symbols,
+        "includeInPdf": area.include_in_pdf,
+        "saveAllowed": area.save_allowed,
+        "evaluationFunctionName": area.evaluation_function,
+        "livePreview": area.live_preview,
+        "gradeParams": area.grade_params,
+        "separateFeedback": area.separate_feedback,
+        "commonFeedbackColor": area.common_feedback_color,
+        "correctFeedbackColor": area.correct_feedback_color,
+        "correctFeedbackPrefix": area.correct_feedback_prefix,
+        "incorrectFeedbackColor": area.incorrect_feedback_color,
+        "incorrectFeedbackPrefix": area.incorrect_feedback_prefix,
+        "tests": [
+            {
+                "id": test.id,
+                "payload": test.payload,
+                "expectedResponse": {"isCorrect": test.is_correct},
+            }
+            for test in area.tests
+        ],
+        "cases": [
+            {
+                "id": case.id,
+                "answer": case.answer,
+                "feedback": case.feedback,
+                "isCorrect": case.is_correct,
+                "params": case.params,
+            }
+            for case in area.cases
+        ],
+        "response": {
+            "responseInput": {
+                "responseType": area.response_type,
+                "answer": area.answer,
+                "config": area.config,
+            }
+        },
+    }
+
+
+def _response_area_from_json(area: dict[str, Any]) -> ResponseArea:
+    response = area["response"]["responseInput"]
+    return ResponseArea(
+        response_type=response["responseType"],
+        answer=response["answer"],
+        config=response["config"],
+        evaluation_function=area["evaluationFunctionName"],
+        grade_params=area["gradeParams"],
+        pre_text=area["preResponseText"],
+        post_text=area["postResponseText"],
+        content_after=area["contentAfter"],
+        input_symbols=[
+            InputSymbol(
+                symbol=symbol["symbol"],
+                code=symbol["code"],
+                aliases=symbol["aliases"],
+                is_visible=symbol["isVisible"],
+            )
+            for symbol in area["inputSymbols"]
+        ],
+        display_input_symbols=area["displayInputSymbols"],
+        live_preview=area["livePreview"],
+        include_in_pdf=area["includeInPdf"],
+        save_allowed=area["saveAllowed"],
+        separate_feedback=area["separateFeedback"],
+        common_feedback_color=area["commonFeedbackColor"],
+        correct_feedback_color=area["correctFeedbackColor"],
+        correct_feedback_prefix=area["correctFeedbackPrefix"],
+        incorrect_feedback_color=area["incorrectFeedbackColor"],
+        incorrect_feedback_prefix=area["incorrectFeedbackPrefix"],
+        tests=[
+            Test(
+                payload=test["payload"],
+                is_correct=test["expectedResponse"]["isCorrect"],
+                id=test["id"],
+            )
+            for test in area["tests"]
+        ],
+        cases=[
+            Case(
+                answer=case["answer"],
+                feedback=case["feedback"],
+                is_correct=case["isCorrect"],
+                params=case["params"],
+                id=case["id"],
+            )
+            for case in area["cases"]
+        ],
+    )
+
+
+def _part_to_json(
+    part: Part, template_part: dict[str, Any], order: int
+) -> dict[str, Any]:
+    output = deepcopy(template_part)
+    output["orderNumber"] = order
+    output["content"] = part.text
+    output["answerContent"] = part.answer
+    output["responseAreas"] = [
+        _response_area_to_json(area, j) for j, area in enumerate(part.response_areas)
+    ]
+    output["workedSolution"]["content"] = part.worked_solution
+    return output
+
+
+def _question_json(
+    question: Question, i: int, template: dict[str, Any]
+) -> dict[str, Any]:
+    output = deepcopy(template)
+
+    output["orderNumber"] = i  # order number starts at 0
+    output["title"] = question.title if question.title != "" else f"Question {i + 1}"
+    output["masterContent"] = question.main_text
+
+    output["publish"] = question.publish
+    output["displayFinalAnswer"] = question.display_final_answer
+    output["displayWorkedSolution"] = question.display_worked_solution
+    output["displayStructuredTutorial"] = question.display_structured_tutorial
+    output["displayChatbot"] = question.display_chatbot
+    # Unset optional settings are omitted rather than given a value Lambda Feedback
+    # never chose.
+    for key, value in {
+        "skill": question.skill,
+        "guidance": question.guidance,
+        "durationLowerBound": question.duration_lower_bound,
+        "durationUpperBound": question.duration_upper_bound,
+    }.items():
+        if value is not None:
+            output[key] = value
+
+    if question.parts:
+        output["parts"] = [
+            _part_to_json(part, template["parts"][0], j)
+            for j, part in enumerate(question.parts)
+        ]
+
+    return output
 
 
 def converter(
@@ -74,31 +229,7 @@ def converter(
         json.dump(set_template, file)
 
     for i in range(len(ListQuestions)):
-        output = deepcopy(question_template)
-
-        output["orderNumber"] = i  # order number starts at 0
-        # add title to the question file
-        if ListQuestions[i].title != "":
-            output["title"] = ListQuestions[i].title
-        else:
-            output["title"] = "Question " + str(i + 1)
-
-        # add main text to the question file
-        output["masterContent"] = ListQuestions[i].main_text
-
-        # add parts to the question file
-        if ListQuestions[i].parts:
-            output["parts"][0]["content"] = ListQuestions[i].parts[0].text
-            output["parts"][0]["workedSolution"]["content"] = (
-                ListQuestions[i].parts[0].worked_solution
-            )
-            for j in range(1, len(ListQuestions[i].parts)):
-                output["parts"].append(deepcopy(question_template["parts"][0]))
-                output["parts"][j]["content"] = ListQuestions[i].parts[j].text
-                output["parts"][j]["orderNumber"] = j
-                output["parts"][j]["workedSolution"]["content"] = (
-                    ListQuestions[i].parts[j].worked_solution
-                )
+        output = _question_json(ListQuestions[i], i, question_template)
 
         # Lambda Feedback names the file after the title with only spaces made
         # underscores. Path separators go too, so a title cannot leave the set folder,
@@ -156,6 +287,9 @@ def main(set_questions: Set, output_dir: str) -> None:
 def load(path: str) -> Set:
     """Reads a Lambda Feedback export into a Set, keeping only what the model holds.
 
+    That is the set's name, description and visibilities, and each question's title,
+    main text, parts, worked solutions, images and settings.
+
     A zip is extracted to a new temporary directory, which is left for the operating
     system to clear: the loaded images point into it and must still exist when the
     set is written out.
@@ -212,6 +346,15 @@ def load(path: str) -> Set:
                     if "workedSolution" in part
                     else ""
                 ),
+                answer=part["answerContent"],
+                # Exports do not always list areas in order; an area's contentAfter
+                # leads into the one numbered after it.
+                response_areas=[
+                    _response_area_from_json(area)
+                    for area in sorted(
+                        part["responseAreas"], key=lambda area: area["orderNumber"]
+                    )
+                ],
             )
             for part in question_json["parts"]
         ]
@@ -229,6 +372,15 @@ def load(path: str) -> Set:
                 # add_part_text/add_solution calls must add parts after them rather
                 # than overwrite the first.
                 _last_part={"solution": len(parts), "text": len(parts)},
+                skill=question_json.get("skill"),
+                guidance=question_json.get("guidance"),
+                duration_lower_bound=question_json.get("durationLowerBound"),
+                duration_upper_bound=question_json.get("durationUpperBound"),
+                publish=question_json["publish"],
+                display_final_answer=question_json["displayFinalAnswer"],
+                display_worked_solution=question_json["displayWorkedSolution"],
+                display_structured_tutorial=question_json["displayStructuredTutorial"],
+                display_chatbot=question_json["displayChatbot"],
             )
         )
     return question_set
