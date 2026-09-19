@@ -23,6 +23,11 @@ holding {class}`~in2lambda.api.part.Part` objects, each holding the
 ...         ResponseArea(
 ...             response_type="MATH_SINGLE_LINE",
 ...             answer="(pi/6)*rho*U**2*R**2",
+...             config={
+...                 "allowPhoto": True,
+...                 "allowHandwrite": True,
+...                 "enableRefinement": True,
+...             },
 ...             evaluation_function="symbolicEqual",
 ...             grade_params={"strict_syntax": False},
 ...             pre_text="$D=$",
@@ -95,8 +100,8 @@ A few things the example shows in passing:
 - **Unset question settings are left out of the JSON** rather than guessed at, so `skill`,
   `guidance` and the two durations only appear when set. `publish` and the four `display_*`
   settings always do, defaulting to `True`.
-- **Images** go in `Question.images` as paths on disk; they are copied into `media/` and referred
-  to from the markdown by basename.
+- **Images** go in `Question.images` as paths on disk; they are copied into `media/` keeping the
+  file name they already had, and referred to from the markdown by that name.
 - **{meth}`Set.from_json <in2lambda.api.set.Set.from_json>`** reads an existing export, as a folder
   or a zip, so an edit to a real set can start from what Lambda Feedback produced.
 
@@ -106,12 +111,14 @@ A few things the example shows in passing:
 <set name>/set_<Name>.json
 <set name>/question_000_<Title>.json          # 000 is the question's orderNumber
 <set name>/question_001_...
-<set name>/media/question_000_<Title>_0001.png
+<set name>/media/rocket-momentum.png              # one per Question.images path
 <set name>.zip                                 # the folder, zipped, to upload
 ```
 
 A question's filename is its title with spaces and the characters Windows and path separators
-forbid (`/ \ < > : " | ?  *`) each replaced by an underscore. Files are written on a single line.
+forbid (`/ \ < > : " | ?  *`) each replaced by an underscore. An image keeps the file name it
+already had, so `images=["figures/rocket-momentum.png"]` gives `media/rocket-momentum.png`.
+Files are written on a single line.
 
 ### Set
 
@@ -182,7 +189,7 @@ The three types in2lambda writes:
 
 | `responseType` | `evaluationFunctionName` | `answer` | `config` and `gradeParams` |
 |---|---|---|---|
-| `MATH_SINGLE_LINE` | `symbolicEqual` | an expression, e.g. `(pi/6)*rho*U**2*R**2` | `gradeParams` `{"strict_syntax": false}`; `config` holds `allowPhoto`, `allowHandwrite` and `enableRefinement`, or is null |
+| `MATH_SINGLE_LINE` | `symbolicEqual` | an expression, e.g. `(pi/6)*rho*U**2*R**2` | `gradeParams` `{"strict_syntax": false}`; `config` holds `allowPhoto`, `allowHandwrite` and `enableRefinement` |
 | `NUMERIC_UNITS` | `comparePhysicalQuantities` | a number and a unit, e.g. `0.106 kg` | `gradeParams` holds `rtol` (and `strict_syntax`); `config` is null |
 | `MULTIPLE_CHOICE` | `arrayEqual` | a list of booleans, one per option | `config` holds `single`, `options` and `randomise`; `gradeParams` is null |
 
@@ -204,8 +211,10 @@ An `id` left unset is a fresh UUID, which is what import needs.
 
 Maths is `$...$` inline and `$$` on its own lines for display, rendered by
 [KaTeX](https://katex.org/): commands KaTeX lacks do not display — degrees, for example, are
-written `^\circ`. Images are written `![pictureTag](question_000_Title_0001.png){ width=60% }`,
-naming the file in `media/`.
+written `^\circ`. An image is written `![pictureTag](rocket-momentum.png)`, naming the file as it
+sits in `media/`. A filter instead passes through whatever path the source document used, so
+`\includegraphics{figures/rocket-momentum.png}` becomes `![pictureTag](figures/rocket-momentum.png)`
+beside `media/rocket-momentum.png`.
 
 :::{note}
 Lambda Feedback's own exports carry a few keys in2lambda neither reads nor writes, among them
