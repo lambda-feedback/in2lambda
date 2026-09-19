@@ -150,6 +150,11 @@ def runner(
             parsing_answers=True,
         )
 
+    # Report before writing anything: the problems are the set's whether or not it is
+    # written out, and an author reading the command line should see them first.
+    for problem in set_obj.problems():
+        click.echo(f"Warning: {problem}")
+
     # Read the Python API format and convert to JSON.
     if output_dir is not None:
         set_obj.to_json(output_dir)

@@ -1,0 +1,14 @@
+{
+  "orderNumber": 0,
+  "title": "Magnitude",
+  "masterContent": "",
+  "parts": [
+    {
+      "orderNumber": 0,
+      "content": "Find the magnitude $\\norm{v}$ of the velocity.",
+      "answerContent": "",
+      "workedSolution": {"content": "", "children": []},
+      "responseAreas": []
+    }
+  ]
+}

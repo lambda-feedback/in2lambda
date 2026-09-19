@@ -1,0 +1,14 @@
+{
+  "orderNumber": 0,
+  "title": "Launch angle",
+  "masterContent": "",
+  "parts": [
+    {
+      "orderNumber": 0,
+      "content": "At what angle is the rocket launched?",
+      "answerContent": "The rocket is launched at $45^{\\circ}$ to the horizontal.",
+      "workedSolution": {"content": "", "children": []},
+      "responseAreas": []
+    }
+  ]
+}

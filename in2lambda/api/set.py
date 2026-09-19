@@ -5,6 +5,7 @@ from typing import Union
 
 import panflute as pf
 
+from in2lambda.api.problem import Problem
 from in2lambda.api.question import Question
 from in2lambda.api.visibility_status import VisibilityController, VisibilityStatus
 
@@ -106,6 +107,30 @@ class Set:
  Question(title='Question 2', parts=[Part(text='', worked_solution='Question 2 answer', answer='', response_areas=[])], images=[], main_text='')]
         """
         self._current_question_index += 1
+
+    def problems(self) -> list[Problem]:
+        r"""Everything in2lambda can tell Lambda Feedback would refuse or render wrongly.
+
+        This is a report, not a refusal: the set can still be written out, since a
+        problem found here may well be deliberate.
+
+        Returns:
+            One :class:`~in2lambda.api.problem.Problem` per problem found, each naming
+            the question, part and field to go and look at.
+
+        Examples:
+            >>> from in2lambda.api.set import Set
+            >>> s = Set()
+            >>> s.add_question("Momentum", "The rocket is at $45^\\circ$.")
+            >>> s.current_question.images.append("no_such_file.png")
+            >>> for problem in s.problems():
+            ...     print(problem)
+            Question 1 "Momentum", main text: ^\circ does not display; write the degree sign ° instead
+            Question 1 "Momentum": there is no image file at no_such_file.png
+        """
+        from in2lambda.validation import validate
+
+        return validate(self)
 
     def to_json(self, output_dir: str) -> None:
         """Turns this set into Lambda Feedback JSON/ZIP files.

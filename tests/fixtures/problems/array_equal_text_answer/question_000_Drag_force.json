@@ -1,0 +1,43 @@
+{
+  "orderNumber": 0,
+  "title": "Drag force",
+  "masterContent": "",
+  "parts": [
+    {
+      "orderNumber": 0,
+      "content": "Write down the drag force.",
+      "answerContent": "",
+      "workedSolution": {"content": "", "children": []},
+      "responseAreas": [
+        {
+          "orderNumber": 0,
+          "preResponseText": "",
+          "postResponseText": "",
+          "contentAfter": "",
+          "inputSymbols": [],
+          "displayInputSymbols": false,
+          "evaluationFunctionName": "arrayEqual",
+          "gradeParams": null,
+          "livePreview": false,
+          "includeInPdf": false,
+          "saveAllowed": false,
+          "separateFeedback": true,
+          "commonFeedbackColor": "#C4CDD5",
+          "correctFeedbackColor": "#22C55E",
+          "correctFeedbackPrefix": "Correct",
+          "incorrectFeedbackColor": "#ff5630",
+          "incorrectFeedbackPrefix": "Incorrect",
+          "tests": [],
+          "cases": [],
+          "response": {
+            "responseInput": {
+              "responseType": "MATH_SINGLE_LINE",
+              "answer": "(pi/6)*(rho)*(U**2)*(R**2)",
+              "config": null
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

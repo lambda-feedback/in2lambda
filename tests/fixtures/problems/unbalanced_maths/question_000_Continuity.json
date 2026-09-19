@@ -1,0 +1,17 @@
+{
+  "orderNumber": 0,
+  "title": "Continuity",
+  "masterContent": "",
+  "parts": [
+    {
+      "orderNumber": 0,
+      "content": "Show that mass is conserved.",
+      "answerContent": "",
+      "workedSolution": {
+        "content": "Mass in equals mass out, so $\\rho A U = constant.",
+        "children": []
+      },
+      "responseAreas": []
+    }
+  ]
+}

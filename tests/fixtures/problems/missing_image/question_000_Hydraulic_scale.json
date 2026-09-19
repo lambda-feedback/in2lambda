@@ -1,0 +1,14 @@
+{
+  "orderNumber": 0,
+  "title": "Hydraulic scale",
+  "masterContent": "The scale is shown below.\n\n![pictureTag](question_000_Hydraulic_scale_0001.png){ width=60% }",
+  "parts": [
+    {
+      "orderNumber": 0,
+      "content": "How heavy is the load?",
+      "answerContent": "",
+      "workedSolution": {"content": "", "children": []},
+      "responseAreas": []
+    }
+  ]
+}
