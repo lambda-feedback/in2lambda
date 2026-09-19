@@ -31,14 +31,16 @@ The container is stopped and deleted after exiting, although the image remains d
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/in2lambda?style=flat-square&logo=python&logoColor=white)](https://pypi.org/project/in2lambda/)
 
 
-:::{important}
-Ensure that [pandoc](https://pandoc.org/installing.html) is already installed.
-:::
-
-in2lambda can be installed via [pip](https://pip.pypa.io/en/stable/):
+in2lambda can be installed via [pip](https://pip.pypa.io/en/stable/). To author questions in Python:
 
 ```shell
 $ pip install in2lambda
+```
+
+To convert documents, install the `convert` extra and [pandoc](https://pandoc.org/installing.html):
+
+```shell
+$ pip install 'in2lambda[convert]'
 $ in2lambda --help
 ```
 
@@ -80,5 +82,7 @@ Check the [command line tool reference](reference/command-line) for more informa
 Click on a set in teacher mode. The arrow next to the "Add Question" button allows you to import a question from a file.
 
 Choose the zip file you wish to upload, and the question should appear! 🎉
+
+Imported questions arrive published with every display setting on, and the set's own visibility settings still apply. The Python API can set each of these per question.
 
 ![Importing Question from file in Teacher Mode](_static/images/import-teacher.png)

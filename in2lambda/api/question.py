@@ -1,11 +1,23 @@
 """A full question with optional parts that's contained in a set."""
 
 from dataclasses import dataclass, field
-from typing import Union
-
-import panflute as pf
+from typing import Any, Optional, Union
 
 from in2lambda.api.part import Part
+
+
+def _as_text(value: Any, newlines: bool = True) -> str:
+    # panflute is an optional extra, so it is only imported for a caller who
+    # passed something other than a string, which should be a panflute element.
+    if isinstance(value, str):
+        return value
+    try:
+        import panflute as pf
+    except ImportError:
+        pf = None
+    if pf is None or not isinstance(value, pf.Element):
+        raise TypeError("expected a string or a panflute element")
+    return pf.stringify(value, newlines)
 
 
 @dataclass
@@ -14,10 +26,17 @@ class Question:
 
     Each question has a title and is composed of a list of parts.
 
+    It also carries the settings Lambda Feedback keeps per question: its skill level,
+    guidance for students, expected duration in minutes, whether it is published, and
+    whether students may see the final answer, worked solution, structured tutorial
+    and chatbot. Unset skill, guidance and durations are left out of the JSON.
+
     Examples:
         >>> from in2lambda.api.question import Question
         >>> Question(title="Some title", main_text="Some text")
         Question(title='Some title', parts=[], images=[], main_text='Some text')
+        >>> Question(title="Some title", publish=False).publish
+        False
     """
 
     title: str = ""
@@ -35,6 +54,20 @@ class Question:
     )
     """Keeps track of the last question part that contains a solution /
     text."""
+
+    # Settings are left out of the repr so that printing a question still shows its
+    # content rather than nine lines of configuration.
+    # An int too: Lambda Feedback's export is written by JavaScript, which writes the
+    # lowest and highest skill levels as 0 and 1.
+    skill: Optional[Union[int, float]] = field(default=None, repr=False)
+    guidance: Optional[str] = field(default=None, repr=False)
+    duration_lower_bound: Optional[int] = field(default=None, repr=False)
+    duration_upper_bound: Optional[int] = field(default=None, repr=False)
+    publish: bool = field(default=True, repr=False)
+    display_final_answer: bool = field(default=True, repr=False)
+    display_worked_solution: bool = field(default=True, repr=False)
+    display_structured_tutorial: bool = field(default=True, repr=False)
+    display_chatbot: bool = field(default=True, repr=False)
 
     @property
     def main_text(self) -> str:
@@ -54,34 +87,32 @@ class Question:
         return self._main_text
 
     @main_text.setter
-    def main_text(self, value: Union[pf.Element, str, property]) -> None:
+    def main_text(self, value: Any) -> None:
         r"""Appends to the top-level main text, which starts off as an empty string.
 
         Args:
-            value: A panflute element or string denoting what to append to the main text.
+            value: A string, or a panflute element, denoting what to append to the main text.
 
         See example in main_text property.
         """
         # Converts the inputted value into a string, stored in text_value
         match value:
-            case str():
-                text_value = value
             case property():
                 # Use default value when no value set at initialisation.
                 # See https://stackoverflow.com/a/61480946
                 text_value = self.main_text
-            case pf.Element():
-                text_value = pf.stringify(value, False)
+            case _:
+                text_value = _as_text(value, newlines=False)
 
         if self._main_text:
             self._main_text += "\n"
         self._main_text += text_value
 
-    def add_solution(self, elem: Union[pf.Element, str]) -> None:
+    def add_solution(self, elem: Any) -> None:
         """Adds a worked solution to all question parts without one, or inserts a new empty part with the solution if all parts already have a solution.
 
         Args:
-            elem: A string or panflute element denoting a worked solution.
+            elem: A string, or a panflute element, denoting a worked solution.
 
         Examples:
             >>> from in2lambda.api.question import Question
@@ -104,7 +135,7 @@ Part(text='part c', worked_solution='Solution for b', answer='', response_areas=
 Part(text='part b', worked_solution='Solution for b', answer='', response_areas=[]), \
 Part(text='part c', worked_solution='We now have a solution for c!', answer='', response_areas=[])], images=[], main_text='')
         """
-        elem_text = elem if isinstance(elem, str) else pf.stringify(elem)
+        elem_text = _as_text(elem)
 
         # If all parts have a distinct solution, add an empty part with the solution
         # This is useful if the solutions arrive before the part text in the filter.
@@ -119,11 +150,11 @@ Part(text='part c', worked_solution='We now have a solution for c!', answer='', 
 
         self._last_part["solution"] += 1
 
-    def add_part_text(self, elem: Union[pf.Element, str]) -> None:
+    def add_part_text(self, elem: Any) -> None:
         """Either adds a new part with the given text or modifies the first part with no text.
 
         Args:
-            elem: A string or panflute element denoting what the part text should be.
+            elem: A string, or a panflute element, denoting what the part text should be.
 
         Examples:
             >>> from in2lambda.api.question import Question
@@ -139,7 +170,7 @@ Part(text='part c', worked_solution='We now have a solution for c!', answer='', 
             Question(title='', parts=[Part(text='part a', worked_solution='part a solution', answer='', response_areas=[]), \
 Part(text='part b', worked_solution='part b solution', answer='', response_areas=[])], images=[], main_text='')
         """
-        elem_text = elem if isinstance(elem, str) else pf.stringify(elem)
+        elem_text = _as_text(elem)
 
         if len(self.parts) == self._last_part["text"]:
             self.parts.append(Part(text=elem_text))

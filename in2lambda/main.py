@@ -7,14 +7,31 @@
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import importlib
+import importlib.util
+import shutil
 import subprocess
 from typing import Optional
 
-import panflute as pf
 import rich_click as click
 
 import in2lambda.filters
 from in2lambda.api.set import Set
+
+
+class ConversionToolsMissing(RuntimeError):
+    """Document conversion was asked for without pandoc or panflute installed."""
+
+
+def _require_conversion_tools() -> None:
+    missing = []
+    if shutil.which("pandoc") is None:
+        missing.append("pandoc (see https://pandoc.org/installing.html)")
+    if importlib.util.find_spec("panflute") is None:
+        missing.append("panflute (pip install 'in2lambda[convert]')")
+    if missing:
+        raise ConversionToolsMissing(
+            f"Converting documents needs {' and '.join(missing)}."
+        )
 
 
 def docx_to_md(docx_file: str) -> str:
@@ -94,6 +111,9 @@ def runner(
         in a Python-readable format. If `output_dir` is specified, the corresponding json/zip files are
         produced.
 
+    Raises:
+        ConversionToolsMissing: pandoc or panflute is not installed.
+
     Examples:
         >>> import os
         >>> from in2lambda.main import runner
@@ -103,6 +123,9 @@ def runner(
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
         Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', questions=[Question(title='', parts=[Part(text=..., worked_solution='', answer='', response_areas=[]), ...], images=[], main_text='Here is some preliminary question information that might be useful.'), ...])
     """
+    _require_conversion_tools()
+    import panflute as pf
+
     # The list of questions for Lambda Feedback as a Python API.
     set_obj = Set()
 
@@ -196,7 +219,11 @@ def cli(
 ) -> None:
     """Takes in a QUESTION_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
     # main() is made separate from click() so that it can be easily imported as part of a library.
-    runner(question_file, chosen_filter, output_dir, answer_file)
+    try:
+        runner(question_file, chosen_filter, output_dir, answer_file)
+    except ConversionToolsMissing as error:
+        # Exit with the install instructions rather than a traceback.
+        raise click.ClickException(str(error)) from None
 
 
 if __name__ == "__main__":

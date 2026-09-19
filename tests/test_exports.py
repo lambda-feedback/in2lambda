@@ -10,6 +10,7 @@ written, and that the writer emits no key Lambda Feedback does not.
 import json
 import re
 import uuid
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -39,7 +40,8 @@ def _relative_files(directory: Path) -> list[str]:
 
 def _modelled(question_set: Set) -> dict:
     # Visibility controllers have no equality, and image paths differ by where the
-    # set was read from, so compare their values and file names.
+    # set was read from, so compare their values and file names. Questions are
+    # compared whole, so a field added to Question is compared without editing this.
     return {
         "name": question_set._name,
         "description": question_set._description,
@@ -49,7 +51,7 @@ def _modelled(question_set: Set) -> dict:
             str(question_set._structuredTutorialVisibility),
         ],
         "questions": [
-            (q.title, q.main_text, q.parts, [Path(image).name for image in q.images])
+            replace(q, images=[Path(image).name for image in q.images])
             for q in question_set.questions
         ],
     }
@@ -201,6 +203,82 @@ def test_response_areas_built_in_python_write_as_exported(tmp_path: Path) -> Non
     }
     for area in written_areas:
         assert _area_shape(area) in exported_shapes, area["response"]
+
+
+def test_question_settings_are_written(tmp_path: Path) -> None:
+    """A question's settings reach its JSON, are left out when unset, and reload."""
+    question_set = Set(_name="Settings")
+    question_set.questions = [
+        Question(
+            title="Configured",
+            # A whole number, as an export holds the highest skill level; the
+            # fixture's questions cover fractional ones.
+            skill=1,
+            guidance="Try part a first.",
+            duration_lower_bound=5,
+            duration_upper_bound=10,
+            publish=False,
+            display_final_answer=False,
+            display_worked_solution=False,
+            display_structured_tutorial=False,
+            display_chatbot=False,
+        ),
+        Question(title="Default"),
+    ]
+    written = _write_back(question_set, tmp_path)
+
+    configured = json.loads((written / "question_000_Configured.json").read_text())
+    assert {
+        key: configured[key]
+        for key in [
+            "skill",
+            "guidance",
+            "durationLowerBound",
+            "durationUpperBound",
+            "publish",
+            "displayFinalAnswer",
+            "displayWorkedSolution",
+            "displayStructuredTutorial",
+            "displayChatbot",
+        ]
+    } == {
+        "skill": 1,
+        "guidance": "Try part a first.",
+        "durationLowerBound": 5,
+        "durationUpperBound": 10,
+        "publish": False,
+        "displayFinalAnswer": False,
+        "displayWorkedSolution": False,
+        "displayStructuredTutorial": False,
+        "displayChatbot": False,
+    }
+
+    default = json.loads((written / "question_001_Default.json").read_text())
+    assert default["publish"] is True
+    assert default["displayChatbot"] is True
+    assert not {"skill", "guidance", "durationLowerBound", "durationUpperBound"} & set(
+        default
+    )
+
+    # Only the settings are compared: a question written without parts reloads with
+    # the template's placeholder part.
+    def settings(question: Question) -> list:
+        return [
+            question.skill,
+            question.guidance,
+            question.duration_lower_bound,
+            question.duration_upper_bound,
+            question.publish,
+            question.display_final_answer,
+            question.display_worked_solution,
+            question.display_structured_tutorial,
+            question.display_chatbot,
+        ]
+
+    reloaded = Set.from_json(str(written)).questions
+    assert [settings(q) for q in reloaded] == [
+        settings(q) for q in question_set.questions
+    ]
 
 
 def test_from_json_rejects_folder_without_set(tmp_path: Path) -> None:
