@@ -79,4 +79,6 @@ Click on a set in teacher mode. The arrow next to the "Add Question" button allo
 
 Choose the zip file you wish to upload, and the question should appear! 🎉
 
+Imported questions arrive published with every display setting on, and the set's own visibility settings still apply. The Python API can set each of these per question.
+
 ![Importing Question from file in Teacher Mode](_static/images/import-teacher.png)

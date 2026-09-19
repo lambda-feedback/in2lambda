@@ -102,8 +102,8 @@ class Set:
             >>> s.increment_current_question()
             >>> s.current_question.add_solution("Question 2 answer")
             >>> s.questions
-            [Question(title='Question 1', parts=[Part(text='', worked_solution='Question 1 answer')], images=[], main_text=''),\
- Question(title='Question 2', parts=[Part(text='', worked_solution='Question 2 answer')], images=[], main_text='')]
+            [Question(title='Question 1', parts=[Part(text='', worked_solution='Question 1 answer', answer='', response_areas=[])], images=[], main_text=''),\
+ Question(title='Question 2', parts=[Part(text='', worked_solution='Question 2 answer', answer='', response_areas=[])], images=[], main_text='')]
         """
         self._current_question_index += 1
 
@@ -146,9 +146,9 @@ class Set:
         """Loads a Lambda Feedback export, as a folder or a zip, into a Set.
 
         Only what the Set holds is read: the name, description, visibilities, and each
-        question's title, main text, parts, worked solutions and images. A zip is
-        extracted to a temporary directory that is not removed afterwards, because the
-        loaded images point into it.
+        question's title, main text, parts, worked solutions, images and settings. A
+        zip is extracted to a temporary directory that is not removed afterwards,
+        because the loaded images point into it.
 
         Args:
             path: The exported set's folder or zip.

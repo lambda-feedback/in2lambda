@@ -9,11 +9,16 @@ written, and that the writer emits no key Lambda Feedback does not.
 
 import json
 import re
+import uuid
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from conftest import EXPORTS
 
+from in2lambda.api.part import Part
+from in2lambda.api.question import Question
+from in2lambda.api.response_area import Case, InputSymbol, ResponseArea, Test
 from in2lambda.api.set import Set
 
 each_export = pytest.mark.parametrize("export_dir", EXPORTS, ids=lambda path: path.name)
@@ -35,7 +40,8 @@ def _relative_files(directory: Path) -> list[str]:
 
 def _modelled(question_set: Set) -> dict:
     # Visibility controllers have no equality, and image paths differ by where the
-    # set was read from, so compare their values and file names.
+    # set was read from, so compare their values and file names. Questions are
+    # compared whole, so a field added to Question is compared without editing this.
     return {
         "name": question_set._name,
         "description": question_set._description,
@@ -45,7 +51,7 @@ def _modelled(question_set: Set) -> dict:
             str(question_set._structuredTutorialVisibility),
         ],
         "questions": [
-            (q.title, q.main_text, q.parts, [Path(image).name for image in q.images])
+            replace(q, images=[Path(image).name for image in q.images])
             for q in question_set.questions
         ],
     }
@@ -65,6 +71,10 @@ def _key_paths(value, path: str = "") -> set[str]:
 
 
 def _unexported_keys(written: dict, exported: dict) -> list[str]:
+    # An export may list a part's areas out of order; the writer puts them in order,
+    # so compare each written area with the exported one of the same number.
+    for part in exported.get("parts", []):
+        part["responseAreas"].sort(key=lambda area: area["orderNumber"])
     missing = _key_paths(written) - _key_paths(exported)
     # Lambda Feedback leaves a part's workedSolution out of its export when the part
     # has none, but the writer always emits one, so only then may it be absent.
@@ -88,6 +98,21 @@ def test_export_round_trips(export_dir: Path, tmp_path: Path) -> None:
     assert _modelled(Set.from_json(str(written))) == _modelled(loaded)
     assert _modelled(Set.from_json(f"{written}.zip")) == _modelled(loaded)
 
+    # Reloading alone would pass if answers and areas were dropped or mismapped the
+    # same way both ways, so compare what is written with the export itself.
+    for file in written.glob("question_*.json"):
+        written_parts = json.loads(file.read_text())["parts"]
+        exported_parts = json.loads((export_dir / file.name).read_text())["parts"]
+        assert [
+            (part["answerContent"], part["responseAreas"]) for part in written_parts
+        ] == [
+            (
+                part["answerContent"],
+                sorted(part["responseAreas"], key=lambda area: area["orderNumber"]),
+            )
+            for part in exported_parts
+        ], file.name
+
     # Text added to a loaded question is a new part, not a rewrite of the first.
     question = Set.from_json(str(export_dir)).questions[0]
     texts_before = [part.text for part in question.parts]
@@ -107,6 +132,153 @@ def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
         if keys:
             missing[file.name] = keys
     assert not missing, missing
+
+
+def _area_shape(area: dict) -> frozenset[str]:
+    # Without indices, an area's shape is the keys it has, not how many tests, cases
+    # or symbols it lists.
+    return frozenset(re.sub(r"\[\d+\]", "[]", path) for path in _key_paths(area))
+
+
+def test_response_areas_built_in_python_write_as_exported(tmp_path: Path) -> None:
+    """Boxes of each exported type built in Python reload unchanged, shaped as exported."""
+    part = Part(
+        text="Find the drag, then say whether it scales.",
+        response_areas=[
+            ResponseArea(
+                response_type="MATH_SINGLE_LINE",
+                answer="(pi/6)*rho*U**2*R**2",
+                config={
+                    "allowPhoto": True,
+                    "allowHandwrite": True,
+                    "enableRefinement": True,
+                },
+                evaluation_function="symbolicEqual",
+                grade_params={"strict_syntax": False},
+                pre_text="$D=$",
+                content_after="Now put in the numbers.",
+                input_symbols=[InputSymbol("\\(R\\)", "R", ["r"])],
+                tests=[Test("(pi/6)*rho*U**2*R**2", True)],
+                cases=[Case("pi*rho*U**2*R**2", "A factor is missing.", False)],
+            ),
+            ResponseArea(
+                response_type="NUMERIC_UNITS",
+                answer="30 N",
+                evaluation_function="comparePhysicalQuantities",
+                grade_params={"rtol": 0.05, "strict_syntax": False},
+                tests=[Test("30 N", True), Test("30", False)],
+                cases=[
+                    Case("30 kg m s-2", "Put negative exponents in brackets.", False)
+                ],
+            ),
+            ResponseArea(
+                response_type="MULTIPLE_CHOICE",
+                answer=[True, False],
+                config={"single": True, "options": ["Yes", "No"], "randomise": False},
+                evaluation_function="arrayEqual",
+            ),
+        ],
+    )
+    written = _write_back(Set(questions=[Question(parts=[part])]), tmp_path)
+
+    # Equality includes the ids, so reloading must keep the ones that were written.
+    assert Set.from_json(str(written)).questions[0].parts == [part]
+
+    (question_file,) = written.glob("question_*.json")
+    written_areas = json.loads(question_file.read_text())["parts"][0]["responseAreas"]
+
+    # Import needs every test and case given no id to be written with its own uuid.
+    ids = [
+        item["id"] for area in written_areas for item in area["tests"] + area["cases"]
+    ]
+    assert len(set(ids)) == 5
+    assert all(uuid.UUID(id_) for id_ in ids)
+
+    exported_shapes = {
+        _area_shape(area)
+        for export_dir in EXPORTS
+        for file in export_dir.glob("question_*.json")
+        for exported_part in json.loads(file.read_text())["parts"]
+        for area in exported_part["responseAreas"]
+    }
+    for area in written_areas:
+        assert _area_shape(area) in exported_shapes, area["response"]
+
+
+def test_question_settings_are_written(tmp_path: Path) -> None:
+    """A question's settings reach its JSON, are left out when unset, and reload."""
+    question_set = Set(_name="Settings")
+    question_set.questions = [
+        Question(
+            title="Configured",
+            # A whole number, as an export holds the highest skill level; the
+            # fixture's questions cover fractional ones.
+            skill=1,
+            guidance="Try part a first.",
+            duration_lower_bound=5,
+            duration_upper_bound=10,
+            publish=False,
+            display_final_answer=False,
+            display_worked_solution=False,
+            display_structured_tutorial=False,
+            display_chatbot=False,
+        ),
+        Question(title="Default"),
+    ]
+    written = _write_back(question_set, tmp_path)
+
+    configured = json.loads((written / "question_000_Configured.json").read_text())
+    assert {
+        key: configured[key]
+        for key in [
+            "skill",
+            "guidance",
+            "durationLowerBound",
+            "durationUpperBound",
+            "publish",
+            "displayFinalAnswer",
+            "displayWorkedSolution",
+            "displayStructuredTutorial",
+            "displayChatbot",
+        ]
+    } == {
+        "skill": 1,
+        "guidance": "Try part a first.",
+        "durationLowerBound": 5,
+        "durationUpperBound": 10,
+        "publish": False,
+        "displayFinalAnswer": False,
+        "displayWorkedSolution": False,
+        "displayStructuredTutorial": False,
+        "displayChatbot": False,
+    }
+
+    default = json.loads((written / "question_001_Default.json").read_text())
+    assert default["publish"] is True
+    assert default["displayChatbot"] is True
+    assert not {"skill", "guidance", "durationLowerBound", "durationUpperBound"} & set(
+        default
+    )
+
+    # Only the settings are compared: a question written without parts reloads with
+    # the template's placeholder part.
+    def settings(question: Question) -> list:
+        return [
+            question.skill,
+            question.guidance,
+            question.duration_lower_bound,
+            question.duration_upper_bound,
+            question.publish,
+            question.display_final_answer,
+            question.display_worked_solution,
+            question.display_structured_tutorial,
+            question.display_chatbot,
+        ]
+
+    reloaded = Set.from_json(str(written)).questions
+    assert [settings(q) for q in reloaded] == [
+        settings(q) for q in question_set.questions
+    ]
 
 
 def test_from_json_rejects_folder_without_set(tmp_path: Path) -> None:

@@ -2,11 +2,11 @@
   "orderNumber": 0,
   "title": "Question title here",
   "masterContent": "Top level question here",
-  "publish": false,
+  "publish": true,
   "displayFinalAnswer": true,
   "displayStructuredTutorial": true,
   "displayWorkedSolution": true,
-  "displayChatbot": false,
+  "displayChatbot": true,
   "parts": [
     {
       "orderNumber": 0,
