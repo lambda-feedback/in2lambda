@@ -199,6 +199,21 @@ def test_writing_leaves_other_files(tmp_path: Path) -> None:
         ]
 
 
+def test_repeated_image_zipped_once(tmp_path: Path) -> None:
+    """An image listed twice, as one used in both a question and its solution, is one file."""
+    image = tmp_path / "diagram.png"
+    image.write_bytes(b"not really a png")
+    question_set = Set(questions=[Question(title="Q", images=[str(image), str(image)])])
+
+    written = _write_back(question_set, tmp_path)
+
+    assert _relative_files(written / "media") == ["diagram.png"]
+    with zipfile.ZipFile(f"{written}.zip") as zf:
+        assert [name for name in zf.namelist() if name.startswith("media/")] == [
+            "media/diagram.png"
+        ]
+
+
 def _area_shape(area: dict) -> frozenset[str]:
     # Without indices, an area's shape is the keys it has, not how many tests, cases
     # or symbols it lists.

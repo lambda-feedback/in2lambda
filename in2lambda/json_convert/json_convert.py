@@ -47,8 +47,10 @@ def _zip(files: list[Path], root: Path, zip_path: str) -> None:
         root: The folder the archive names are relative to.
         zip_path: The path where the zip file will be created.
     """
-    # Sort by archive name for deterministic, alphabetical order
-    names = sorted((str(file.relative_to(root)), file) for file in files)
+    # Sort by archive name for deterministic, alphabetical order. A file can be
+    # written more than once — an image used by both a question and its worked
+    # solution — and is still one file on disk, so name it once here too.
+    names = sorted({str(file.relative_to(root)): file for file in files}.items())
     with zipfile.ZipFile(zip_path, "w") as zf:
         for name, file in names:
             zf.write(file, arcname=name)
