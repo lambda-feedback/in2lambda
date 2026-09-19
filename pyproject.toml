@@ -64,9 +64,11 @@ ignore_missing_imports = true
 profile = "black"
 
 [tool.pytest.ini_options]
-# Collect both the unit tests in tests/ and the doctests embedded in the package.
-testpaths = ["tests", "in2lambda"]
-addopts = "--doctest-modules"
+# Collect the unit tests in tests/, the doctests embedded in the package, and the
+# worked example on the question format page. That page is named rather than
+# docs/source, because --doctest-modules would otherwise import conf.py.
+testpaths = ["tests", "in2lambda", "docs/source/question-format.md"]
+addopts = "--doctest-modules --doctest-glob=*.md"
 
 [build-system]
 requires = ["poetry-core"]
