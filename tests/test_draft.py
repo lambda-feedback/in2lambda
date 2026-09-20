@@ -54,12 +54,17 @@ def test_a_draft_built_by_commands_replays_identically(
     assert draft_path.read_bytes() == written
 
 
+@pytest.mark.parametrize("folder", DRAFTS, ids=lambda path: path.name)
 def test_freezing_an_unchanged_source_again_keeps_what_the_commands_wrote(
-    tmp_path: Path, monkeypatch
+    folder: Path, tmp_path: Path, monkeypatch
 ) -> None:
-    """The lines have not moved, so the commands run against them still hold."""
+    """The lines have not moved, so the commands run against them still hold.
+
+    Over every folder rather than one of them, because a command that changes the blocks
+    rather than the fields - `split block` - is only kept if the draft is not rebuilt.
+    """
     monkeypatch.chdir(tmp_path)
-    draft_path = _built(MARK_IGNORE, tmp_path)
+    draft_path = _built(folder, tmp_path)
     built = draft_path.read_bytes()
     runner = CliRunner()
 

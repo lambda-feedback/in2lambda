@@ -18,7 +18,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 DRAFT = "draft.json"
 """What a frozen source is written to, beside the source itself."""
@@ -422,6 +422,11 @@ def add(file: str, start_over: bool = False) -> Path:
     # --start-over is the way to throw them away, and the only one.
     log: list[Any] = []
     fields: dict[str, Any] = {}
+    # The blocks a draft already here has, which are not always what parsing the
+    # markdown gives: `split block` cuts one in two, and parsing again would undo that
+    # while keeping the log entry saying it happened, leaving the ids the fields were
+    # written against naming nothing.
+    found: Optional[list[Any]] = None
 
     if not start_over:
         if draft.is_file():
@@ -432,7 +437,7 @@ def add(file: str, start_over: bool = False) -> Path:
                     "Run in2lambda source add --start-over to freeze it again, which "
                     "invalidates every line range taken from the old draft."
                 )
-            log, fields = existing["log"], existing["fields"]
+            found, log, fields = existing["blocks"], existing["log"], existing["fields"]
         elif frozen_path != source and frozen_path.exists():
             raise DraftExists(
                 f"{frozen_path.name} is already there and no {DRAFT} claims it, so it "
@@ -443,7 +448,8 @@ def add(file: str, start_over: bool = False) -> Path:
     # Before either file is written: a parse that fails half way through would
     # otherwise leave the markdown there with no draft claiming it, and the next run
     # would refuse to touch a file this one wrote.
-    found = [block.to_dict() for block in blocks(markdown)]
+    if found is None:
+        found = [block.to_dict() for block in blocks(markdown)]
 
     if frozen_path != source:
         # The bytes pandoc wrote, so that the file on disk is what `digest` is of;
