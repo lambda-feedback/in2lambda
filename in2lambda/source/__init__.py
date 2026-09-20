@@ -205,6 +205,17 @@ def _draft(path: Path) -> dict[str, Any]:
             f"{path} is not a draft anything here wrote: it has no "
             f"{' or '.join(missing)} in it. {advice}"
         )
+    # The one gate everything reading a draft passes through, so a hand-edited log or
+    # fields is refused here rather than as a TypeError from whatever iterated it.
+    for field, shape, called in (
+        ("log", list, "a list"),
+        ("fields", dict, "an object"),
+    ):
+        if not isinstance(draft[field], shape):
+            raise DraftUnreadable(
+                f"{path} is not a draft anything here wrote: its {field} is "
+                f"{draft[field]!r} rather than {called}. {advice}"
+            )
     return draft
 
 

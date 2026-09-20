@@ -110,16 +110,24 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
 
 
 @pytest.mark.parametrize(
-    "entry",
+    ("entry", "named"),
     [
-        "mark ignore b2",
-        {"command": "mark ignore", "args": {"block": "b2"}},
-        {"command": 7, "args": {}, "by": "tests"},
+        ("mark ignore b2", "mark ignore b2"),
+        ({"command": "mark ignore", "args": {"block": "b2"}}, "by"),
+        ({"command": 7, "args": {}, "by": "tests"}, "7"),
+        ({"command": "mark ignore", "args": "b2", "by": "tests"}, "b2"),
+        ({"command": "mark ignore", "args": {}, "by": "tests"}, "block"),
     ],
-    ids=["not an object", "no by", "command is not a name"],
+    ids=[
+        "not an object",
+        "no by",
+        "command is not a name",
+        "args is not an object",
+        "no block argument",
+    ],
 )
 def test_a_log_entry_that_is_not_a_command_is_refused(
-    entry: Any, tmp_path: Path, monkeypatch
+    entry: Any, named: str, tmp_path: Path, monkeypatch
 ) -> None:
     """A log anyone can edit is not a shape to assume, and a bad one is not a crash."""
     monkeypatch.setenv("COLUMNS", "200")
@@ -133,7 +141,37 @@ def test_a_log_entry_that_is_not_a_command_is_refused(
 
     assert result.exit_code != 0
     assert "is not a command" in result.output
+    # Which of the things wrong with it, rather than leaving the reader to guess.
+    assert named in result.output
     assert result.exception is None or isinstance(result.exception, SystemExit)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"), [("log", 5), ("fields", [])], ids=["log", "fields"]
+)
+@pytest.mark.parametrize(
+    "arguments",
+    [["draft", "replay"], ["draft", "mark", "ignore", "b2"]],
+    ids=["replay", "mark"],
+)
+def test_a_draft_whose_log_or_fields_is_the_wrong_shape_is_refused(
+    field: str, value: Any, arguments: list[str], tmp_path: Path, monkeypatch
+) -> None:
+    """A draft is a file anyone can edit, so nothing reading one assumes its shape."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(MARK_IGNORE, tmp_path)
+    draft = json.loads(draft_path.read_text())
+    draft[field] = value
+    edited = json.dumps(draft, indent=2, sort_keys=True) + "\n"
+    draft_path.write_text(edited)
+
+    result = CliRunner().invoke(cli, arguments)
+
+    assert result.exit_code != 0
+    assert field in result.output
+    assert result.exception is None or isinstance(result.exception, SystemExit)
+    assert draft_path.read_text() == edited
 
 
 def test_a_field_changed_by_hand_is_refused(tmp_path: Path, monkeypatch) -> None:

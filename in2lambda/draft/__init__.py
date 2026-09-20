@@ -112,7 +112,26 @@ def _fault(entry: Any) -> str:
         return f"has no {' or '.join(missing)}"
     if not isinstance(entry["command"], str):
         return f"gives {entry['command']!r} as its command, which is not a name"
+    if not isinstance(entry["args"], dict):
+        return f"gives {entry['args']!r} as its args, which is not an object"
     return ""
+
+
+def _argument(args: dict[str, Any], name: str, command: str) -> Any:
+    """One argument of a command, given that the log entry gave it.
+
+    Handlers take their arguments through this rather than indexing, so that a log
+    entry missing one says which one rather than raising a KeyError at whoever ran it.
+
+    Raises:
+        MalformedCommand: the entry has no argument of that name.
+    """
+    if name not in args:
+        raise MalformedCommand(
+            f"{args!r} in the log is not a command {command} can run: it has no "
+            f'"{name}" argument.'
+        )
+    return args[name]
 
 
 def apply(draft: dict[str, Any], markdown: str, entry: Any) -> None:
@@ -205,7 +224,7 @@ def _mark_ignore(
     draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
 ) -> None:
     """Marks one block of the frozen source as nothing to take a question from."""
-    block = args["block"]
+    block = _argument(args, "block", "mark ignore")
     if (found := next((b for b in draft["blocks"] if b["id"] == block), None)) is None:
         raise NoSuchBlock(
             f"There is no block {block} in {DRAFT}. Run in2lambda source show to see "
