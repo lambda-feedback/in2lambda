@@ -178,3 +178,33 @@ Part(text='part b', worked_solution='part b solution', answer='', response_areas
             self.parts[self._last_part["text"]].text = elem_text
 
         self._last_part["text"] += 1
+
+    def to_json(self, output_dir: str, number: int = 0) -> None:
+        """Turns this question alone into Lambda Feedback JSON/ZIP files.
+
+        This is what Lambda Feedback takes when importing a single question into a set
+        that already exists: the question's JSON and its images under ``media``, with
+        no set file. Images keep the names the JSON refers to them by.
+
+        Files of the same name are overwritten; nothing else in the directory is
+        touched.
+
+        Args:
+            output_dir: Where to output the final Lambda Feedback JSON/ZIP files.
+            number: The question's order number, which also prefixes its file names.
+
+        Examples:
+            >>> import os
+            >>> import tempfile
+            >>> from in2lambda.api.question import Question
+            >>> question = Question(title="Q", main_text="Some text")
+            >>> with tempfile.TemporaryDirectory() as temp_dir:
+            ...     question.to_json(temp_dir)
+            ...     sorted(os.listdir(temp_dir))
+            ...     sorted(os.listdir(f"{temp_dir}/question_000_Q"))
+            ['question_000_Q', 'question_000_Q.zip']
+            ['question_000_Q.json']
+        """
+        from in2lambda.json_convert import json_convert
+
+        json_convert.write_question(self, output_dir, number)
