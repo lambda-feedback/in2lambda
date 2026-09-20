@@ -155,15 +155,15 @@ def _markdown_problems(
                 Problem(location, f"the export will not contain the image {reference}")
             )
 
-    # Where the delimiters are wrong the expressions cannot be picked out reliably, and
-    # the field has its report already, so its maths is left where it is.
-    if delimiters is MathDelimiterError.PASSED:
-        problems += _katex_problems(markdown, location, expressions)
+    problems += _katex_problems(markdown, location, expressions, delimiters)
     return problems
 
 
 def _katex_problems(
-    markdown: str, location: str, expressions: list[_Expression]
+    markdown: str,
+    location: str,
+    expressions: list[_Expression],
+    delimiters: MathDelimiterError,
 ) -> list[Problem]:
     """Maths that KaTeX, which Lambda Feedback renders with, will not display.
 
@@ -200,7 +200,10 @@ def _katex_problems(
                     "^\\circ does not display; write the degree sign ° instead",
                 )
             )
-        if not unsupported:
+        # Where the field's delimiters are wrong, what is between them is not reliably
+        # the expression the author meant, so it is not rendered. The checks above are
+        # reported against the field rather than a character range, so they still run.
+        if not unsupported and delimiters is MathDelimiterError.PASSED:
             expressions.append(
                 _Expression(location, span.start() + 1, span.end(), maths, display)
             )
@@ -226,20 +229,32 @@ def _katex_rejections(expressions: list[_Expression]) -> list[Problem]:
         )
         return []
 
-    rendered = subprocess.run(
-        [node, str(_CHECK)],
-        input=json.dumps(
-            [
-                {"tex": expression.tex, "display": expression.display}
-                for expression in expressions
-            ]
-        ),
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    try:
+        rendered = subprocess.run(
+            [node, str(_CHECK)],
+            input=json.dumps(
+                [
+                    {"tex": expression.tex, "display": expression.display}
+                    for expression in expressions
+                ]
+            ),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        rejections = json.loads(rendered.stdout)
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
+        # Anything named node on the PATH is run here, and it may not be Node.js at all.
+        # Validation reports, never refuses, so a check that cannot be run says so and
+        # leaves the rest of the report - and the export - alone.
+        warnings.warn(
+            f"Maths was not checked against KaTeX: running {node} failed ({error})",
+            stacklevel=3,
+        )
+        return []
+
     problems: list[Problem] = []
-    for rejection in json.loads(rendered.stdout):
+    for rejection in rejections:
         expression = expressions[rejection["index"]]
         problems.append(
             Problem(

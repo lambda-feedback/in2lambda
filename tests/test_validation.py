@@ -12,6 +12,7 @@ The folders whose report says ``KaTeX rejects it`` need Node.js to render with, 
 without it; CI always has it.
 """
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -128,6 +129,24 @@ def test_without_node_the_maths_is_not_checked(without_node: None) -> None:
         problems = validate(question_set)
 
     assert problems == []
+
+
+def test_a_node_that_does_not_render_is_not_fatal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Anything named node may be on the PATH; the rest of the report must survive it.
+
+    ``false`` stands in for it: on the PATH, runnable, and no use for rendering maths.
+    """
+    monkeypatch.setattr("in2lambda.validation._node", lambda: shutil.which("false"))
+    question_set = Set.from_json(str(PROBLEMS_DIR / "degrees"))
+
+    with pytest.warns(UserWarning, match="Maths was not checked against KaTeX"):
+        problems = validate(question_set)
+
+    assert [str(problem) for problem in problems] == (
+        (PROBLEMS_DIR / "degrees" / "expected.txt").read_text().splitlines()
+    )
 
 
 def test_image_that_is_not_on_disk_is_reported(tmp_path: Path) -> None:
