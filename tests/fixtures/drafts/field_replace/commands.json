@@ -26,8 +26,8 @@
   {
     "args": {
       "field": "q1.solution",
-      "new": " ",
-      "old": "\\s{2,}",
+      "new": "\\tfrac{c}{f}",
+      "old": "c\\s*/\\s*f",
       "regex": true
     },
     "by": "ocr-fixer",

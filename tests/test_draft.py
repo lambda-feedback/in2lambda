@@ -372,14 +372,16 @@ def test_a_command_says_what_it_wrote(tmp_path: Path, monkeypatch) -> None:
 
     assert result.exit_code == 0, result.output
     assert result.output == "Wrote q1.solution.\n"
-    field = json.loads(draft_path.read_text())["fields"]["q1.solution"]
-    assert field == {
+    draft = json.loads(draft_path.read_text())
+    assert draft["fields"]["q1.solution"] == {
         "value": "The flow rate is $Q = \\pi d^{2} v / 4$.",
         "layer": 3,
         "ranges": [[16, 16]],
         "edited": True,
         "by": "ocr",
     }
+    # --regex is an option, so a command nobody passed it to logs no argument for it.
+    assert "regex" not in draft["log"][-1]["args"]
 
 
 def test_the_halves_of_a_split_block_are_blocks_like_any_other(

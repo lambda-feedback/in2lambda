@@ -9,7 +9,7 @@
         8
       ]
     ],
-    "value": "The wavelength is $\\lambda = c / f = 0.78\\,\\mathrm{m}$."
+    "value": "The wavelength is $\\lambda = \\tfrac{c}{f} = 0.78\\,\\mathrm{m}$."
   },
   "q1.text": {
     "by": "ocr-fixer",

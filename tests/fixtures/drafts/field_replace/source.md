@@ -5,4 +5,4 @@ Find the wavelength of a 440 Hz tone.
 
 ## Solutions
 
-The wavelength is  $\lambda = c / f = 0.78\,\mathrm{m}$.
+The wavelength is $\lambda = c / f = 0.78\,\mathrm{m}$.

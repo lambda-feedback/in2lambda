@@ -518,8 +518,13 @@ def _field_replace(
     value = field["value"]
     try:
         found = len(re.findall(old, value)) if regex else value.count(old)
+        # A function rather than new itself, because re.sub reads a string as a
+        # template, in which \t is a tab and \frac is an error. What is being repaired
+        # here is LaTeX, so NEW is what gets written, backslashes and all.
         replaced = (
-            re.sub(old, new, value, count=1) if regex else value.replace(old, new, 1)
+            re.sub(old, lambda _: new, value, count=1)
+            if regex
+            else value.replace(old, new, 1)
         )
     except re.error as error:
         raise MalformedCommand(
