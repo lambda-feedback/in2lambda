@@ -52,6 +52,23 @@ def _message_not_traceback() -> Iterator[None]:
         raise click.ClickException(str(error)) from None
 
 
+@contextmanager
+def _warnings_said() -> Iterator[None]:
+    """Echoes whatever is warned inside it as a line, as `runner` says its problems.
+
+    What `build` and `render` warn about is something they wrote out anyway - a question
+    nothing answers, a question xelatex gave up on - so it belongs beside what they
+    wrote, and is said even where the command goes on to refuse for another reason.
+    """
+    with warnings.catch_warnings(record=True) as said:
+        warnings.simplefilter("always")
+        try:
+            yield
+        finally:
+            for warning in said:
+                click.echo(f"Warning: {warning.message}")
+
+
 def docx_to_md(docx_file: str) -> str:
     """Converts .docx files to markdown.
 
@@ -436,18 +453,24 @@ def validate() -> None:
     """Checks the draft in this directory over and writes the report into it.
 
     Reports source blocks in no field and not marked ignore, two fields taken from the
-    same lines, gaps in the numbering of the questions or their parts, parts nothing
-    answers, and fields holding nothing. The set the draft describes is checked over as
-    well - maths delimiters, what KaTeX will not render, images the export would not
-    carry, and the compile Lambda Feedback's PDF generator does where pandoc and xelatex
-    are installed - each against the field it is written in. Finding something is not a
-    failure: the report is written into draft.json either way, and replaced by the next
-    one.
+    same lines, gaps in the numbering of the questions or their parts, and fields holding
+    nothing. The set the draft describes is checked over as well - maths delimiters, what
+    KaTeX will not render, images the export would not carry, and the compile Lambda
+    Feedback's PDF generator does where pandoc and xelatex are installed - each against
+    the field it is written in. All of those in2lambda build refuses; a question or part
+    nothing answers is reported as a warning, which it builds over. Finding something is
+    not a failure: the report is written into draft.json either way, and replaced by the
+    next one.
     """
     with _message_not_traceback():
         report = in2lambda.draft.report.validate()
     for finding in report:
-        click.echo(finding["message"])
+        # Marked as such, since the two are acted on differently and the report is often
+        # read off the terminal rather than out of the draft.
+        if finding["level"] == in2lambda.draft.report.WARNING:
+            click.echo(f"Warning: {finding['message']}")
+        else:
+            click.echo(finding["message"])
     if not report:
         click.echo("Nothing to report.")
 
@@ -470,9 +493,11 @@ def build(output_dir: str) -> None:
     """Writes the draft in this directory out as a Lambda Feedback set.
 
     Refused unless in2lambda validate has been run since the draft last changed and
-    found nothing, so that what is uploaded is what the checks have been over.
+    found no error, so that what is uploaded is what the checks have been over. What it
+    found at level warning - a question or part with no solution written for it - is
+    said, and the set written all the same.
     """
-    with _message_not_traceback():
+    with _message_not_traceback(), _warnings_said():
         written = in2lambda.draft.export.build(output_dir=output_dir)
     click.echo(f"Wrote {written}")
 
@@ -486,14 +511,10 @@ def render(output_dir: str) -> None:
     needs pandoc and xelatex. What the checks have to say about the draft is not asked:
     a draft is rendered to look at, including one there is something to fix in.
     """
-    with _message_not_traceback():
-        # As `runner` does: a question xelatex complains about is still written out, and
-        # what it refused is a line to read rather than a traceback.
-        with warnings.catch_warnings(record=True) as refused:
-            warnings.simplefilter("always")
-            written = in2lambda.draft.export.render(output_dir=output_dir)
-    for warning in refused:
-        click.echo(f"Warning: {warning.message}")
+    # A question xelatex complains about is still written out, and what it refused is a
+    # line to read rather than a traceback.
+    with _message_not_traceback(), _warnings_said():
+        written = in2lambda.draft.export.render(output_dir=output_dir)
     for pdf in written:
         click.echo(f"Wrote {pdf}")
 

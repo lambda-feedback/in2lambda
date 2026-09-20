@@ -3,7 +3,9 @@
 Each folder in ``fixtures/drafts`` is a document, the commands to run against its draft
 and the fields they should write, so covering another command means adding a folder
 rather than a test. Each is also what `in2lambda build` and `in2lambda render` make of
-it: the one with no ``report.json`` is exported, the rest are refused. The remainder is
+it: one whose ``report.json`` holds a finding at level error is refused, and one holding
+only warnings - a question or part nothing answers - is exported with them said. The
+remainder is
 what the command line does when a replay cannot be trusted - a source that has moved on,
 a log naming a command nothing has, a draft edited by hand - which is not something a
 fixture can say.
@@ -468,6 +470,7 @@ def test_a_field_is_quoted_from_a_later_source_by_its_number(
     tmp_path: Path, monkeypatch
 ) -> None:
     """A block or a range of the solutions is named as the sheet's is, with its number."""
+    monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.chdir(tmp_path)
     shutil.copytree(SOLUTIONS, tmp_path, dirs_exist_ok=True)
     runner = CliRunner()
@@ -497,6 +500,14 @@ def test_a_field_is_quoted_from_a_later_source_by_its_number(
     assert "source" not in fields["q1.p1.text"]
     assert fields["q1.solution"]["source"] == 2
 
+    # A number in front of an address that carries one already is no address at all, and
+    # is refused as what was given. Read as source 1's own 2/b6 it would find the block
+    # and then quote line 11 of the sheet, which is nine lines long - a field holding
+    # nothing, from a document nobody named, that a replay would reproduce faithfully.
+    result = runner.invoke(cli, ["draft", "question", "add", "--text", "1/2/b6"])
+    assert result.exit_code != 0, result.output
+    assert "1/2/b6" in result.output
+
 
 def test_a_draft_edited_into_an_overlap_or_a_gap_is_reported(
     tmp_path: Path, monkeypatch
@@ -520,6 +531,8 @@ def test_a_draft_edited_into_an_overlap_or_a_gap_is_reported(
         ("overlap", "q1.p1.text"),
         ("gap", "q2.text"),
     ]
+    # Both are the draft contradicting its own source, so neither is one to export over.
+    assert [finding["level"] for finding in report] == ["error", "error"]
     # Both sides of the overlap, so that either field can be looked at without the draft.
     assert "q1.text" in report[0]["message"]
     assert result.output == f"{report[0]['message']}\n{report[1]['message']}\n"
@@ -702,23 +715,31 @@ def test_build_refuses_a_draft_that_has_not_been_validated(
 
 @pytest.mark.parametrize("folder", DRAFTS, ids=lambda path: path.name)
 def test_build_follows_the_report(folder: Path, tmp_path: Path, monkeypatch) -> None:
-    """A draft is exported once the checks have been over it and found nothing."""
+    """A draft is exported once the checks have found no error in it.
+
+    A warning does not stop it: a sheet whose solutions are in another file or nowhere at
+    all is a sheet to export, and is exported with what was found said beside it.
+    """
     monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.chdir(tmp_path)
     _built(folder, tmp_path)
     fields = json.loads((folder / "expected.json").read_text())
+    report = _reported(folder)
 
     result = CliRunner().invoke(cli, ["build"])
 
-    if report := _reported(folder):
+    if refusing := [finding for finding in report if finding["level"] == "error"]:
         assert result.exit_code != 0, result.output
-        # Every finding, so that what is left to do can be read off the refusal itself.
-        for finding in report:
+        # Every error, so that what is left to do can be read off the refusal itself.
+        for finding in refusing:
             assert finding["message"] in result.output
         assert not (tmp_path / "out").exists()
         return
 
     assert result.exit_code == 0, result.output
+    # And each warning said, since the set was written over it rather than without it.
+    for finding in report:
+        assert finding["message"] in result.output
     exported = tmp_path / "out" / "set.zip"
     assert exported.is_file()
 

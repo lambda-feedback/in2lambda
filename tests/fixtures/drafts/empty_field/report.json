@@ -1,12 +1,37 @@
 [
   {
+    "check": "no-solution",
+    "field": "q2",
+    "level": "warning",
+    "message": "q2 (lines 2-2) has no solution: q2.solution is not written, and it has no parts.",
+    "ranges": [
+      [
+        2,
+        2
+      ]
+    ]
+  },
+  {
     "check": "empty",
     "field": "q2.text",
+    "level": "error",
     "message": "q2.text (lines 2-2) is empty.",
     "ranges": [
       [
         2,
         2
+      ]
+    ]
+  },
+  {
+    "check": "no-solution",
+    "field": "q1",
+    "level": "warning",
+    "message": "q1 (lines 3-3) has no solution: q1.solution is not written, and it has no parts.",
+    "ranges": [
+      [
+        3,
+        3
       ]
     ]
   }

@@ -52,8 +52,13 @@ _HANDLERS: dict[str, Handler] = {}
 _RANGE = re.compile(r"s(\d+)(?::(\d+))?")
 """Lines of a frozen source, as ``s16`` for one of them or ``s10:14`` for several."""
 
-_QUALIFIED = re.compile(r"(\d+)/(.*)")
-"""A block id or a line range with the source it is in in front: ``2/b3``, ``2/s10:14``."""
+_QUALIFIED = re.compile(r"(\d+)/([^/]*)")
+"""A block id or a line range with the source it is in in front: ``2/b3``, ``2/s10:14``.
+
+One number and one slash: what follows the slash is an id or a range, never another
+source in front of one. So ``1/2/b3`` matches nothing here and is refused as the address
+it is not, rather than being read as source 1's ``2/b3`` and quoting the wrong document.
+"""
 
 
 class MalformedCommand(SourceError):
@@ -367,6 +372,10 @@ def _qualified(where: str) -> tuple[int, str]:
     14. Anything with no number in front of it is the first source's, which is how every
     command written while a draft held one source still reads; ``1/b3`` says the same
     thing the long way round.
+
+    Anything else comes back as the first source's and under the name it was given, so
+    that whoever looks for it says what was asked for: ``1/2/b3`` names no block of any
+    source and is refused as ``1/2/b3``.
     """
     if (named := _QUALIFIED.fullmatch(where)) is None:
         return 1, where
