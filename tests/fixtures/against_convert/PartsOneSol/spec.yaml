@@ -1,6 +1,5 @@
-question: Para
+question: Para depth=1
 part:     ListItem
 solution: Div
-strip:    ['(?m)^::: \{\.solution\}\n', '(?m)^:::$']
 ignore:   Header
 layout:   PartsOneSol
