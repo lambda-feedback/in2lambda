@@ -28,7 +28,7 @@ def test_convert_writes_the_set(filters_dir: str, tmp_path) -> None:
 def test_old_form_converts_with_a_deprecation_line(
     path: str, filters_dir: str, monkeypatch, tmp_path
 ) -> None:
-    """The old form converts whatever the file path looks like, saying so on stderr.
+    """The old form converts the file for every form of path, and prints one line.
 
     A path starting with ``/`` or ``.`` used to make click print the help and exit 0,
     so every script passing a full path appeared to succeed without converting anything.
@@ -50,10 +50,10 @@ def test_old_form_converts_with_a_deprecation_line(
 def test_old_form_works_when_run_as_the_installed_command(
     filters_dir: str, tmp_path
 ) -> None:
-    """The same holds for ``cli()``, which is what the installed command runs.
+    """The old form converts through ``cli()``, which the installed command runs.
 
-    CliRunner calls ``cli.main`` instead, so it cannot see this path: on beartype
-    0.18.5 the import hook left ``cli`` a plain function, and ``cli()`` ran
+    CliRunner calls ``cli.main`` instead, so CliRunner does not cover this path. On
+    beartype 0.18.5 the import hook left ``cli`` a plain function, and ``cli()`` ran
     ``convert``'s body whatever the arguments.
     """
     result = subprocess.run(
