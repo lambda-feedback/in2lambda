@@ -24,7 +24,7 @@ from in2lambda.api.part import Part
 from in2lambda.api.question import Question
 from in2lambda.api.set import Set
 from in2lambda.json_convert.json_convert import _question_stem, _question_title
-from in2lambda.source import DRAFT, ConversionToolsMissing, SourceError, frozen
+from in2lambda.source import ConversionToolsMissing, SourceError, frozen
 from in2lambda.validation import _IMAGE, _location, pdf
 
 _QUESTION = re.compile(r"q(\d+)\.text")
@@ -181,11 +181,11 @@ def located(draft: dict[str, Any]) -> dict[str, str]:
     return where
 
 
-def build(directory: str = ".", output_dir: str = "out") -> Path:
-    """Writes the draft in a directory out as a Lambda Feedback set, if it is clean.
+def build(draft: str | Path, output_dir: str = "out") -> Path:
+    """Writes a draft out as a Lambda Feedback set, if it is clean.
 
     Args:
-        directory: Where the ``draft.json`` to export is.
+        draft: The path of the draft to export.
         output_dir: Where to write the set's folder and its zip.
 
     Returns:
@@ -207,25 +207,26 @@ def build(directory: str = ".", output_dir: str = "out") -> Path:
     # it imports this, and only what reads a report - this one function - needs it back.
     from in2lambda.draft.report import errors
 
-    draft, _ = frozen(directory)
-    if "report" not in draft:
+    path = Path(draft)
+    found, _ = frozen(path)
+    if "report" not in found:
         raise NotValidated(
-            f"{DRAFT} has not been validated since it last changed, so what it would "
-            "export is what nothing has checked. Run in2lambda validate."
+            f"{path.name} has not been validated since it last changed, so what it "
+            "would export is what nothing has checked. Run in2lambda validate."
         )
-    if refusing := errors(draft["report"]):
+    if refusing := errors(found["report"]):
         raise NotValidated(
             "\n".join(finding["message"] for finding in refusing)
-            + f"\n{DRAFT} is not exported while its report says this. Fix what it "
+            + f"\n{path.name} is not exported while its report says this. Fix what it "
             "names, or mark the blocks it is about as ignored, and run in2lambda "
             "validate again."
         )
-    for finding in draft["report"]:
+    for finding in found["report"]:
         # Said rather than refused: a sheet whose solutions are elsewhere or absent is
         # one to export as it stands, and writing one in to quiet this would put wording
         # into the set that no source of it says.
         warnings.warn(finding["message"], stacklevel=2)
-    exported = as_set(draft, directory)
+    exported = as_set(found, str(path.parent))
     # The export carries every image a field refers to into media/, which is the only
     # place Lambda Feedback looks for one, so a file that is not there is not something
     # to write the set without: `json_convert` would raise a bare FileNotFoundError over
@@ -243,8 +244,8 @@ def build(directory: str = ".", output_dir: str = "out") -> Path:
     return Path(output_dir) / "set.zip"
 
 
-def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
-    """Writes each question of the draft in a directory as a PDF, for review.
+def render(draft: str | Path, output_dir: str = "out") -> list[Path]:
+    """Writes each question of a draft as a PDF, for review.
 
     The questions are compiled as Lambda Feedback's own PDF generator compiles them,
     under a heading naming each, so what comes out is what a student would be shown.
@@ -254,7 +255,7 @@ def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
     compiler gives up on altogether stop the rest of the draft being written out.
 
     Args:
-        directory: Where the ``draft.json`` to render is.
+        draft: The path of the draft to render.
         output_dir: Where to write the PDFs, named as the export names its questions.
 
     Returns:
@@ -275,11 +276,12 @@ def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
         raise ConversionToolsMissing(
             f"Rendering questions needs {' and '.join(missing)}."
         )
-    draft, _ = frozen(directory)
+    path = Path(draft)
+    found, _ = frozen(path)
 
     written = []
     refused = []
-    for index, question in enumerate(as_set(draft, directory).questions):
+    for index, question in enumerate(as_set(found, str(path.parent)).questions):
         stem = _question_stem(index, _question_title(question, index))
         output = Path(output_dir) / f"{stem}.pdf"
         # Headed with the question's number, so that a stack of these can be read

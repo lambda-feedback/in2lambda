@@ -1,7 +1,8 @@
 # Sources to freeze
 
 Each folder here is one document for `in2lambda source add` to freeze, beside the block list
-it should write into `draft.json`. `markdown`, `tex` and `docx` say the same thing in the three
+it should write into `source.draft.json`, the draft being named after the source it was frozen
+from. `markdown`, `tex` and `docx` say the same thing in the three
 formats the command takes, so that what a heading or a list item comes out as does not depend on
 which format an author brought it in; `empty_list_item` is a bullet with nothing in it, which has
 no position of its own and so no block; `unseparated_list` is a list with no blank line before it,
