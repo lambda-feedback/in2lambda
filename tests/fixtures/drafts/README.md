@@ -63,6 +63,12 @@ them with, the first question's part is typed out because the source writes the 
 beside it, the two solutions are one block that `split block` cuts in two, and one `field replace`
 writes a command KaTeX defines over one it does not. The `spec.yaml` beside it is the spec that
 page runs before starting the draft again, and no command here runs it.
+`part_solutions` is the sheet that writes a solution under each part, which the spec layouts
+`PartPartSolSol` and `PartSolPartSol` read: two `part solution` commands quote the two solutions
+onto `q1.p1` and `q1.p2`, a `question solution` quotes the one answering the second question, and
+the third part, which the sheet answers nowhere, is the one finding in the report. Each field
+quotes the block as the sheet writes it, so a solution keeps the `Solution:` the sheet labels it
+with, where the spec fixture of the same document strips the label.
 `degrees` writes `^\circ` into the maths of both a question and the one worked solution answering
 its two parts, and is the one folder whose report comes from `in2lambda.validation` over the set
 the draft describes rather than from the checks over the draft itself: the solution is reported

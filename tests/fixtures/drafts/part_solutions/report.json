@@ -1,0 +1,14 @@
+[
+  {
+    "check": "no-solution",
+    "field": "q1.p3",
+    "level": "warning",
+    "message": "q1.p3 (lines 9-9) has no solution: neither q1.p3.solution nor q1.solution is written.",
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ]
+  }
+]
