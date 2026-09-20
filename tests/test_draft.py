@@ -633,6 +633,44 @@ def test_render_leaves_out_a_figure_that_is_not_there(
 
 
 @needs_compiler
+def test_render_writes_the_questions_beside_one_tex_cannot_finish(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Maths a brace is missing out of makes TeX give up where it stands.
+
+    That is one question of the draft unrendered, and it is said as such: the rest is
+    still written out, since a draft whose faults are being fixed is exactly the one
+    somebody is looking at.
+    """
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+    replaced = CliRunner().invoke(
+        cli,
+        [
+            "draft",
+            "field",
+            "replace",
+            "q1.solution",
+            "$Q = \\pi d^2 v / 4$",
+            "$\\frac{1$",
+        ],
+    )
+    assert replaced.exit_code == 0, replaced.output
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code == 0, result.output
+    # The second question, which has nothing wrong with it.
+    written = sorted((tmp_path / "out").glob("*.pdf"))
+    assert len(written) == 1
+    assert written[0].stat().st_size
+    # Why the first one is not there, rather than only that xelatex wrote no PDF: the
+    # log's own account of it is all there is when it stopped before reaching a field.
+    assert "File ended while scanning use of \\frac" in result.output
+
+
+@needs_compiler
 @pytest.mark.parametrize("folder", DRAFTS, ids=lambda path: path.name)
 def test_render_writes_one_pdf_per_question(
     folder: Path, tmp_path: Path, monkeypatch

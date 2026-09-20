@@ -167,24 +167,26 @@ def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
     under a heading naming each, so what comes out is what a student would be shown.
     The checks are not run first: looking at a draft is how what they found gets fixed.
     Nor does a figure that is not beside the draft stop a question being looked at -
-    the compiler drops the reference and typesets the rest of it.
+    the compiler drops the reference and typesets the rest of it - or a question the
+    compiler gives up on altogether stop the rest of the draft being written out.
 
     Args:
         directory: Where the ``draft.json`` to render is.
         output_dir: Where to write the PDFs, named as the export names its questions.
 
     Returns:
-        The PDF written for each question, in question order.
+        The PDF written for each question that was rendered, in question order.
 
     Raises:
         ConversionToolsMissing: pandoc or xelatex is not installed.
-        CompileFailed: a question produced no PDF at all, or the compiler did not
-            finish with it.
+        CompileFailed: no question could be rendered at all, so there is nothing to
+            look at.
         SourceError: the draft is missing, is not one of ours, or was written from
             markdown that has changed since.
 
     Warns:
-        UserWarning: once per LaTeX error in a question that was rendered anyway.
+        UserWarning: once per LaTeX error in a question that was rendered anyway, and
+            once for a question the compiler gave up on while others rendered.
     """
     if missing := pdf.missing_tools():
         raise ConversionToolsMissing(
@@ -193,6 +195,7 @@ def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
     draft, _ = frozen(directory)
 
     written = []
+    refused = []
     for index, question in enumerate(as_set(draft, directory).questions):
         stem = _question_stem(index, _question_title(question, index))
         output = Path(output_dir) / f"{stem}.pdf"
@@ -200,9 +203,22 @@ def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
         # through, and so that a question with nothing written in it is still a page.
         heading = f"Question {index + 1}"
         fields = [(heading, f"# {heading}")] + _fields(question, index + 1)
-        for problem in pdf.render(fields, question.images, output):
+        try:
+            problems = pdf.render(fields, question.images, output)
+        except pdf.CompileFailed as failed:
+            refused.append(str(failed))
+            continue
+        for problem in problems:
             warnings.warn(str(problem), stacklevel=2)
         written.append(output)
+    if refused and not written:
+        # Nothing at all to look at, which is a failed run rather than a fault in one
+        # question of it, so it is said the way a draft that cannot be read is.
+        raise pdf.CompileFailed("; ".join(refused))
+    for failure in refused:
+        # One question TeX cannot finish is a fault in that question like any other, and
+        # the ones that do compile are still what the draft is being rendered for.
+        warnings.warn(failure, stacklevel=2)
     return written
 
 

@@ -48,6 +48,9 @@ _ERROR = re.compile(
 )
 """One ``-file-line-error`` line. The file is only ``set.tex`` for the set's own text."""
 
+_ABORTED = re.compile(r"^! (.+)$", re.MULTILINE)
+r"""An error xelatex printed with no file and line to it - see :func:`_aborted`."""
+
 _IMAGE = re.compile(r"(!\[[^\]]*\]\()([^)]*)(\))")
 """A markdown image with its path apart, so that the path can be rewritten or dropped."""
 
@@ -56,10 +59,10 @@ _TIMEOUT = 120
 
 
 class CompileFailed(SourceError):
-    """The pipeline produced nothing: pandoc refused the set, xelatex wrote no PDF, or
-    neither finished.
+    """The pipeline produced nothing at all.
 
-    Not a problem in one field, since there is no generated LaTeX to trace an error back
+    Either pandoc refused the set, or xelatex wrote no PDF, or neither finished. Not a
+    problem in one field, since there is no generated LaTeX to trace an error back
     through, so it is raised rather than reported - as a `SourceError`, which is what
     the command line turns into a message rather than a traceback.
     """
@@ -130,13 +133,14 @@ def render(
         latex, log = _compile(fields, images, work)
         problems = _reported(log, _locations(latex))
         if not (compiled := work / "set.pdf").is_file():
+            # Nothing traced back to a field is the emergency-stop case: xelatex gave up
+            # where it could name no line, so the log's own `!` lines are the only
+            # account there is of why nothing was typeset, and saying none would leave
+            # the refusal naming no cause at all.
+            said = [str(problem) for problem in problems] or _aborted(log)
             raise CompileFailed(
                 f"xelatex produced no PDF of {output.name}"
-                + (
-                    ": " + "; ".join(str(problem) for problem in problems)
-                    if problems
-                    else "."
-                )
+                + (": " + "; ".join(said) if said else ".")
             )
         output.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(compiled, output)
@@ -246,6 +250,17 @@ def _marked_document(fields: list[tuple[str, str]], available: set[str]) -> str:
         )
         blocks.append(f"````{{=latex}}\n{_MARKER}{location}\n````\n\n{markdown}\n")
     return "\n".join(blocks)
+
+
+def _aborted(log: str) -> list[str]:
+    r"""Everything the xelatex log says went wrong without saying where.
+
+    ``-file-line-error`` rewrites an error that happened at a line of a file, which is
+    what :func:`_reported` reads. An error that happened as the input ran out -
+    ``File ended while scanning use of \frac`` - has no such line, and xelatex prints it
+    the old way, so it is only ever in the log behind a ``!``.
+    """
+    return [error.strip() for error in _ABORTED.findall(log)]
 
 
 def _locations(latex: str) -> list[tuple[int, str]]:
