@@ -1,0 +1,26 @@
+{
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "The load the large piston carries is $F = pA$."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": "# Solutions"
+  }
+}

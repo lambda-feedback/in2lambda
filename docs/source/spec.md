@@ -52,6 +52,16 @@ A block is whatever the first of `ignore`, `question`, `part`, `solution` to mat
 That order is fixed, whatever order the keys are written in, so a spec whose selectors overlap
 has to tell them apart by what they match rather than by where they are in the file.
 
+`question`, `part`, `solution` and `ignore` each take one selector, or a list of them written
+under the key. A block has that role where any one of the selectors in the list matches it, so
+one spec selects the questions of a document that writes them two different ways:
+
+```yaml
+ignore:
+  - Header level=1
+  - Para text~'^Marks'
+```
+
 ## Selectors
 
 A selector is a block type, then any number of constraints:
@@ -134,6 +144,10 @@ the solutions are, and what each of them answers.
 | `PartPartSolSol` | The parts come together and their solutions come after, in the same order. |
 | `PartsSepSol` | Every solution is at the end: the first answers the first part of the first question, and so on. |
 
+A sheet holding more solutions than the layout has questions and parts to answer sends two of
+them to the one field. The second is left in no field and reported, naming the field and the
+block that holds it. The section below says the same of a document of solutions.
+
 ## A separate solutions document
 
 Many sheets come as two files: the questions, and the solutions written separately from them.
@@ -166,10 +180,16 @@ changes is what the selectors mean in a document of solutions, which is what `in
   the sheet itself is laid out as.
 
 A solution past the last slot is reported as being in no field, like any other block the spec
-made nothing of; one landing on a question the solutions before it have answered is refused,
-saying that the field - `q2.solution`, say - is already written and that no command here writes
-a field twice. `in2lambda draft field replace` changes the wording of one, and `in2lambda source
-add --start-over` begins the draft again.
+made nothing of. So is one landing on a question the solutions before it have answered, with a
+second line naming the field it would have gone in and the block that holds it:
+
+```
+b7 (lines 14-15) is in no field and not marked ignore.
+b7 (lines 14-15) would be q2.solution, which b5 (lines 10-11) already holds.
+```
+
+The run writes every other field, so a spec that sends two solutions to one field still fills
+the draft in and names the block to look at.
 
 ## What it writes
 
