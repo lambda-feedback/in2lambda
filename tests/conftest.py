@@ -4,6 +4,7 @@ import os
 import shutil
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -45,6 +46,59 @@ SPECS_DIR = Path(__file__).parent / "fixtures" / "specs"
 
 SPECS = sorted(path for path in SPECS_DIR.iterdir() if path.is_dir())
 """Every spec folder, so that covering another kind of document is a folder and no code."""
+
+
+AGAINST_CONVERT_DIR = Path(__file__).parent / "fixtures" / "against_convert"
+"""One document per folder, beside the spec or commands that take it down both routes."""
+
+AGAINST_CONVERT = sorted(
+    path for path in AGAINST_CONVERT_DIR.iterdir() if path.is_dir()
+)
+"""Every folder of the above, so that covering another document is a folder and no code."""
+
+
+def key_paths(value: Any, path: str = "") -> set[str]:
+    """Every key of a JSON value, at every depth, as ``.parts[0].workedSolution``.
+
+    Args:
+        value: A question, a set, or any part of one, as JSON reads it.
+        path: What to write in front of each key, for a value taken out of another.
+
+    Returns:
+        One path per key, list items numbered, so that two files can be compared by the
+        shape they hold rather than by what they say.
+    """
+    if isinstance(value, dict):
+        paths = set()
+        for key, item in value.items():
+            paths |= {f"{path}.{key}"} | key_paths(item, f"{path}.{key}")
+        return paths
+    if isinstance(value, list):
+        return set().union(
+            *(key_paths(item, f"{path}[{i}]") for i, item in enumerate(value))
+        )
+    return set()
+
+
+def unexported_keys(written: dict, exported: set[str]) -> list[str]:
+    """The keys a written question or set holds that Lambda Feedback never exports there.
+
+    Args:
+        written: A question or a set as in2lambda wrote it, as JSON reads it.
+        exported: The key paths real exports hold, as :func:`key_paths` reads them off
+            one export or off all of them at once.
+
+    Returns:
+        The paths of the written file that are in none of them, in order.
+    """
+    missing = key_paths(written) - exported
+    # Lambda Feedback leaves a part's workedSolution out of its export when the part
+    # has none, but the writer always emits one, so only then may it be absent.
+    for i, part in enumerate(written.get("parts", [])):
+        if not part["workedSolution"]["content"]:
+            prefix = f".parts[{i}].workedSolution"
+            missing = {key for key in missing if not key.startswith(prefix)}
+    return sorted(missing)
 
 
 def frozen_sources(folder: Path) -> list[str]:
