@@ -122,13 +122,16 @@ def _compiled(fields: list[tuple[str, str]], images: list[str]) -> list[Problem]
             input=_marked_document(fields, available),
             capture_output=True,
             text=True,
+            # Not the locale's encoding: a set holding any non-ASCII character would
+            # then fail to even be handed over under, say, LC_ALL=C.
+            encoding="utf-8",
             cwd=work,
             timeout=_TIMEOUT,
         )
         if run.returncode:
             return [Problem(_SET, f"pandoc cannot read the set: {run.stderr.strip()}")]
 
-        latex = (work / "set.tex").read_text()
+        latex = (work / "set.tex").read_text(encoding="utf-8")
         run = subprocess.run(
             [
                 "xelatex",
@@ -140,6 +143,7 @@ def _compiled(fields: list[tuple[str, str]], images: list[str]) -> list[Problem]
             stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             cwd=work,
             timeout=_TIMEOUT,
         )
