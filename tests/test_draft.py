@@ -50,6 +50,27 @@ def test_a_draft_built_by_commands_replays_identically(
     assert draft_path.read_bytes() == written
 
 
+def test_freezing_an_unchanged_source_again_keeps_what_the_commands_wrote(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The lines have not moved, so the commands run against them still hold."""
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(MARK_IGNORE, tmp_path)
+    built = draft_path.read_bytes()
+    runner = CliRunner()
+
+    assert runner.invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+    assert draft_path.read_bytes() == built
+
+    # Which leaves --start-over as the way to be rid of them.
+    assert (
+        runner.invoke(cli, ["source", "add", "source.md", "--start-over"]).exit_code
+        == 0
+    )
+    draft = json.loads(draft_path.read_text())
+    assert (draft["log"], draft["fields"]) == ([], {})
+
+
 def test_a_command_and_a_replay_are_refused_once_the_source_has_changed(
     tmp_path: Path, monkeypatch
 ) -> None:

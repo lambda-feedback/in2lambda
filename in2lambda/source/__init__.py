@@ -406,14 +406,22 @@ def add(file: str, start_over: bool = False) -> Path:
     draft = source.parent / DRAFT
     digest = _digest(raw)
 
+    # What a draft already here has been told, which freezing the same file again does
+    # not undo: the commands were run against these very lines, so they still hold.
+    # --start-over is the way to throw them away, and the only one.
+    log: list[Any] = []
+    fields: dict[str, Any] = {}
+
     if not start_over:
         if draft.is_file():
-            if _draft(draft)["hash"] != digest:
+            existing = _draft(draft)
+            if existing["hash"] != digest:
                 raise DraftExists(
                     f"{source.name} has changed since {DRAFT} was written from it. "
                     "Run in2lambda source add --start-over to freeze it again, which "
                     "invalidates every line range taken from the old draft."
                 )
+            log, fields = existing["log"], existing["fields"]
         elif frozen_path != source and frozen_path.exists():
             raise DraftExists(
                 f"{frozen_path.name} is already there and no {DRAFT} claims it, so it "
@@ -431,15 +439,15 @@ def add(file: str, start_over: bool = False) -> Path:
         # writing text would rewrite the line endings on Windows and it would not be.
         frozen_path.write_bytes(raw)
     # Freezing is where a draft starts, not something it records: a replay is the log
-    # applied to this, so `add` is the only thing that writes a draft with nothing in it.
+    # applied to this, so `add` is the only thing that writes a draft it did not run.
     save(
         draft,
         {
             "source": frozen_path.name,
             "hash": digest,
             "blocks": found,
-            "log": [],
-            "fields": {},
+            "log": log,
+            "fields": fields,
         },
     )
     return draft
