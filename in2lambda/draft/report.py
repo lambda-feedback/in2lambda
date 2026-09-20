@@ -8,21 +8,27 @@ its ``report``, which is what whoever is writing the draft - an agent or a perso
 to find out what is left to do, without reading the draft itself.
 
 Everything here reports, never refuses: what the checks found may well be deliberate, and
-deciding that is whoever is writing the draft's to do. Only what is in the draft is
-looked at - its blocks, its field keys, their ranges and their values - because what the
-text of a question says is `in2lambda.validation`'s, at export.
+deciding that is whoever is writing the draft's to do. The checks themselves read only
+what is in the draft - its blocks, its field keys, their ranges and their values - and
+what the text of a question says is `in2lambda.validation`'s: the set the draft describes
+is exported and checked over as well, so that maths Lambda Feedback will not render is
+reported against the field it is written in rather than found after uploading.
 """
 
 import re
+import warnings
 from pathlib import Path
 from typing import Any
 
+from in2lambda.draft.export import as_set, located
 from in2lambda.source import DRAFT, frozen, save
+from in2lambda.validation import pdf
 
 Finding = dict[str, Any]
 """One thing a check found: ``{"check", "field", "ranges", "message"}``.
 
-``check`` is which check found it, ``field`` the block id or field key it is about,
+``check`` is which check found it - ``problem`` where it was `in2lambda.validation`,
+over the set the draft describes - ``field`` the block id or field key it is about,
 ``ranges`` the lines in question as ``[[start, end], ...]``, and ``message`` a sentence
 naming all of that, so that a line of the report can be acted on by itself.
 """
@@ -236,13 +242,88 @@ def checks(draft: dict[str, Any]) -> list[Finding]:
         + _without_solutions(draft)
         + _empty(draft)
     )
-    return sorted(
-        found,
-        key=lambda finding: (
-            finding["ranges"][0][0] if finding["ranges"] else _UNPLACED,
-            finding["field"],
-        ),
+    return sorted(found, key=_order)
+
+
+def _order(finding: Finding) -> tuple[int | float, str]:
+    """Where a finding goes in a report: earliest line first, then by what it is about."""
+    return (
+        finding["ranges"][0][0] if finding["ranges"] else _UNPLACED,
+        finding["field"],
     )
+
+
+def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
+    """What `in2lambda.validation` finds in the set the draft describes.
+
+    The draft is exported as it stands and the set checked over - maths delimiters,
+    what KaTeX will not render, images the export would not carry, and the compile
+    Lambda Feedback's PDF generator does - so that a question that will not render is
+    reported while the draft is being written rather than after it is uploaded.
+
+    Args:
+        draft: A draft, as `in2lambda.source.frozen` reads one.
+        directory: Where the draft is, and so what the images it names are beside.
+
+    Returns:
+        One :data:`Finding` per problem, named by the field of the draft it is in
+        rather than by the question and part of the export, so that a line of it can be
+        acted on with `field replace`. A problem about no one field - the set as a
+        whole failing to compile - keeps the validator's own naming of where it is.
+
+    Warns:
+        UserWarning: pandoc or xelatex is not installed, so the set was not compiled.
+    """
+    where = located(draft)
+    if not where:
+        # A draft with no question in it yet describes an empty set, which has nothing
+        # to find and is not worth a xelatex run to find it in.
+        return []
+
+    missing = pdf.missing_tools()
+    if missing:
+        # As `_katex_rejections` does without Node: a check that cannot be run here says
+        # what to install and leaves the rest of the report alone.
+        warnings.warn(
+            "The set the draft describes was not compiled as the PDF generator would: "
+            "install " + " and ".join(missing),
+            stacklevel=2,
+        )
+
+    fields = draft["fields"]
+    found = []
+    for problem in as_set(draft, directory).problems(compile=not missing):
+        location = max(
+            (named for named in where if problem.location.startswith(named)),
+            key=len,
+            default="",
+        )
+        if location:
+            key = where[location]
+            ranges = fields[key]["ranges"]
+            # Whatever the location says past the field: KaTeX names the characters of
+            # it that it stopped at, and those are the field's characters here as well.
+            rest = problem.location[len(location) :]
+            finding = {
+                "check": "problem",
+                "field": key,
+                "ranges": ranges,
+                "message": f"{key}{_where(ranges)}{rest}: {problem.message}",
+            }
+        else:
+            finding = {
+                "check": "problem",
+                "field": "",
+                "ranges": [],
+                "message": str(problem),
+            }
+        if finding not in found:
+            # A question's solution answers every part of it that has no solution of its
+            # own, so one fault in it is found once per part. They are the same field,
+            # the same lines and the same wording: a second line of the report saying so
+            # is a `field replace` that would be refused for finding nothing to replace.
+            found.append(finding)
+    return found
 
 
 def validate(directory: str = ".") -> list[Finding]:
@@ -256,7 +337,8 @@ def validate(directory: str = ".") -> list[Finding]:
         directory: Where the ``draft.json`` to check is.
 
     Returns:
-        What the checks found, as it was written into the draft.
+        What the checks and `in2lambda.validation` found, as it was written into the
+        draft.
 
     Raises:
         DraftMissing: there is no draft in that directory.
@@ -264,8 +346,11 @@ def validate(directory: str = ".") -> list[Finding]:
         SourceUnreadable: the markdown the draft names has moved, or is not text.
         DraftExists: the markdown has changed since the draft was written from it, so
             the lines the report named would not be the lines it was written about.
+
+    Warns:
+        UserWarning: a check could not be run here - see :func:`problems`.
     """
     draft, _ = frozen(directory)
-    draft["report"] = checks(draft)
+    draft["report"] = sorted(checks(draft) + problems(draft, directory), key=_order)
     save(Path(directory) / DRAFT, draft)
     return draft["report"]
