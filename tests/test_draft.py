@@ -138,6 +138,27 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
         ({"command": "split block", "args": {"block": "b2"}, "by": "tests"}, "at"),
         ({"command": "mark ignore", "args": {"block": 12}, "by": "tests"}, "12"),
         ({"command": "question add", "args": {"text": 12}, "by": "tests"}, "12"),
+        (
+            {
+                "command": "field replace",
+                "args": {"field": "b1.ignore", "old": "a"},
+                "by": "tests",
+            },
+            "new",
+        ),
+        (
+            {
+                "command": "field replace",
+                "args": {
+                    "field": "b1.ignore",
+                    "old": "a",
+                    "new": "b",
+                    "regex": "yes",
+                },
+                "by": "tests",
+            },
+            "true or false",
+        ),
     ],
     ids=[
         "not an object",
@@ -151,6 +172,8 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
         "no at argument",
         "a block that is a number",
         "a text that is a number",
+        "no new argument",
+        "a regex that is neither true nor false",
     ],
 )
 def test_a_log_entry_that_is_not_a_command_is_refused(
@@ -278,6 +301,15 @@ def test_lines_another_field_was_taken_from_are_refused(
         (["draft", "part", "add", "q9", "--text", "s8"], "q9"),
         (["draft", "split", "block", "b3", "5"], "b3 is lines 5-6"),
         (["draft", "split", "block", "b3", "7"], "b3 is lines 5-6"),
+        # q1.text has a $d$ and a $v$ in it, so a $ names four places and none of them.
+        (["draft", "field", "replace", "q1.text", "$", "X"], "occurs 4 times"),
+        (["draft", "field", "replace", "q1.text", "steam", "water"], "occurs 0 times"),
+        (["draft", "field", "replace", "q9.text", "a", "b"], "q9.text"),
+        (["draft", "field", "replace", "b1.ignore", "a", "b"], "b1.ignore"),
+        (
+            ["draft", "field", "replace", "q1.text", "(", "X", "--regex"],
+            "not a regular expression",
+        ),
     ],
     ids=[
         "lines the source has not got",
@@ -288,6 +320,11 @@ def test_lines_another_field_was_taken_from_are_refused(
         "a question nothing has written",
         "a split at the line the block starts on",
         "a split past the line it ends on",
+        "wording the field says more than once",
+        "wording the field does not say",
+        "a field nothing has written",
+        "a field that is not text",
+        "a regex that is not one",
     ],
 )
 def test_a_command_naming_what_the_draft_has_not_got_is_refused(
@@ -325,6 +362,26 @@ def test_a_command_says_what_it_wrote(tmp_path: Path, monkeypatch) -> None:
 
     assert result.exit_code == 0, result.output
     assert result.output == "Wrote b3a and b3b.\n"
+
+    # And a replacement names the field it changed, which it leaves quoting the same
+    # lines as before, said to be edited, and by whoever replaced the wording.
+    result = runner.invoke(
+        cli,
+        ["draft", "field", "replace", "q1.solution", "d^2", "d^{2}", "--by", "ocr"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert result.output == "Wrote q1.solution.\n"
+    draft = json.loads(draft_path.read_text())
+    assert draft["fields"]["q1.solution"] == {
+        "value": "The flow rate is $Q = \\pi d^{2} v / 4$.",
+        "layer": 3,
+        "ranges": [[16, 16]],
+        "edited": True,
+        "by": "ocr",
+    }
+    # --regex is an option, so a command nobody passed it to logs no argument for it.
+    assert "regex" not in draft["log"][-1]["args"]
 
 
 def test_the_halves_of_a_split_block_are_blocks_like_any_other(
