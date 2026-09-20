@@ -167,7 +167,9 @@ changes is what the selectors mean in a document of solutions, which is what `in
 
 A solution past the last slot is reported as being in no field, like any other block the spec
 made nothing of; one landing on a question the solutions before it have answered is refused,
-naming both fields.
+saying that the field - `q2.solution`, say - is already written and that no command here writes
+a field twice. `in2lambda draft field replace` changes the wording of one, and `in2lambda source
+add --start-over` begins the draft again.
 
 ## What it writes
 
