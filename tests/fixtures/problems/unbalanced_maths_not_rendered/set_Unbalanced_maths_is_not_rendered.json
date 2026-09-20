@@ -1,0 +1,7 @@
+{
+  "name": "Unbalanced maths is not rendered",
+  "description": "A price beside an expression, so that the dollars pair up wrongly and what lies between them is not maths at all: the unclosed dollar is the one thing to report, and KaTeX must not be asked what it makes of it.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

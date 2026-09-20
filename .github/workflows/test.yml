@@ -22,6 +22,10 @@ jobs:
           poetry install --with dev --all-extras
       - name: Install Pandoc  # apt version seems too old
         uses: r-lib/actions/setup-pandoc@v2
+      - name: Install Node  # Without it, the maths is not rendered and its tests skip
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       # The validator compiles a set the way lambda-feedback/PDF-generator does, so it
       # needs what that image installs: xelatex with braket, cancel, xeCJK and the
       # Noto Sans fonts the template sets as its main and CJK fonts.

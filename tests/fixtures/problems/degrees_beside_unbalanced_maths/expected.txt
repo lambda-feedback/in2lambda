@@ -1,0 +1,2 @@
+Question 1 "Descent angle", part (a), worked solution: unclosed inline $ ... $
+Question 1 "Descent angle", part (a), worked solution: ^\circ does not display; write the degree sign ° instead
