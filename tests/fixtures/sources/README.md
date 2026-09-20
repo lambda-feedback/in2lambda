@@ -7,7 +7,11 @@ formats the command takes, so that what a heading or a list item comes out as do
 which format an author brought it in; `empty_list_item` is a bullet with nothing in it, which has
 no position of its own and so no block; `unseparated_list` is a list with no blank line before it,
 which pandoc reports as part of the paragraph above, so that paragraph's block has to stop where
-the list starts rather than where pandoc says it ends; `crlf` is the `markdown` case saved with
+the list starts rather than where pandoc says it ends; `display_maths` is a `.tex` with display
+maths standing alone, mid-sentence, on a list item's first line and as an item's own second
+paragraph, each of which the `$$` rewrite below puts on three lines, and a paragraph well over
+72 columns, whose block is the one line the unwrapped freeze leaves it as rather than the two
+pandoc's own wrapping made of it; `crlf` is the `markdown` case saved with
 Windows line endings, which is what a document off a teacher's machine usually has, and it has to
 freeze to the same blocks and to a hash that `sha256sum source.md` reproduces. The `.gitattributes`
 at the top of the repository is what stops a checkout rewriting those endings away.
@@ -18,6 +22,26 @@ the `expected.json` the test compares the draft's `blocks` against.
 The line ranges of the `.tex` and `.docx` cases are ranges in the markdown pandoc writes, not
 in the document itself, so they move if pandoc's `commonmark_x` writer changes. They were
 produced with **pandoc 3.9.0.2**.
+
+That markdown is written with `--wrap=none`, so a paragraph is one line however long it is and
+an inline `$ ... $` is never broken over two, and each `$$ ... $$` the writer put on one line is
+moved onto lines of its own afterwards - indented to the item's content column where it is in a
+list, so the item still holds it. Both are habits of pandoc's writer rather than anything the
+author did, and neither is maths that Lambda Feedback renders, so a field quoted out of a freeze
+that kept them would fail `in2lambda validate`.
+
+A `$$` that opens or closes on a pipe table's row, on a block quote's line or on a code block's
+line is left as pandoc wrote it: a table cell cannot hold a block, the inserted lines would carry
+no `> ` and so fall outside the quote, and a code block's `$$` is characters the document shows
+rather than maths it renders. A code block is a line indented four past the content column of the
+list item it stands in, which is how an item's own paragraph - indented four itself - is told from
+code nested inside the item.
+
+A `$$ ... $$` holding a backtick, or running across a blank line, is left as pandoc wrote it as
+well: display maths holds neither, so the two delimiters are an unpaired `$$` - one in inline
+code, say - and the opening `$$` of a later maths, and rewriting them would make a maths block of
+the words between. The later maths is then left as written too. `in2lambda validate` reports the
+maths left as written in any of these places.
 
 `docx/source.docx` was made from `markdown/source.md` with `pandoc source.md -o source.docx`,
 run beside a `figure.png` so that the image is embedded rather than dropped, and with the

@@ -1,0 +1,7 @@
+question: Para text~'^Q\d+\.'
+solution: Para text~'^Solution:'
+strip:    ['^Q\d+\. ', '^Solution: ']
+ignore:
+  - Header level=1
+  - Para text~'^Marks'
+layout:   PartsOneSol

@@ -16,7 +16,9 @@ import pytest
 from click.testing import CliRunner
 from conftest import SOURCES, SOURCES_DIR
 
+from in2lambda.draft import _quoted
 from in2lambda.main import cli
+from in2lambda.validation import MathDelimiterError, math_delimiter_checker
 
 MARKDOWN = SOURCES_DIR / "markdown"
 """The case the tests below happen to use; what they check holds for any of them."""
@@ -36,10 +38,20 @@ def test_source_add_finds_the_expected_blocks(folder: Path, tmp_path: Path) -> N
     result = CliRunner().invoke(cli, ["source", "add", str(_frozen(tmp_path))])
 
     assert result.exit_code == 0, result.output
-    (source,) = json.loads((tmp_path / "source.draft.json").read_text())["sources"]
+    draft = json.loads((tmp_path / "source.draft.json").read_text())
+    (source,) = draft["sources"]
     assert source["blocks"] == json.loads((folder / "expected.json").read_text())
-    markdown = (tmp_path / source["source"]).read_bytes()
-    assert source["hash"] == f"sha256:{hashlib.sha256(markdown).hexdigest()}"
+    raw = (tmp_path / source["source"]).read_bytes()
+    assert source["hash"] == f"sha256:{hashlib.sha256(raw).hexdigest()}"
+
+    # Every block is a range some command will quote, and what it quotes is a field
+    # `draft validate` runs the delimiter checks over. A freeze that kept pandoc's own
+    # wrapping, or the `$$ ... $$` its writer puts on one line, would hand those checks
+    # a finding about the writer rather than about the document.
+    markdown = raw.decode("utf-8")
+    for block in source["blocks"]:
+        quoted = _quoted(draft, markdown, 1, block["start"], block["end"])
+        assert math_delimiter_checker(quoted) is MathDelimiterError.PASSED, quoted
 
 
 def test_freezing_again_is_refused_once_the_source_has_changed(

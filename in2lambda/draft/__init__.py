@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import in2lambda.spec
-from in2lambda.draft.report import _order, checks, overlapping, uncovered
+from in2lambda.draft.report import _order, _where, checks, overlapping, uncovered
 from in2lambda.source import (
     SourceError,
     _digest,
@@ -889,7 +889,7 @@ def _spec_run(
         (_elements(markdown, number), markdown)
         for number, markdown in enumerate(sources, start=1)
     ]
-    fields, ignored = in2lambda.spec.fields(spec, documents, functions)
+    fields, ignored, doubled = in2lambda.spec.fields(spec, documents, functions)
     for found in fields:
         record(
             draft,
@@ -920,6 +920,14 @@ def _spec_run(
     # A spec writes a draft's worth of fields, so what it hands back is the other way
     # round: what it made nothing of, which is what is left for anyone to act on. Said
     # in the words `in2lambda validate` says it in, since it is the same check.
-    if left_out := uncovered(draft):
-        return "\n".join(finding["message"] for finding in left_out)
+    reported = [finding["message"] for finding in uncovered(draft)]
+    # A doubled block is one of those, and this names the field it would have gone in
+    # and the block that holds it, which the coverage report cannot say.
+    reported += [
+        f"{block}{_where(ranges)} would be {key}, which {by_block}"
+        f"{_where(by_ranges)} already holds."
+        for block, ranges, key, by_block, by_ranges in doubled
+    ]
+    if reported:
+        return "\n".join(reported)
     return "Every block is in a field or ignored."
