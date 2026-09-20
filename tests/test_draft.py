@@ -59,7 +59,9 @@ def _expected_parts(fields: dict[str, Any], number: int) -> int:
 
     One per ``qN.pM.text``, and one more where ``qN.solution`` is written beside a
     solution for every part there is: nothing is left for it to answer, so it is a part
-    of its own, as `in2lambda convert` writes one.
+    of its own, as `in2lambda convert` writes one. A question with no parts written for
+    it at all is one empty part, since a question exported holding none carries the
+    template's placeholder wording instead.
     """
     written = [
         int(found[2])
@@ -67,7 +69,8 @@ def _expected_parts(fields: dict[str, Any], number: int) -> int:
         if (found := PART.fullmatch(key)) and int(found[1]) == number
     ]
     answered = all(f"q{number}.p{part}.solution" in fields for part in written)
-    return len(written) + (answered and f"q{number}.solution" in fields)
+    parts = len(written) + (answered and f"q{number}.solution" in fields)
+    return parts or 1
 
 
 def _reported(folder: Path) -> list[dict[str, Any]]:
@@ -568,9 +571,12 @@ def test_build_follows_the_report(folder: Path, tmp_path: Path, monkeypatch) -> 
         for index, part in enumerate(question.parts, start=1):
             if f"q{number}.p{index}.text" not in fields:
                 # The question's own solution, written where every part is answered
-                # already: last, and holding nothing but that solution.
+                # already: last, and holding nothing but that solution. Or, where the
+                # question has no solution either, the empty part a question with no
+                # parts written for it exports as.
                 assert part.text == ""
-                assert part.worked_solution == fields[f"q{number}.solution"]["value"]
+                solution = fields.get(f"q{number}.solution")
+                assert part.worked_solution == (solution["value"] if solution else "")
                 continue
             assert part.text == fields[f"q{number}.p{index}.text"]["value"]
             # A part's own solution, or the question's where it has none of its own.

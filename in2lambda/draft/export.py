@@ -59,8 +59,10 @@ def as_set(draft: dict[str, Any], directory: str = ".") -> Set:
         question was written without parts, it becomes a part of its own holding
         nothing but that solution. That is the rule
         :meth:`~in2lambda.api.question.Question.add_solution` applies, so a draft
-        exports as the same sheet converted by `in2lambda convert` does. A block marked
-        ignore is in no question: it is the source's, not the set's.
+        exports as the same sheet converted by `in2lambda convert` does. A question
+        written with neither parts nor a solution holds one part with nothing in it,
+        which is the question as the draft has it. A block marked ignore is in no
+        question: it is the source's, not the set's.
 
     Examples:
         >>> from in2lambda.draft.export import as_set
@@ -100,6 +102,12 @@ def as_set(draft: dict[str, Any], directory: str = ".") -> Set:
                 for part_of in question.parts:
                     if not part_of.worked_solution:
                         part_of.worked_solution = fields[written]["value"]
+        if not question.parts:
+            # A question whose parts are yet to be written is still exported, and an
+            # empty part is what it holds: `json_convert` leaves a question with no
+            # parts at all carrying the template's own placeholder wording, which is
+            # wording no field of the draft holds.
+            question.parts.append(Part())
         # As the export refers to them: beside the draft, since that is where a command
         # naming a file names one. Whether the file is there is `build`'s question, not
         # asked here, so that a draft can be rendered while its figures are being found.
