@@ -1,8 +1,8 @@
 # 📝 Drafts
 
-A draft is a JSON file beside a problem sheet. It holds the markdown the sheet was converted to,
-the blocks that markdown is made of, one field per question, part and solution, and the log of
-the commands that wrote those fields. `in2lambda convert` reads a document and writes a set in
+A draft is a JSON file beside a problem sheet. It names the markdown file the sheet was converted
+to and holds that file's hash, the blocks the markdown is made of, one field per question, part
+and solution, and the log of the commands that wrote those fields. `in2lambda convert` reads a document and writes a set in
 one command. A draft is the other way of working: in2lambda converts the document once, and the
 questions are then written, checked and rebuilt from the frozen markdown and the log.
 
@@ -38,8 +38,7 @@ $ in2lambda source add sheet.md
 Wrote /home/you/sheet/sheet.draft.json
 ```
 
-`in2lambda source add` converts the document to markdown, hashes the markdown, and writes the
-draft beside it. The draft is named after the document, so a folder of sheets holds one draft per
+`in2lambda source add` hashes the markdown and writes the draft beside it. The draft is named after the document, so a folder of sheets holds one draft per
 sheet:
 
 ```bash
@@ -118,8 +117,8 @@ not the line the earlier commands were run against. `in2lambda source add --star
 the document again and discards the draft written from it.
 
 A draft records every command in its log as the command runs. `in2lambda draft replay` builds the
-draft again from the frozen markdown and the log alone, so a draft a model wrote is rebuilt and
-checked with no model in the loop.
+draft again from the frozen markdown and the log, reading nothing else, so a draft a model wrote
+is rebuilt and checked without running the model again.
 
 ## Read the source back
 
@@ -280,7 +279,7 @@ Wrote q2.p1.text.
 Pandoc reads `(a)` as a list marker, so `b6` is a list item, and a field quoted from a list item
 is dedented by the item's own marker. `q2.p1.text` holds `Find the drag force on it.`
 
-## Check what is left
+## Find the blocks in no field
 
 ```bash
 $ in2lambda validate
@@ -292,16 +291,17 @@ Warning: q1.p1 has no solution: neither q1.p1.solution nor q1.solution is writte
 ```
 
 `in2lambda validate` checks the draft over and writes what it finds into the draft as the draft's
-report. Whoever is writing the draft reads that report to find what is left to do. A finding at
-level error is the draft contradicting its own source: lines nothing accounts for, two fields
-quoted from the same lines, a numbering with a hole in it, maths Lambda Feedback will not render.
-A finding at level warning may be right about the sheet, and a question nothing answers is one of
-those: many sheets write their solutions in another file, and some sheets have none.
+report. Whoever is writing the draft reads that report to find the blocks in no field and the
+questions with no solution. A finding at level error is the draft contradicting its own source:
+lines nothing accounts for, two fields quoted from the same lines, a numbering with a hole in it,
+maths Lambda Feedback will not render. A finding at level warning may be right about the sheet.
+A question with no solution is reported at level warning, because many sheets write their
+solutions in another file, and some sheets have none.
 
 The findings are printed in the order of the source, and the findings about no particular line
 last. `q1.p1` was typed out, so it names no lines.
 
-## Account for the rest
+## Mark the rubric and the Solutions heading ignored
 
 The rubric and the Solutions heading are two of the blocks the report names, and neither holds a
 question:
@@ -335,8 +335,8 @@ Wrote q2.solution.
 ## Change what a field says
 
 The sheet writes the second solution with `\half`, which KaTeX does not define, and
-`in2lambda validate` reports that against `q2.solution`. No line of the source says the maths
-correctly, so the wording itself is changed:
+`in2lambda validate` reports that against `q2.solution`. No line of the source writes the maths in
+a command KaTeX defines, so the wording itself is changed:
 
 ```bash
 $ in2lambda draft field replace q2.solution '\half' '\tfrac12'
