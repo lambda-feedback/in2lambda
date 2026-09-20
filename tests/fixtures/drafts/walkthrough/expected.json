@@ -1,0 +1,117 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "b2.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": true
+  },
+  "b4.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": true
+  },
+  "b7.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        13,
+        13
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": true,
+    "layer": 4,
+    "ranges": [],
+    "value": "Find the volume flow rate."
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        15,
+        15
+      ]
+    ],
+    "value": "The flow rate is $Q = \\pi d^2 v / 4$."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "Q1. Water flows through a horizontal pipe of diameter $d$ at speed $v$."
+  },
+  "q2.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        11,
+        11
+      ]
+    ],
+    "value": "Find the drag force on it."
+  },
+  "q2.solution": {
+    "by": "tests",
+    "edited": true,
+    "layer": 3,
+    "ranges": [
+      [
+        16,
+        16
+      ]
+    ],
+    "value": "The drag is $F = \\tfrac12 \\rho U^2 A C_d$."
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "Q2. A submarine is towed at speed $U$ through still water."
+  }
+}
