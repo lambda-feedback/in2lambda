@@ -73,6 +73,8 @@ $ in2lambda convert questions.tex -a solutions.tex PartsSepSol
 
 By default, this generates an `out` directory in the same place that the command was run in. It contains the zipped question files.
 
+Before writing anything, in2lambda prints the problems it can detect that would stop the set importing or make it render wrongly — an answer that doesn't fit the box marking it, a figure the export won't contain, maths that KaTeX can't display. Each names the question, part and field to go and look at. They are warnings rather than errors: the `out` directory is written either way, since a problem found here may well be deliberate.
+
 Check the [command line tool reference](reference/command-line) for more information.
 
 ## 3. Import into Lambda Feedback
@@ -81,6 +83,7 @@ Click on a set in teacher mode. The arrow next to the "Add Question" button allo
 
 Choose the zip file you wish to upload, and the question should appear! 🎉
 
-Imported questions arrive published with every display setting on, and the set's own visibility settings still apply. The Python API can set each of these per question.
+Imported questions arrive published with every display setting on, and the set's own visibility settings still apply. The Python API can set each of these per question — see the
+[question format](question-format).
 
 ![Importing Question from file in Teacher Mode](_static/images/import-teacher.png)

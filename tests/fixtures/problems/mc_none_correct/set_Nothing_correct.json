@@ -1,0 +1,7 @@
+{
+  "name": "Nothing correct",
+  "description": "A multiple choice where no option is marked as the correct one.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

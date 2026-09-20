@@ -1,0 +1,7 @@
+{
+  "name": "Degrees",
+  "description": "A final answer in degrees written the usual LaTeX way, which does not display.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

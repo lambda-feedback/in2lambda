@@ -1,0 +1,7 @@
+{
+  "name": "Missing figure",
+  "description": "A question referencing a figure that the export's media folder does not hold.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

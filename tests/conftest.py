@@ -13,6 +13,12 @@ EXPORTS_DIR = Path(__file__).parent / "fixtures" / "exports"
 EXPORTS = sorted(path for path in EXPORTS_DIR.iterdir() if path.is_dir())
 """Every export folder, found rather than listed so that adding one needs no code."""
 
+PROBLEMS_DIR = Path(__file__).parent / "fixtures" / "problems"
+"""Hand-written exports, one per folder, each exhibiting one problem for the validator."""
+
+PROBLEM_SETS = sorted(path for path in PROBLEMS_DIR.iterdir() if path.is_dir())
+"""Every folder of the above, found the same way: covering a check means adding one."""
+
 
 @pytest.fixture(scope="session")
 def filters_dir() -> str:

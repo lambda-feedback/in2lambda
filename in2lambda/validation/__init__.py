@@ -1,37 +1,238 @@
-"""Pre-flight checks for the ``#``/``##`` and ``$``/``$$`` markdown delimiters.
+"""Checks a question set for what Lambda Feedback would refuse or render wrongly.
 
-The markdown that in2lambda converts - however it was produced - is a shared
-contract with Lambda Feedback. These checks catch structural mistakes in that
-markdown, currently unbalanced or misplaced math delimiters, before it is
-converted.
+A question can be perfectly valid JSON and still fail to import, or import and then
+look wrong: an answer that does not fit the box marking it, an image the export will
+not contain, maths KaTeX cannot render. Authors otherwise find this out by uploading
+and looking.
+
+Everything here reports, never refuses: :func:`validate` returns what it found and the
+export goes ahead regardless, since a problem may well be deliberate.
 """
 
+import re
+from functools import cache
+from pathlib import Path
+
+from in2lambda.api.problem import Problem
+from in2lambda.api.question import Question
+from in2lambda.api.response_area import ResponseArea
+from in2lambda.api.set import Set
+from in2lambda.katex_convert.katex_convert import unsupported_commands
 from in2lambda.validation.delimiters import MathDelimiterError, math_delimiter_checker
 
-__all__ = ["MathDelimiterError", "math_delimiter_checker", "check_markdown"]
+__all__ = ["MathDelimiterError", "Problem", "math_delimiter_checker", "validate"]
+
+_IMAGE = re.compile(r"!\[[^\]]*\]\(([^)]*)\)")
+"""A markdown image, e.g. ``![pictureTag](question_000_Title_0001.png)``."""
+
+_MATHS = re.compile(r"(?<!\\)\$\$(.*?)(?<!\\)\$\$|(?<!\\)\$(.*?)(?<!\\)\$", re.DOTALL)
+"""Display maths first, so that ``$$ ... $$`` is not read as two empty ``$ ... $``."""
+
+_COMMAND = re.compile(r"\\[a-zA-Z]+")
+
+_DEGREES = re.compile(r"\^\s*\{?\s*\\circ")
+"""``^\\circ``, with or without braces around it."""
 
 
-def check_markdown(md_content: str) -> list[MathDelimiterError]:
-    """Run every markdown check and return the problems found.
+def validate(question_set: Set) -> list[Problem]:
+    r"""Everything in2lambda can tell is wrong with a set, in the order it is written.
 
     Args:
-        md_content: The markdown text to validate.
+        question_set: The set about to be exported.
 
     Returns:
-        A list of :class:`MathDelimiterError` members, one per problem found.
-        An empty list means the markdown passed every check.
+        One :class:`~in2lambda.api.problem.Problem` per problem found, each naming the
+        question, part and field to look at. An empty list means nothing was found -
+        not that the set will import, since only some mistakes can be seen from here.
 
     Examples:
-        >>> from in2lambda.validation import check_markdown
-        >>> check_markdown("Inline $x = y$ is fine.")
-        []
-        >>> check_markdown("Unbalanced $x = y")
-        [<MathDelimiterError.MISSING_CLOSING_SINGLE_DOLLAR: 'unclosed inline $ ... $'>]
+        >>> from in2lambda.api.set import Set
+        >>> from in2lambda.validation import validate
+        >>> s = Set()
+        >>> s.add_question("Angles", "Turn through $90^\\circ$.")
+        >>> [str(problem) for problem in validate(s)]
+        ['Question 1 "Angles", main text: ^\\circ does not display; write the degree sign ° instead']
     """
-    problems: list[MathDelimiterError] = []
+    problems: list[Problem] = []
 
-    result = math_delimiter_checker(md_content)
-    if result is not MathDelimiterError.PASSED:
-        problems.append(result)
+    for number, question in enumerate(question_set.questions, start=1):
+        where = f'Question {number} "{question.title}"'
+        problems += _markdown_problems(
+            question.main_text, question, f"{where}, main text"
+        )
+
+        for image in question.images:
+            if not Path(image).is_file():
+                problems.append(Problem(where, f"there is no image file at {image}"))
+
+        for index, part in enumerate(question.parts):
+            part_where = f"{where}, part ({chr(ord('a') + index)})"
+            for field, markdown in (
+                ("text", part.text),
+                ("worked solution", part.worked_solution),
+                ("answer", part.answer),
+            ):
+                problems += _markdown_problems(
+                    markdown, question, f"{part_where}, {field}"
+                )
+
+            for area_number, area in enumerate(part.response_areas, start=1):
+                area_where = f"{part_where}, answer box {area_number}"
+                problems += [
+                    Problem(area_where, message) for message in _area_problems(area)
+                ]
+                for field, markdown in (
+                    ("pre_text", area.pre_text),
+                    ("post_text", area.post_text),
+                    ("content_after", area.content_after),
+                ):
+                    problems += _markdown_problems(
+                        markdown, question, f"{area_where}, {field}"
+                    )
+                options = (area.config or {}).get("options")
+                if isinstance(options, list):
+                    for option_number, option in enumerate(options, start=1):
+                        problems += _markdown_problems(
+                            option, question, f"{area_where}, option {option_number}"
+                        )
 
     return problems
+
+
+def _markdown_problems(
+    markdown: str, question: Question, location: str
+) -> list[Problem]:
+    """Every problem in one markdown field, reported against `location`.
+
+    The question is needed because an image reference is only good if that image is
+    among the question's, and so will be written into the export's ``media/``.
+    """
+    problems: list[Problem] = []
+
+    delimiters = math_delimiter_checker(markdown)
+    if delimiters is not MathDelimiterError.PASSED:
+        problems.append(Problem(location, delimiters.value))
+
+    # Lambda Feedback finds an image in media/ by its file name alone.
+    media = {Path(image).name for image in question.images}
+    for reference in _IMAGE.findall(markdown):
+        if Path(reference).name not in media:
+            problems.append(
+                Problem(location, f"the export will not contain the image {reference}")
+            )
+
+    problems += _katex_problems(markdown, location)
+    return problems
+
+
+def _katex_problems(markdown: str, location: str) -> list[Problem]:
+    """Maths that KaTeX, which Lambda Feedback renders with, will not display."""
+    problems: list[Problem] = []
+    lacks = _katex_lacks()
+
+    for span in _MATHS.finditer(markdown):
+        maths = span[1] if span[1] is not None else span[2]
+        for command in _COMMAND.findall(maths):
+            if command in lacks:
+                replacement = lacks[command]
+                problems.append(
+                    Problem(
+                        location,
+                        (
+                            f"KaTeX does not render {command}; write {replacement} instead"
+                            if replacement
+                            else f"KaTeX does not render {command}"
+                        ),
+                    )
+                )
+        if _DEGREES.search(maths):
+            problems.append(
+                Problem(
+                    location,
+                    "^\\circ does not display; write the degree sign ° instead",
+                )
+            )
+
+    return problems
+
+
+@cache
+def _katex_lacks() -> dict[str, str | None]:
+    """What KaTeX lacks, keyed by the command as it is written rather than as a regex.
+
+    :func:`~in2lambda.katex_convert.katex_convert.unsupported_commands` gives the lists
+    as they are written, where a command's backslash is escaped for the replacing pass.
+    The entries that are not a single command, such as whole environments, simply never
+    match one.
+    """
+    return {
+        pattern.replace("\\\\", "\\"): (
+            replacement.replace("\\\\", "\\") if replacement else replacement
+        )
+        for pattern, replacement in unsupported_commands().items()
+    }
+
+
+def _area_problems(area: ResponseArea) -> list[str]:
+    """Where an answer box's answer does not fit the box, or what marks it.
+
+    Only the three response type / evaluation function pairings the real exports use
+    (``tests/fixtures/exports/README.md``) are judged. Any other evaluation function
+    may expect an answer of any shape, and guessing at it would only cry wolf.
+    """
+    messages = []
+
+    wants_list = [
+        name
+        for name in (area.response_type, area.evaluation_function)
+        if name in ("MULTIPLE_CHOICE", "arrayEqual")
+    ]
+    wants_text = [
+        name
+        for name in (area.response_type, area.evaluation_function)
+        if name
+        in (
+            "MATH_SINGLE_LINE",
+            "NUMERIC_UNITS",
+            "symbolicEqual",
+            "comparePhysicalQuantities",
+        )
+    ]
+    if wants_list and not isinstance(area.answer, list):
+        messages.append(
+            f"{' and '.join(wants_list)} needs one true/false answer per option, not text"
+        )
+    if wants_text and not isinstance(area.answer, str):
+        messages.append(
+            f"{' and '.join(wants_text)} needs the answer as text, not a list"
+        )
+
+    if area.response_type == "MULTIPLE_CHOICE" and isinstance(area.answer, list):
+        config = area.config or {}
+        options = config.get("options")
+        if not isinstance(options, list):
+            messages.append("multiple choice has no options to answer")
+        elif len(options) != len(area.answer):
+            messages.append(
+                f"{len(options)} options but {len(area.answer)} true/false answers"
+            )
+
+        correct = area.answer.count(True)
+        if correct == 0:
+            messages.append("no option is marked correct")
+        elif correct > 1 and config.get("single"):
+            messages.append(
+                f"{correct} options are marked correct, but only one answer is allowed"
+            )
+
+    if area.response_type in ("MATH_SINGLE_LINE", "NUMERIC_UNITS") and isinstance(
+        area.answer, str
+    ):
+        if not area.answer.strip():
+            messages.append(f"{area.response_type} has no answer")
+        elif area.response_type == "NUMERIC_UNITS" and not re.search(
+            r"\d", area.answer
+        ):
+            messages.append(f'NUMERIC_UNITS answer "{area.answer}" has no number in it')
+
+    return messages

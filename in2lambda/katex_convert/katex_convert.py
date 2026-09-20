@@ -77,6 +77,43 @@ def delete_functions(latex_string: str) -> str:
     return latex_string
 
 
+def unsupported_commands() -> dict[str, str | None]:
+    r"""Every LaTeX command KaTeX has no equivalent for, and what to write instead.
+
+    The keys and values are as ``delete_list.txt`` and ``replace_list.txt`` write them:
+    a regular expression and a :func:`re.sub` template, so a command's backslash is
+    escaped. ``None`` means the command has no equivalent and is simply dropped.
+
+    Only the plain ``\name`` lines of ``delete_list.txt`` are included, the rest of it
+    matching whole environments, lengths and stray braces rather than a command.
+
+    Returns:
+        Each unsupported command mapped to its replacement, or to ``None`` if it has no
+        replacement.
+
+    Examples:
+        >>> from in2lambda.katex_convert.katex_convert import unsupported_commands
+        >>> commands = unsupported_commands()
+        >>> commands["\\\\norm"]
+        '\\\\mathbf'
+        >>> commands["\\\\bigskip"] is None
+        True
+    """
+    commands: dict[str, str | None] = {}
+
+    with open(Path(__file__).with_name("delete_list.txt"), "r") as file:
+        for line in file:
+            if re.fullmatch(r"\\\\[a-zA-Z]+", line.strip()):
+                commands[line.strip()] = None
+
+    with open(Path(__file__).with_name("replace_list.txt"), "r") as file:
+        for line in file:
+            key, value = line.strip().replace(",", "").split(":", 1)
+            commands[key.strip()] = value.strip()
+
+    return commands
+
+
 def replace_functions(latex_string: str) -> str:
     """Helper method of `latex_to_katex` that replaces some LaTeX expressions with an equivalent KaTeX one.
 
@@ -86,32 +123,20 @@ def replace_functions(latex_string: str) -> str:
     Returns:
         The same LaTeX string with some commands replaced where necessary.
     """
-    replacement_dict = {}  # Dictionary to store the formatted values
-
-    with open(Path(__file__).with_name("replace_list.txt"), "r") as file:
-        for line in file:
-            line = line.strip().replace(",", "")
-            key, value = line.split(":", 1)
-            key = key.strip()
-            value = value.strip()
-
-            pattern = re.compile(key)
-            match = pattern.search(value)
-
-            if match:
-                key = key + "(?![a-zA-Z])"
-
-            replacement_dict[key] = value
-
     logger.info("")
 
     # replace the incompatible functions with their KaTeX equivalents using re.sub
-    for old, new in replacement_dict.items():
+    for old, new in unsupported_commands().items():
+        if new is None:  # Deleted rather than replaced; see delete_functions.
+            continue
+
+        # e.g. "\ang" must not match within its own replacement "\angle".
+        if re.search(old, new):
+            old = old + "(?![a-zA-Z])"
+
         while re.search(old, latex_string):
-            match = re.search(old, latex_string)
-            if match:
-                logger.info(f"Replaced {old} with {new}")
-                latex_string = re.sub(old, new, latex_string)
+            logger.info(f"Replaced {old} with {new}")
+            latex_string = re.sub(old, new, latex_string)
     return latex_string
 
 

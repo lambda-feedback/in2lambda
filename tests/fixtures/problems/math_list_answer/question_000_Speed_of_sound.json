@@ -1,0 +1,48 @@
+{
+  "orderNumber": 0,
+  "title": "Speed of sound",
+  "masterContent": "",
+  "publish": true,
+  "displayFinalAnswer": true,
+  "displayStructuredTutorial": true,
+  "displayWorkedSolution": true,
+  "displayChatbot": true,
+  "parts": [
+    {
+      "orderNumber": 0,
+      "content": "Give the speed of sound in air.",
+      "answerContent": "",
+      "workedSolution": {"content": "", "children": []},
+      "responseAreas": [
+        {
+          "orderNumber": 0,
+          "preResponseText": "",
+          "postResponseText": "",
+          "contentAfter": "",
+          "inputSymbols": [],
+          "displayInputSymbols": false,
+          "evaluationFunctionName": "symbolicEqual",
+          "gradeParams": {"strict_syntax": false},
+          "livePreview": false,
+          "includeInPdf": false,
+          "saveAllowed": false,
+          "separateFeedback": true,
+          "commonFeedbackColor": "#C4CDD5",
+          "correctFeedbackColor": "#22C55E",
+          "correctFeedbackPrefix": "Correct",
+          "incorrectFeedbackColor": "#ff5630",
+          "incorrectFeedbackPrefix": "Incorrect",
+          "tests": [],
+          "cases": [],
+          "response": {
+            "responseInput": {
+              "responseType": "MATH_SINGLE_LINE",
+              "answer": [true, false],
+              "config": null
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
