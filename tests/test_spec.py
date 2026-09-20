@@ -12,6 +12,7 @@ import json
 import shutil
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 from click.testing import CliRunner
@@ -91,7 +92,14 @@ def test_a_replay_is_refused_once_the_spec_has_changed(
     assert draft_path.read_bytes() == written
 
 
-def test_running_an_edited_spec_again_is_refused(tmp_path: Path, monkeypatch) -> None:
+@pytest.mark.parametrize(
+    "named",
+    ["spec.yaml", "./spec.yaml", "spec2.yaml"],
+    ids=["as it was", "spelled another way", "as a copy"],
+)
+def test_running_an_edited_spec_again_is_refused(
+    named: str, tmp_path: Path, monkeypatch
+) -> None:
     """The fields of the first run would stay, and the draft could never replay again."""
     monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.chdir(tmp_path)
@@ -102,14 +110,47 @@ def test_running_an_edited_spec_again_is_refused(tmp_path: Path, monkeypatch) ->
 
     spec = tmp_path / "spec.yaml"
     spec.write_text(spec.read_text().replace("PartsSepSol", "PartsOneSol"))
-    result = runner.invoke(cli, ["spec", "run", "spec.yaml"])
+    # However the second run names the spec - the way the first did, another way round
+    # to the same file, or as a copy under a name of its own - what is refused is that
+    # the spec the draft was filled in from has changed, since that is what no replay
+    # could get past afterwards.
+    shutil.copy(spec, tmp_path / "spec2.yaml")
+    result = runner.invoke(cli, ["spec", "run", named])
 
     assert result.exit_code != 0
+    # Named as the spec that ran, whatever this run called it, and refused for having
+    # changed rather than for the fields of the first run being in the way.
+    assert "spec.yaml has changed" in result.output
     assert "--start-over" in result.output
     assert draft_path.read_bytes() == written
     # And what is on disk is still a draft that replays, which is the point of refusing.
     spec.write_text(spec.read_text().replace("PartsOneSol", "PartsSepSol"))
     assert runner.invoke(cli, ["draft", "replay"]).exit_code == 0
+
+
+@pytest.mark.parametrize("entry", [5, "nonsense"], ids=["a number", "some words"])
+def test_a_spec_run_over_a_log_holding_something_that_is_not_a_command_is_refused(
+    entry: Any, tmp_path: Path, monkeypatch
+) -> None:
+    """A spec run reads the log it adds to, which is a file anyone can have edited."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    runner = _frozen(WORKED_EXAMPLE, tmp_path)
+    assert runner.invoke(cli, ["spec", "run", "spec.yaml"]).exit_code == 0
+    draft_path = tmp_path / "draft.json"
+    draft = json.loads(draft_path.read_text())
+    draft["log"].append(entry)
+    draft_path.write_text(json.dumps(draft))
+    written = draft_path.read_bytes()
+
+    result = runner.invoke(cli, ["spec", "run", "spec.yaml"])
+
+    assert result.exit_code != 0
+    # The same thing `draft replay` says of the same log, rather than a traceback from
+    # whichever line indexed it first.
+    assert "is not a command" in result.output
+    assert isinstance(result.exception, SystemExit)
+    assert draft_path.read_bytes() == written
 
 
 def test_a_replay_is_refused_once_the_spec_has_gone(
