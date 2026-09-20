@@ -271,6 +271,17 @@ def _draft(path: Path) -> dict[str, Any]:
                 f"{path} is not a draft anything here wrote: its {field} is "
                 f"{draft[field]!r} rather than {called}. {advice}"
             )
+    if not draft["sources"]:
+        # Nothing here writes one: `add` freezes a file or refuses. So an empty list is
+        # a hand-edited draft, and every id and range in it names a document that is no
+        # longer there - which is what the rest of this package would trip over rather
+        # than report, since it takes the first source as the one an unqualified id is
+        # of.
+        raise DraftUnreadable(
+            f"{path} is not a draft anything here wrote: its sources is empty, so "
+            f"there is no frozen document for its fields to have been quoted out of. "
+            f"{advice}"
+        )
     for source in draft["sources"]:
         if not isinstance(source, dict) or not all(
             key in source for key in ("source", "hash", "blocks")
@@ -632,12 +643,14 @@ def add(files: list[str], start_over: bool = False) -> Path:
             "sources": sources,
             "log": existing["log"],
             "fields": existing["fields"],
-            # What the checks found about the draft still holds for the same reason as
-            # the fields do: this writes the draft back as it was, so a report of it is
-            # a report of what is saved.
+            # What the checks found still holds where every file named was frozen
+            # already, since then this writes the draft back as it was. A source
+            # appended is a document the checks have never seen, every block of which
+            # is in no field, so the report is dropped as any change to a draft drops
+            # it - and `build`, which is gated on one, asks for the checks again.
             **(
                 {"report": existing["report"]}
-                if existing.get("report") is not None
+                if existing.get("report") is not None and sources == existing["sources"]
                 else {}
             ),
         },

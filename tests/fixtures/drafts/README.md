@@ -42,3 +42,8 @@ no parts is what the export has to write out as an empty part rather than as the
 while the questions are quoted from source 1 - lines 5 and 7 of each, which is why the fields
 say which source they came from. The note at the end of the solutions is what the spec makes
 nothing of, and `mark ignore 2/b7` is a block of the second source named as one.
+`degrees` writes `^\circ` into the maths of both a question and the one worked solution answering
+its two parts, and is the one folder whose report comes from `in2lambda.validation` over the set
+the draft describes rather than from the checks over the draft itself: the solution is reported
+against `q1.solution` rather than the parts it answers, since that is the field a `field replace`
+would have to change, and reported once rather than once per part it was copied into.

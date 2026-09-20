@@ -210,7 +210,9 @@ def test_source_show_refuses_once_the_source_has_changed(
 
 
 @pytest.mark.parametrize(
-    "content", ["{ not json at all", '{"blocks": []}'], ids=["not-json", "foreign"]
+    "content",
+    ["{ not json at all", '{"blocks": []}', '{"sources": [], "log": [], "fields": {}}'],
+    ids=["not-json", "foreign", "no-sources"],
 )
 @pytest.mark.parametrize(
     "arguments",

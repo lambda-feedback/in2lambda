@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import in2lambda.spec
-from in2lambda.draft.report import checks, overlapping, uncovered
+from in2lambda.draft.report import _order, checks, overlapping, uncovered
 from in2lambda.source import (
     DRAFT,
     SourceError,
@@ -340,9 +340,16 @@ def replay(directory: str = ".") -> None:
     for entry in draft["log"]:
         apply(rebuilt, sources, entry, directory)
     # The one thing in a draft that no command wrote: the checks did, over the draft the
-    # commands left, so rebuilding it is running them again rather than copying it.
+    # commands left, so rebuilding it is running them again rather than copying it. What
+    # `in2lambda.validation` found over the set is carried across instead, since it
+    # depends on whether xelatex and Node are installed and the draft does not: rebuilt
+    # here it would come out shorter on a machine whose toolchain is not the one that
+    # validated, and an untouched draft would be accused of having been edited.
     if "report" in draft:
-        rebuilt["report"] = checks(rebuilt)
+        carried = [
+            finding for finding in draft["report"] if finding["check"] == "problem"
+        ]
+        rebuilt["report"] = sorted(checks(rebuilt) + carried, key=_order)
 
     path = Path(directory) / DRAFT
     if serialise(rebuilt) != path.read_bytes():
