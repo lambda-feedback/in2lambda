@@ -24,22 +24,23 @@ _IMAGE = re.compile(r"!\[[^\]]*\]\(([^)]*)\)")
 
 
 def _image_for(reference: str, images: list[str]) -> Optional[str]:
-    """Which of a question's images a markdown reference names, if any.
+    """Which of a question's images a markdown reference names.
 
-    Matched by file name, because that is the link between the two: a filter resolves
-    the very path it leaves in the markdown, and Lambda Feedback finds an image in
-    ``media/`` by its file name alone. Only where a question lists two files of the same
-    name does the rest of the reference decide, by naming the end of one of their paths.
+    An image is matched by file name, which is the link between a reference and a file: a
+    filter resolves the path it writes into the markdown, and Lambda Feedback finds an
+    image in ``media/`` by its file name alone. Where a question lists two files of the
+    same name, the rest of the reference decides, by naming the end of one of their paths.
 
     Returns:
-        The image, or None if the question lists none of that name - in which case the
-        reference is left as written, which :mod:`in2lambda.validation` reports.
+        The image, or None where the question lists no image of that name. The writer
+        then writes the reference as it stands, and :mod:`in2lambda.validation` reports
+        it.
     """
     named = [image for image in images if Path(image).name == Path(reference).name]
     if len(named) > 1:
-        # A filter keeps the reference as the document wrote it but normalises the path
-        # it lists beside it, so a `..` is present on one side only and has to come off
-        # for the two to line up. A `.` is already gone, dropped by ``pathlib``.
+        # A filter writes the reference as the document wrote it and normalises the path
+        # it lists beside it, so a `..` appears on one side only and comes off for the
+        # two to match. ``pathlib`` has already dropped a `.`.
         parts = tuple(part for part in Path(reference).parts if part != "..")
         named = [
             image for image in named if Path(image).parts[-len(parts) :] == parts
@@ -53,7 +54,7 @@ def _templates() -> tuple[dict[str, Any], dict[str, Any]]:
     Returns:
         The question template and the set template.
     """
-    # Use path so minimal template can be found regardless of where the user is running python from.
+    # An absolute path, so that the templates are found whatever the working directory is.
     with open(Path(__file__).with_name(MINIMAL_QUESTION_TEMPLATE), "r") as file:
         question_template = json.load(file)
 
@@ -64,18 +65,18 @@ def _templates() -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def _zip(files: list[Path], root: Path, zip_path: str) -> None:
-    """Zips the given files, keeping where they sit relative to a folder.
+    """Zips the given files, keeping each file's path relative to a folder.
 
-    Only what this run wrote is listed, so whatever else the folder holds is neither
-    uploaded nor removed.
+    The archive lists only the files this run wrote, so whatever else the folder holds is
+    left out of the upload and left on disk.
 
     Args:
         files: The files to include, all inside root.
         root: The folder the archive names are relative to.
-        zip_path: The path where the zip file will be created.
+        zip_path: The path to create the zip file at.
     """
-    # Sort by archive name for deterministic, alphabetical order, and name each file
-    # once: a file written twice is still one file on disk.
+    # Sorted by archive name, so that the zip lists its files in one order, and each file
+    # is named once: a file written twice is one file on disk.
     names = sorted({str(file.relative_to(root)): file for file in files}.items())
     with zipfile.ZipFile(zip_path, "w") as zf:
         for name, file in names:
@@ -207,9 +208,9 @@ def _question_title(question: Question, i: int) -> str:
 
 
 def _question_stem(i: int, title: str) -> str:
-    # Lambda Feedback names the file after the title with only spaces made
-    # underscores. Path separators go too, so a title cannot leave the set folder,
-    # and so do the characters Windows forbids in file names.
+    # Lambda Feedback names the file after the title, with spaces replaced by
+    # underscores. Path separators are replaced too, so that a title cannot leave the set
+    # folder, as are the characters Windows forbids in a file name.
     return (
         "question_"
         + str(i).zfill(3)
@@ -232,8 +233,8 @@ def _question_json(
     output["displayWorkedSolution"] = question.display_worked_solution
     output["displayStructuredTutorial"] = question.display_structured_tutorial
     output["displayChatbot"] = question.display_chatbot
-    # Unset optional settings are omitted rather than given a value Lambda Feedback
-    # never chose.
+    # An unset optional setting is left out of the JSON, so that in2lambda writes no
+    # value the author did not choose.
     for key, value in {
         "skill": question.skill,
         "guidance": question.guidance,
@@ -253,10 +254,10 @@ def _question_json(
 
 
 def _media_name(image: str, stem: str, taken: set[str]) -> str:
-    """What an image is called in ``media/``, which is flat and so has one of each name.
+    """The name an image is written under in ``media/``, which is one flat folder.
 
-    Its own file name, or, where that name is another file's already, the name Lambda
-    Feedback's own exports give an image: the question's, numbered.
+    The image's own file name, or, where another file holds that name, the name Lambda
+    Feedback's own exports give an image: the question's name, numbered.
     """
     name = Path(image).name
     if name not in taken:
@@ -270,10 +271,11 @@ def _media_name(image: str, stem: str, taken: set[str]) -> str:
 def _with_media_names(value: Any, question: Question, media: dict[str, str]) -> Any:
     """A question's JSON with every image reference in it rewritten to its media name.
 
-    Walked rather than taken field by field because a reference can be written in any
-    markdown the question holds - its text, a part's, a worked solution, a final answer,
-    an answer box's wording or one of its options - and a second list of those here would
-    drift from the one :mod:`in2lambda.validation` already checks.
+    This function walks the JSON instead of reading named fields, because a reference can
+    be written in any markdown the question holds: its text, a part's text, a worked
+    solution, a final answer, an answer box's wording or one of its options. A second
+    list of those fields here would drift from the list :mod:`in2lambda.validation`
+    already checks.
     """
     if isinstance(value, dict):
         return {
@@ -288,7 +290,7 @@ def _with_media_names(value: Any, question: Question, media: dict[str, str]) -> 
         image = _image_for(reference[1], question.images)
         if image is None:
             return reference[0]
-        # Only the path is replaced; the alt text beside it may well read the same.
+        # Only the path is replaced, because the alt text beside it may read the same.
         name = media[os.path.abspath(image)]
         return reference[0][: reference.start(1) - reference.start()] + name + ")"
 
@@ -309,10 +311,10 @@ def _write_question(
         i: Its order number, which also prefixes the file name.
         template: The loaded JSON from the minimal question template.
         folder: The folder to write into.
-        media: What the export has carried into ``media/`` so far, each image's path on
-            disk against the name it was written under. Added to as this question's
-            images are copied, so that a file two questions use is one file under one
-            name.
+        media: The images the export has copied into ``media/`` so far, each image's path
+            on disk against the name it was written under. This function adds the
+            question's images to it, so that a file two questions use is one file under
+            one name.
 
     Returns:
         The files written.
@@ -326,7 +328,7 @@ def _write_question(
         if path in media:
             continue
         media[path] = _media_name(path, stem, set(media.values()))
-        # Only a question with an image gets a media folder at all.
+        # A media folder is created only for a question that holds an image.
         (folder / "media").mkdir(exist_ok=True)
         written.append(Path(shutil.copy(path, folder / "media" / media[path])))
 
@@ -340,9 +342,9 @@ def _write_question(
 def write_question(question: Question, output_dir: str, number: int = 0) -> None:
     """Writes a single question as its own Lambda Feedback import.
 
-    The question gets a folder named after it, holding its JSON and its images under
-    ``media``, and a zip of that folder. There is no set file: this is what Lambda
-    Feedback takes when importing one question into a set that already exists.
+    The question is written to a folder named after it, holding the question's JSON and
+    its images under ``media``, and to a zip of that folder. The folder holds no set
+    file, because Lambda Feedback imports one question into a set that already exists.
 
     Args:
         question: The question to write.
@@ -368,16 +370,15 @@ def converter(
     """Turns a set of question objects into Lambda Feedback JSON.
 
     Args:
-        question_template: The loaded JSON from the minimal question template (it needs to be in sync).
-        set_template: The loaded JSON from the minimal set template (it needs to be in sync).
-        SetQuestions: A Set object containing questions.
-        output_dir: The absolute path for where to produced the final JSON/zip files.
+        question_template: The JSON loaded from the minimal question template.
+        set_template: The JSON loaded from the minimal set template.
+        SetQuestions: The set of questions to write.
+        output_dir: Where to write the JSON and zip files.
     """
     ListQuestions = SetQuestions.questions
     set_name = SetQuestions._name
     set_description = SetQuestions._description
 
-    # create directory to put the questions
     os.makedirs(output_dir, exist_ok=True)
     output_question = os.path.join(output_dir, set_name)
     os.makedirs(output_question, exist_ok=True)
@@ -393,44 +394,40 @@ def converter(
     set_template["structuredTutorialVisibility"] = str(
         SetQuestions._structuredTutorialVisibility.status
     )
-    # create the set file
     folder = Path(output_question)
     set_file = folder / f"set_{set_name}.json"
     with open(set_file, "w") as file:
         json.dump(set_template, file)
 
     written = [set_file]
-    # Named across the whole set, since media/ is one folder for all of its questions.
+    # Named across the whole set, because media/ is one folder for every question.
     media: dict[str, str] = {}
     for i, question in enumerate(ListQuestions):
         written += _write_question(question, i, question_template, folder, media)
 
-    # output zip file in destination folder
     _zip(written, folder, output_question + ".zip")
 
 
 def main(set_questions: Set, output_dir: str) -> None:
-    """Loads the templates and calls the main converter function.
-
-    This ultimately then produces the Lambda Feedback JSON/ZIP files.
+    """Loads the templates and writes the set as Lambda Feedback JSON and a zip.
 
     Args:
-        set_questions: A Set object containing questions.
-        output_dir: Where to output the final Lambda Feedback JSON/ZIP files.
+        set_questions: The set of questions to write.
+        output_dir: Where to write the JSON and zip files.
     """
     question_template, set_template = _templates()
     converter(question_template, set_template, set_questions, output_dir)
 
 
 def load(path: str) -> Set:
-    """Reads a Lambda Feedback export into a Set, keeping only what the model holds.
+    """Reads a Lambda Feedback export into a Set, keeping the fields a Set holds.
 
-    That is the set's name, description and visibilities, and each question's title,
+    A Set holds the set's name, description and visibilities, and each question's title,
     main text, parts, worked solutions, images and settings.
 
-    A zip is extracted to a new temporary directory, which is left for the operating
-    system to clear: the loaded images point into it and must still exist when the
-    set is written out.
+    A zip is extracted into a new temporary directory, which the operating system clears:
+    the loaded images point into that directory and must exist when the set is written
+    out.
 
     Args:
         path: An exported set, as a folder or a zip, with or without a top-level folder.
@@ -439,7 +436,7 @@ def load(path: str) -> Set:
         The set, with each question's images as absolute paths into ``media/``.
 
     Raises:
-        ValueError: If the export does not hold exactly one ``set_*.json``.
+        ValueError: the export does not hold one ``set_*.json``.
     """
     root = Path(path)
     if root.suffix == ".zip":
@@ -485,8 +482,8 @@ def load(path: str) -> Set:
                     else ""
                 ),
                 answer=part["answerContent"],
-                # Exports do not always list areas in order; an area's contentAfter
-                # leads into the one numbered after it.
+                # An export does not always list areas in order, and an area's
+                # contentAfter leads into the area numbered after it.
                 response_areas=[
                     _response_area_from_json(area)
                     for area in sorted(
@@ -506,9 +503,9 @@ def load(path: str) -> Set:
                     for image in media
                     if image.name.startswith(f"{question_file.stem}_")
                 ],
-                # Every loaded part already has its text and solution, so further
-                # add_part_text/add_solution calls must add parts after them rather
-                # than overwrite the first.
+                # Every loaded part holds its text and its solution, so a later
+                # add_part_text or add_solution call appends a part instead of
+                # overwriting the first.
                 _last_part={"solution": len(parts), "text": len(parts)},
                 skill=question_json.get("skill"),
                 guidance=question_json.get("guidance"),
