@@ -50,6 +50,9 @@ _HANDLERS: dict[str, Handler] = {}
 _RANGE = re.compile(r"s(\d+)(?::(\d+))?")
 """Lines of a frozen source, as ``s16`` for one of them or ``s10:14`` for several."""
 
+_PART = re.compile(r"q\d+\.p\d+")
+"""A part of a question, as the draft names one: ``q1.p2``."""
+
 _QUALIFIED = re.compile(r"(\d+)/([^/]*)")
 """A block id or a line range with its source in front: ``2/b3``, ``2/s10:14``.
 
@@ -77,6 +80,10 @@ class NoSuchLines(SourceError):
 
 class NoSuchQuestion(SourceError):
     """A command adds to a question no command has written."""
+
+
+class NoSuchPart(SourceError):
+    """A command adds to a part nothing has written yet."""
 
 
 class AlreadyFilled(SourceError):
@@ -587,6 +594,23 @@ def _require_question(draft: dict[str, Any], question: str, command: str) -> Non
         )
 
 
+def _require_part(draft: dict[str, Any], part: str, command: str) -> None:
+    """Checks the draft has the part a command adds to.
+
+    The id is checked for its shape as well as for being written, so that a question id
+    given where a part was asked for is refused rather than writing the field
+    ``question solution`` writes.
+
+    Raises:
+        NoSuchPart: the id is not a part id, or nothing has written that part's text.
+    """
+    if _PART.fullmatch(part) is None or f"{part}.text" not in draft["fields"]:
+        raise NoSuchPart(
+            f"There is no part {part} in the draft: {command} adds to a part in2lambda "
+            "draft part add has already written, named as q1.p2."
+        )
+
+
 def _text_field(draft: dict[str, Any], key: str, command: str) -> dict[str, Any]:
     """The field of that name, which a command writing into a field reads first.
 
@@ -688,6 +712,31 @@ def _question_solution(
         by,
         command="question solution",
         key=f"{question}.solution",
+    )
+
+
+@command("part solution")
+def _part_solution(
+    draft: dict[str, Any],
+    sources: list[str],
+    args: dict[str, Any],
+    by: str,
+    directory: str,
+) -> str:
+    """Gives one part of a question its worked solution, wherever it is written.
+
+    A sheet that writes a solution under each part is answered part by part, which is
+    what a spec's PartPartSolSol and PartSolPartSol layouts do in one run.
+    """
+    part = _argument(args, "part", "part solution")
+    _require_part(draft, part, "part solution")
+    return _fill(
+        draft,
+        sources,
+        args,
+        by,
+        command="part solution",
+        key=f"{part}.solution",
     )
 
 
