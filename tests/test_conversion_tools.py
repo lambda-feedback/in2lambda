@@ -39,7 +39,9 @@ def test_cli_exits_with_message(filters_dir: str, monkeypatch, tmp_path) -> None
     monkeypatch.setitem(sys.modules, "panflute", None)
     example = os.path.join(filters_dir, "PartsSepSol", "example.tex")
 
-    result = CliRunner().invoke(cli, [example, "PartsSepSol", "-o", str(tmp_path)])
+    result = CliRunner().invoke(
+        cli, ["convert", example, "PartsSepSol", "-o", str(tmp_path)]
+    )
 
     assert result.exit_code != 0
     assert PANFLUTE_HINT in result.output

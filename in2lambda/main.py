@@ -8,6 +8,7 @@
 
 import importlib
 import importlib.util
+import shlex
 import shutil
 import subprocess
 from typing import Optional
@@ -180,10 +181,33 @@ def runner(
     return set_obj
 
 
-@click.command(
+class _Cli(click.RichGroup):
+    """The in2lambda group, which says what to run when given the pre-2.0 command line."""
+
+    def resolve_command(self, ctx, args):  # type: ignore[no-untyped-def]
+        """Fail with the new command line rather than click's handling of an unknown name.
+
+        Click resolves a first argument starting with ``/`` or ``.`` by printing the
+        group's help and exiting successfully, so `in2lambda /path/to/questions.tex
+        PartsSepSol` would look like it had worked while converting nothing.
+        """
+        if self.get_command(ctx, args[0]) is None:
+            raise click.UsageError(
+                f"in2lambda no longer takes a file directly. Run: in2lambda convert {shlex.join(args)}"
+            )
+        return super().resolve_command(ctx, args)
+
+
+@click.group(
+    cls=_Cli,
     no_args_is_help=True,
     epilog="See the docs at https://lambda-feedback.github.io/in2lambda/ for more details.",
 )
+def cli() -> None:
+    """Prepares content for import into Lambda Feedback."""
+
+
+@cli.command()
 @click.argument(  # Use resolve_path to get absolute path
     "question_file", type=click.Path(exists=True, readable=True, resolve_path=True)
 )
@@ -209,7 +233,7 @@ def runner(
     help="File containing solutions for QUESTION_FILE.",
     type=click.Path(resolve_path=True, exists=True, dir_okay=False),
 )
-def cli(
+def convert(
     question_file: str, chosen_filter: str, output_dir: str, answer_file: Optional[str]
 ) -> None:
     """Takes in a QUESTION_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
