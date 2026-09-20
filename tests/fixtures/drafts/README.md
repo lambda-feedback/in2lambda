@@ -7,4 +7,8 @@ its log and checks the file is unchanged byte for byte - so a folder covers both
 writes and that it can be rebuilt from what it recorded.
 
 To cover another command, add a folder. `mark_ignore` is the `sources/markdown` document with two
-of its blocks marked as nothing to take a question from.
+of its blocks marked as nothing to take a question from. `two_questions` is a sheet with a title, a
+rubric, two questions with a part each and a separate solutions section, written out by every
+command there is: the second question runs into its part with no blank line between them, so the
+parser makes one block of the two and `split block` cuts it, and the first question's part is typed
+out rather than quoted, because the source writes it with an `(a)` the field should not carry.
