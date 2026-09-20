@@ -1,0 +1,110 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "b2.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": true
+  },
+  "b7.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        13,
+        13
+      ]
+    ],
+    "value": true
+  },
+  "q1.a.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": "Find the thrust."
+  },
+  "q1.b.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "Find the acceleration at launch."
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        11,
+        11
+      ]
+    ],
+    "value": "the thrust is $\\dot m v_e$, so $a = \\dot m v_e / m - g$."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "A rocket burns fuel at a rate $\\dot m$ and exhausts it at $v_e$."
+  },
+  "q2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        17,
+        17
+      ]
+    ],
+    "value": "$c = \\sqrt{\\gamma R T}$."
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        15,
+        15
+      ]
+    ],
+    "value": "Find the speed of sound in air at 300 K."
+  }
+}

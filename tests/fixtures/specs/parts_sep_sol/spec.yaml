@@ -1,0 +1,6 @@
+question: Header level=2 text~'^Question'
+part:     ListItem
+solution: after Header text=Solutions, label~'^\d+(\([a-z]\))?$'
+strip:    ['^#+ ', '^\([a-z]\) ', '^\d+(\([a-z]\))? ']
+ignore:   Header level=1
+layout:   PartsSepSol

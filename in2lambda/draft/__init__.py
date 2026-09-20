@@ -15,9 +15,12 @@ from collections.abc import Callable  # Rather than typing's, which beartype war
 from pathlib import Path
 from typing import Any
 
+import in2lambda.spec
 from in2lambda.source import (
     DRAFT,
     SourceError,
+    _digest,
+    _elements,
     _require_conversion_tools,
     blocks,
     frozen,
@@ -28,13 +31,15 @@ from in2lambda.source import (
 Command = dict[str, Any]
 """One entry of the log: ``{"command": name, "args": {...}, "by": who}``."""
 
-Handler = Callable[[dict[str, Any], str, dict[str, Any], str], str]
-"""What a command does: `handler(draft, markdown, args, by)`, changing the draft.
+Handler = Callable[[dict[str, Any], str, dict[str, Any], str, str], str]
+"""What a command does: `handler(draft, markdown, args, by, directory)`.
 
 The frozen markdown is passed in rather than read, so that a handler quoting the source
-by line range quotes the same text on a replay as it did when it first ran. What comes
-back is what the command wrote, named - the key of the field, or the block ids a split
-made - which is what whoever ran it needs in the command after this one.
+by line range quotes the same text on a replay as it did when it first ran; the
+directory is where the draft is, which is what a file a command names is beside. What
+comes back is what the command wrote, named - the key of the field, or the block ids a
+split made - which is what whoever ran it needs in the command after this one, or what
+it left out where a command wrote a draft's worth of fields at once.
 """
 
 _HANDLERS: dict[str, Handler] = {}
@@ -78,6 +83,10 @@ class NotOnce(SourceError):
 
 class ReplayDiffers(SourceError):
     """Replaying a draft's log does not reproduce the draft."""
+
+
+class SpecChanged(SourceError):
+    """The spec file a log names is not the one that ran: it has changed, or gone."""
 
 
 def command(name: str) -> Callable[[Handler], Handler]:
@@ -169,6 +178,24 @@ def _fault(entry: Any) -> str:
     return ""
 
 
+def _checked(entry: Any) -> Command:
+    """One entry of a log, given that it has the shape of a command.
+
+    Both readers of a log come through here - the one applying an entry and the one
+    looking over the entries already applied - so that a hand-edited log says the same
+    thing whichever of them reads it first.
+
+    Raises:
+        MalformedCommand: the entry is not a command.
+    """
+    if fault := _fault(entry):
+        raise MalformedCommand(
+            f"{entry!r} in the log is not a command: it {fault}. A command is an "
+            'object with a "command" naming it, its "args", and who it was run "by".'
+        )
+    return entry
+
+
 def _argument(args: dict[str, Any], name: str, command: str, kind: type = str) -> Any:
     """One argument of a command, given that the log entry gave it as `kind`.
 
@@ -195,7 +222,9 @@ def _argument(args: dict[str, Any], name: str, command: str, kind: type = str) -
     return args[name]
 
 
-def apply(draft: dict[str, Any], markdown: str, entry: Any) -> str:
+def apply(
+    draft: dict[str, Any], markdown: str, entry: Any, directory: str = "."
+) -> str:
     """Runs one command against a draft and records it in the draft's log.
 
     Args:
@@ -204,6 +233,7 @@ def apply(draft: dict[str, Any], markdown: str, entry: Any) -> str:
         entry: The command, as it is written in the log. Anything at all, rather than a
             `Command`, because a log is read from a file anyone can edit: what shape it
             has is something to tell the reader about, not something to assume.
+        directory: Where the draft is, and so what a file the command names is beside.
 
     Returns:
         What the command wrote, as the handler names it.
@@ -212,17 +242,13 @@ def apply(draft: dict[str, Any], markdown: str, entry: Any) -> str:
         MalformedCommand: the entry is not a command.
         UnknownCommand: nothing is registered under that name.
     """
-    if fault := _fault(entry):
-        raise MalformedCommand(
-            f"{entry!r} in the log is not a command: it {fault}. A command is an "
-            'object with a "command" naming it, its "args", and who it was run "by".'
-        )
+    entry = _checked(entry)
     if (handler := _HANDLERS.get(entry["command"])) is None:
         raise UnknownCommand(
             f"{entry['command']} is not a command this version of in2lambda has, so "
             "the draft cannot be built from its log. It was written by a newer one."
         )
-    written = handler(draft, markdown, entry["args"], entry["by"])
+    written = handler(draft, markdown, entry["args"], entry["by"], directory)
     # After the handler, so a command that was refused is not recorded as having run.
     draft["log"].append(entry)
     return written
@@ -236,15 +262,15 @@ def execute(entry: Command, directory: str = ".") -> str:
         directory: Where the ``draft.json`` to change is.
 
     Returns:
-        What the command wrote, as the handler names it: the key of a field, or the
-        block ids a split made.
+        What the command wrote, as the handler names it: the key of a field, the block
+        ids a split made, or what a spec run left in no field at all.
 
     Raises:
         SourceError: the draft is missing, is not one of ours, or was written from
             markdown that has changed since; or the command is unknown or refused.
     """
     draft, markdown = frozen(directory)
-    written = apply(draft, markdown, entry)
+    written = apply(draft, markdown, entry, directory)
     save(Path(directory) / DRAFT, draft)
     return written
 
@@ -264,6 +290,7 @@ def replay(directory: str = ".") -> None:
             the commands would be replayed against lines they were not run against.
         MalformedCommand: the log holds something that is not a command.
         UnknownCommand: the log names a command nothing here registered.
+        SpecChanged: a spec the log was run with has changed or gone since.
         ReplayDiffers: the rebuilt draft is not the one on disk, byte for byte.
     """
     _require_conversion_tools()
@@ -278,7 +305,7 @@ def replay(directory: str = ".") -> None:
         "fields": {},
     }
     for entry in draft["log"]:
-        apply(rebuilt, markdown, entry)
+        apply(rebuilt, markdown, entry, directory)
 
     path = Path(directory) / DRAFT
     if serialise(rebuilt) != path.read_bytes():
@@ -287,6 +314,32 @@ def replay(directory: str = ".") -> None:
             "not all come from the commands it records - something has changed it since "
             "they ran. Run in2lambda source add --start-over to begin again."
         )
+
+
+def coverage(draft: dict[str, Any]) -> list[str]:
+    """The blocks of a draft that nothing has made anything of yet.
+
+    Args:
+        draft: The draft to look over.
+
+    Returns:
+        The ids of the blocks that are in no field and have not been ignored, in
+        document order. A spec run prints these: they are what is left to account for,
+        and an empty list is the whole document spoken for.
+    """
+    ranges = [
+        line_range
+        for field in draft["fields"].values()
+        for line_range in field["ranges"]
+    ]
+    return [
+        block["id"]
+        for block in draft["blocks"]
+        if f"{block['id']}.ignore" not in draft["fields"]
+        and not any(
+            start <= block["end"] and block["start"] <= end for start, end in ranges
+        )
+    ]
 
 
 def _block(draft: dict[str, Any], block: str) -> dict[str, Any]:
@@ -419,7 +472,7 @@ def _require_question(draft: dict[str, Any], question: str, command: str) -> Non
 
 @command("mark ignore")
 def _mark_ignore(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
 ) -> str:
     """Marks one block of the frozen source as nothing to take a question from."""
     block = _argument(args, "block", "mark ignore")
@@ -436,7 +489,7 @@ def _mark_ignore(
 
 @command("question add")
 def _question_add(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
 ) -> str:
     """Adds a question, taking the first number no question has taken."""
     return _fill(
@@ -451,7 +504,7 @@ def _question_add(
 
 @command("part add")
 def _part_add(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
 ) -> str:
     """Adds a part to a question, taking the first number that question has not."""
     question = _argument(args, "question", "part add")
@@ -468,7 +521,7 @@ def _part_add(
 
 @command("question solution")
 def _question_solution(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
 ) -> str:
     """Gives a question its worked solution, wherever in the source it is written."""
     question = _argument(args, "question", "question solution")
@@ -485,7 +538,7 @@ def _question_solution(
 
 @command("field replace")
 def _field_replace(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
 ) -> str:
     """Replaces one piece of wording inside a field that is written already.
 
@@ -546,7 +599,7 @@ def _field_replace(
 
 @command("split block")
 def _split_block(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
 ) -> str:
     """Cuts one block of the frozen source in two, so each half can be named.
 
@@ -570,3 +623,72 @@ def _split_block(
         {**found, "id": f"{block}b", "start": at},
     ]
     return f"{block}a and {block}b"
+
+
+def _spec_as_run(directory: str, name: str, digest: str) -> bytes:
+    """A spec the log says has run, given it is still there and still says the same.
+
+    Raises:
+        SpecChanged: there is no such file beside the draft, or it is not the one the
+            log records running. Either way the fields it wrote are fields nothing on
+            disk would write again, so neither a replay nor another run can check them.
+    """
+    try:
+        raw = (Path(directory) / name).read_bytes()
+    except FileNotFoundError:
+        raise SpecChanged(
+            f"There is no {name} beside {DRAFT}, and the log says the draft was filled "
+            "in from one. Put it back, or start the draft again with in2lambda source "
+            "add --start-over."
+        ) from None
+    if _digest(raw) != digest:
+        raise SpecChanged(
+            f"{name} has changed since it was run against {DRAFT}, so the fields it "
+            "wrote are not the ones it would write now. Put it back, or start the "
+            "draft again with in2lambda source add --start-over."
+        )
+    return raw
+
+
+@command("spec run")
+def _spec_run(
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
+) -> str:
+    """Fills in a draft's fields from a spec of selectors over the frozen source."""
+    _require_conversion_tools()
+    name = _argument(args, "spec", "spec run")
+    digest = _argument(args, "hash", "spec run")
+    # Every spec the log says has run, rather than one named the same way as this one: a
+    # spec that has been edited since leaves fields the log can no longer reproduce
+    # whatever it is spelled as now, so what has run is what to check. On a replay this
+    # re-reads specs whose own entries checked them, which is a file read each.
+    for entry in map(_checked, draft["log"]):
+        if entry["command"] == "spec run":
+            _spec_as_run(
+                directory,
+                _argument(entry["args"], "spec", "spec run"),
+                _argument(entry["args"], "hash", "spec run"),
+            )
+    raw = _spec_as_run(directory, name, digest)
+
+    spec = in2lambda.spec.load(raw)
+    # The blocks the selectors run over are the ones the parser makes of the source, and
+    # a `split block` since has left the draft holding halves the parser never made. So
+    # an ignored block is named and ranged from here rather than from the draft: the
+    # field then spans the whole of what was ignored, and coverage, which goes by lines
+    # as well as by name, counts each half of a split block as covered by it.
+    elements = _elements(markdown)
+    fields, ignored = in2lambda.spec.fields(spec, elements, markdown)
+    for found in fields:
+        record(draft, found.key, found.value, layer=1, ranges=found.ranges, by=by)
+    lines = {block.id: [block.start, block.end] for block, _ in elements}
+    # The field `mark ignore` writes, so that coverage need not care which said so.
+    for block_id in ignored:
+        record(
+            draft, f"{block_id}.ignore", True, layer=1, ranges=[lines[block_id]], by=by
+        )
+    # A spec writes a draft's worth of fields, so what it hands back is the other way
+    # round: what it made nothing of, which is what is left for anyone to act on.
+    if uncovered := coverage(draft):
+        return "\n".join(f"{block} is in no field." for block in uncovered)
+    return "Every block is in a field or ignored."

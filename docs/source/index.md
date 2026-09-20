@@ -63,6 +63,7 @@ A fully type-annotated extensively documented Python library is available for th
 quickstart
 question-format
 filters/index
+spec
 ```
 
 ```{toctree}

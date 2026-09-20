@@ -103,8 +103,13 @@ def _require_conversion_tools() -> None:
     missing = []
     if shutil.which("pandoc") is None:
         missing.append("pandoc (see https://pandoc.org/installing.html)")
-    if importlib.util.find_spec("panflute") is None:
-        missing.append("panflute (pip install 'in2lambda[convert]')")
+    # Both come from the one extra, so they are named together rather than twice over.
+    if absent := [
+        package
+        for module, package in (("panflute", "panflute"), ("yaml", "pyyaml"))
+        if importlib.util.find_spec(module) is None
+    ]:
+        missing.append(f"{' and '.join(absent)} (pip install 'in2lambda[convert]')")
     if missing:
         raise ConversionToolsMissing(
             f"Converting documents needs {' and '.join(missing)}."
@@ -328,6 +333,16 @@ def blocks(markdown: str) -> list[Block]:
         >>> blocks("# Title\n\nSome words.\n")
         [Block(id='b1', type='heading', start=1, end=1), Block(id='b2', type='paragraph', start=3, end=3)]
     """
+    return [block for block, _ in _elements(markdown)]
+
+
+def _elements(markdown: str) -> list[tuple[Block, Any]]:
+    """Every block of some markdown, each beside the panflute element it was taken from.
+
+    A selector matches on what the element is - its type, its heading level, the text it
+    stringifies to - which the block alone does not say, so anything matching against
+    the source takes this and projects the blocks out of it, as :func:`blocks` does.
+    """
     import panflute as pf
 
     document = pf.convert_text(
@@ -338,18 +353,22 @@ def blocks(markdown: str) -> list[Block]:
     # paragraph, a definition list - pandoc reports the first as running on into the
     # second's first line, so no block is allowed to reach where the next one starts,
     # nor past the end of the document.
-    limits = [start - 1 for _, start, _ in found[1:]] + [len(markdown.splitlines())]
+    limits = [start - 1 for _, start, _, _ in found[1:]] + [len(markdown.splitlines())]
     return [
-        Block(f"b{number}", kind, start, min(end, limit))
-        for number, ((kind, start, end), limit) in enumerate(zip(found, limits), 1)
+        (Block(f"b{number}", kind, start, min(end, limit)), element)
+        for number, ((kind, start, end, element), limit) in enumerate(
+            zip(found, limits), 1
+        )
     ]
 
 
 def _spans(element, pf):  # type: ignore[no-untyped-def]
-    """The ``(type, start, end)`` triples one top-level element accounts for.
+    """The ``(type, start, end, element)`` quadruples one top-level element accounts for.
 
     A list is several: the ticket asks for a list item, not a list, and an item spans
-    everything nested under it.
+    everything nested under it. The element given back is the one that block is, past
+    the Div `sourcepos` wraps it in, so that whatever matches on it matches on what an
+    author would call it.
     """
     inner = _unwrapped(element, pf)
     if isinstance(inner, (pf.BulletList, pf.OrderedList)):
@@ -357,11 +376,11 @@ def _spans(element, pf):  # type: ignore[no-untyped-def]
         # no element to take a position from, so there is no range to give it and it
         # is left out rather than guessed at.
         return [
-            ("list item", _range(item.content[0])[0], _range(item.content[-1])[1])
+            ("list item", _range(item.content[0])[0], _range(item.content[-1])[1], item)
             for item in inner.content
             if len(item.content)
         ]
-    return [(_kind(inner, pf), *_range(element))]
+    return [(_kind(inner, pf), *_range(element), inner)]
 
 
 def _unwrapped(element, pf):  # type: ignore[no-untyped-def]
