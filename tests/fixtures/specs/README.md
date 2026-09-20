@@ -14,6 +14,10 @@ the parts and then their solutions in order, and `parts_sep_sol` every solution 
 end. `parts_sep_sol` is the spec from the ticket, and leaves its `## Solutions` heading in no
 field, which is what a coverage report is for.
 
+Each document is one the other three layouts read differently - a question with two parts and
+one solution, or with a part nobody answered - since a document every layout agrees about
+would pin no rule, and a layout given the wrong rule would go on passing.
+
 A selector matches what pandoc parses, and a field holds the markdown of the lines it was taken
 from. That is why a part written `(a) Find the load.` is a `ListItem` - pandoc reads `(a)` as a
 list marker - while `strip` still has to take the `(a) ` off the front of the value.

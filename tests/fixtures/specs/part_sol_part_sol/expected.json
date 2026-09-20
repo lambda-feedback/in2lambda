@@ -11,18 +11,6 @@
     ],
     "value": true
   },
-  "q1.a.solution": {
-    "by": "tests",
-    "edited": false,
-    "layer": 1,
-    "ranges": [
-      [
-        7,
-        7
-      ]
-    ],
-    "value": "$R_A = W/2$ by symmetry."
-  },
   "q1.a.text": {
     "by": "tests",
     "edited": false,
@@ -41,11 +29,11 @@
     "layer": 1,
     "ranges": [
       [
-        11,
-        11
+        9,
+        9
       ]
     ],
-    "value": "$R_B = W/2$, since the two reactions carry $W$ between them."
+    "value": "$R_B = W/2$, and $R_A$ is the same by symmetry."
   },
   "q1.b.text": {
     "by": "tests",
@@ -53,8 +41,8 @@
     "layer": 1,
     "ranges": [
       [
-        9,
-        9
+        7,
+        7
       ]
     ],
     "value": "Find the reaction at B."
@@ -77,8 +65,8 @@
     "layer": 1,
     "ranges": [
       [
-        15,
-        15
+        13,
+        13
       ]
     ],
     "value": "the sag is $wL^2/8T$."
@@ -89,8 +77,8 @@
     "layer": 1,
     "ranges": [
       [
-        13,
-        13
+        11,
+        11
       ]
     ],
     "value": "A cable of weight $w$ per metre hangs between two towers $L$ apart."

@@ -36,9 +36,10 @@ _ATTRIBUTES = ("level", "text", "label")
 _ROLES = ("ignore", "question", "part", "solution")
 """The selectors a spec holds, in the order a block is tried against them.
 
-A block is whatever the first of them to match it says it is, so a spec whose selectors
-overlap is read the way it is written down rather than by some rule about which is the
-more specific.
+A block is whatever the first of them to match it says it is. The order is this one
+whatever order a spec writes its keys in: ignore before the rest so that a page nobody
+wants is out of the way, and question before part so that a question numbered like one
+of its own parts is still the question.
 """
 
 _TOKEN = re.compile(
@@ -256,8 +257,14 @@ def load(text: "str | bytes") -> Spec:
     """
     import yaml
 
+    # The composed nodes carry the line each key is written on; the values come from
+    # safe_load, which builds them rather than leaving them as nodes to unpick. Both
+    # are read here, since a file that composes can still fail to be built - a tag
+    # nothing constructs, a key nothing can hash - and that is as much a fault in the
+    # spec as a quote left open.
     try:
         node = yaml.compose(text)
+        given = yaml.safe_load(text)
     except yaml.YAMLError as error:
         mark = getattr(error, "problem_mark", None)
         raise _refuse(
@@ -266,14 +273,11 @@ def load(text: "str | bytes") -> Spec:
 
     if not isinstance(node, yaml.MappingNode):
         raise _refuse(1, "A spec is a mapping of question, part, solution and so on.")
-    # The composed nodes carry the line each key is written on; the values come from
-    # safe_load, which builds them rather than leaving them as nodes to unpick.
     lines = {
         key.value: key.start_mark.line + 1
         for key, _ in node.value
         if isinstance(key, yaml.ScalarNode)
     }
-    given = yaml.safe_load(text)
 
     # By str, because a key someone has written need not be one: `1: Header` is YAML.
     if unknown := sorted(set(given) - set(_KEYS), key=str):

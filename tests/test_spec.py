@@ -91,6 +91,27 @@ def test_a_replay_is_refused_once_the_spec_has_changed(
     assert draft_path.read_bytes() == written
 
 
+def test_running_an_edited_spec_again_is_refused(tmp_path: Path, monkeypatch) -> None:
+    """The fields of the first run would stay, and the draft could never replay again."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    runner = _frozen(WORKED_EXAMPLE, tmp_path)
+    assert runner.invoke(cli, ["spec", "run", "spec.yaml"]).exit_code == 0
+    draft_path = tmp_path / "draft.json"
+    written = draft_path.read_bytes()
+
+    spec = tmp_path / "spec.yaml"
+    spec.write_text(spec.read_text().replace("PartsSepSol", "PartsOneSol"))
+    result = runner.invoke(cli, ["spec", "run", "spec.yaml"])
+
+    assert result.exit_code != 0
+    assert "--start-over" in result.output
+    assert draft_path.read_bytes() == written
+    # And what is on disk is still a draft that replays, which is the point of refusing.
+    spec.write_text(spec.read_text().replace("PartsOneSol", "PartsSepSol"))
+    assert runner.invoke(cli, ["draft", "replay"]).exit_code == 0
+
+
 def test_a_replay_is_refused_once_the_spec_has_gone(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -111,12 +132,22 @@ def test_a_replay_is_refused_once_the_spec_has_gone(
     ("spec", "line", "named"),
     [
         ("question: Header\n  layout: PartsOneSol\n", "line 2", "not YAML"),
+        ("question: !Header\nlayout: PartsOneSol\n", "line 1", "not YAML"),
+        ("question: Header\n? [a, b]\n: Header\n", "line 2", "unhashable"),
         ("question: Header\nlayout: Sausage\n", "line 2", "Sausage"),
         ("question: Sausage\nlayout: PartsOneSol\n", "line 1", "pandoc element"),
         ("question: Header colour=blue\nlayout: PartsOneSol\n", "line 1", "colour"),
         ("quesiton: Header\nlayout: PartsOneSol\n", "line 1", "quesiton"),
     ],
-    ids=["not yaml", "unknown layout", "unknown type", "unknown attribute", "typo"],
+    ids=[
+        "not yaml",
+        "tag nothing constructs",
+        "key nothing can hash",
+        "unknown layout",
+        "unknown type",
+        "unknown attribute",
+        "typo",
+    ],
 )
 def test_a_spec_that_cannot_be_read_says_which_line_to_look_at(
     spec: str, line: str, named: str, tmp_path: Path, monkeypatch

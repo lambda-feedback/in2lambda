@@ -13,6 +13,15 @@ b6 is in no field.
 The last line is the point of it: a spec run reports every block it made nothing of, so what is
 left to account for is in front of you rather than quietly missing.
 
+The fields a draft holds belong to the spec that wrote them, so a spec is run over a draft once.
+Running an edited one again is refused; freeze the document afresh and run it, which is two
+commands:
+
+```bash
+$ in2lambda source add --start-over questions.docx
+$ in2lambda spec run spec.yaml
+```
+
 ## What a spec says
 
 ```yaml
@@ -35,8 +44,9 @@ layout:   PartsSepSol
 - **`layout`** is one of the [filters](filters/index), and says which solution answers which
   question or part. See below.
 
-A block is whatever the first of `ignore`, `question`, `part`, `solution` to match it says it is,
-so a spec whose selectors overlap is read in the order it is written down.
+A block is whatever the first of `ignore`, `question`, `part`, `solution` to match it says it is.
+That order is fixed, whatever order the keys are written in, so a spec whose selectors overlap
+has to tell them apart by what they match rather than by where they are in the file.
 
 ## Selectors
 
@@ -88,4 +98,6 @@ spec wrote it.
 
 The spec is recorded in the draft's log with its hash, so `in2lambda draft replay` rebuilds the
 same draft from the same spec - and refuses if the spec has been edited since, because then it
-would be checking the draft against something else.
+would be checking the draft against something else. That is why running an edited spec over a
+draft it has already filled in is refused too: the draft would be left holding fields no spec on
+disk wrote, and no replay could ever check it again.

@@ -17,8 +17,8 @@
     "layer": 1,
     "ranges": [
       [
-        9,
-        9
+        11,
+        11
       ]
     ],
     "value": "$W = nRT\\ln(V_1/V_2)$."
@@ -41,8 +41,8 @@
     "layer": 1,
     "ranges": [
       [
-        11,
-        11
+        13,
+        13
       ]
     ],
     "value": "$Q = W$, since the internal energy does not change."
@@ -58,6 +58,18 @@
       ]
     ],
     "value": "Find the heat rejected."
+  },
+  "q1.c.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "Sketch the process on a $p$-$V$ diagram."
   },
   "q1.text": {
     "by": "tests",
@@ -77,8 +89,8 @@
     "layer": 1,
     "ranges": [
       [
-        15,
-        15
+        17,
+        17
       ]
     ],
     "value": "$\\eta = 1 - T_c/T_h = 0.5$."
@@ -89,8 +101,8 @@
     "layer": 1,
     "ranges": [
       [
-        13,
-        13
+        15,
+        15
       ]
     ],
     "value": "Find the efficiency of a Carnot engine between 300 K and 600 K."

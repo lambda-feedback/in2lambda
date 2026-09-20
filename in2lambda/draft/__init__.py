@@ -289,6 +289,21 @@ def _spec_run(
     """Fills in a draft's fields from a spec of selectors over the frozen source."""
     _require_conversion_tools()
     name = _argument(args, "spec", "spec run")
+    digest = _argument(args, "hash", "spec run")
+    # Running an edited spec over a draft the old one filled in would leave a draft that
+    # can never replay: the log still names the hash of the spec that wrote the fields
+    # it is checked against. So this is refused where `source add` refuses a document
+    # that has changed - at the command, rather than by letting the draft rot.
+    if any(
+        entry["args"].get("spec") == name and entry["args"].get("hash") != digest
+        for entry in draft["log"]
+        if entry["command"] == "spec run"
+    ):
+        raise SpecChanged(
+            f"{name} has already been run against {DRAFT} and has changed since, so the "
+            "fields in the draft are the ones the spec used to say. Run in2lambda "
+            "source add --start-over to begin the draft again and run it as it is now."
+        )
     path = Path(directory) / name
     try:
         raw = path.read_bytes()
@@ -300,7 +315,7 @@ def _spec_run(
         ) from None
     # As the source is checked: a spec that has been edited since would fill the fields
     # in differently, and a replay is only a check while it runs what was run before.
-    if _digest(raw) != _argument(args, "hash", "spec run"):
+    if _digest(raw) != digest:
         raise SpecChanged(
             f"{name} has changed since it was run against {DRAFT}, so replaying the log "
             "would not write the fields that are in the draft. Put it back, or start "

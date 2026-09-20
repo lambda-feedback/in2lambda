@@ -6,6 +6,8 @@ Q1. An ideal gas is compressed isothermally from $V_1$ to $V_2$.
 
 (b) Find the heat rejected.
 
+(c) Sketch the process on a $p$-$V$ diagram.
+
 Solution: $W = nRT\ln(V_1/V_2)$.
 
 Solution: $Q = W$, since the internal energy does not change.
