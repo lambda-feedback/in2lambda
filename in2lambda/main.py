@@ -315,6 +315,14 @@ _by = click.option(
 """Who ran a draft command, which every one of them records."""
 
 
+_WHERE = (
+    "Where in a frozen source the text is: a block id such as b3, or lines such as "
+    "s10:14, with the source's number in front - 2/b3, 2/s10:14 - for any but the "
+    "first. Run in2lambda source show to see both."
+)
+"""What --text names, which every command taking one names the same way."""
+
+
 def _text_or_literal(command: Callable[..., None]) -> Callable[..., None]:
     """The two ways to fill a field: quoted from the frozen source, or typed out."""
     for option in (
@@ -323,12 +331,7 @@ def _text_or_literal(command: Callable[..., None]) -> Callable[..., None]:
             help="The text itself, where the source does not say it in a form the "
             "field can take. Marks the field as edited.",
         ),
-        click.option(
-            "--text",
-            help="Where in a frozen source the text is: a block id such as b3, or "
-            "lines such as s10:14, with the source's number in front - 2/b3, 2/s10:14 "
-            "- for any but the first. Run in2lambda source show to see both.",
-        ),
+        click.option("--text", help=_WHERE),
     ):
         command = option(command)
     return command
@@ -445,7 +448,7 @@ def draft_split_block(block: str, at: int, by: str, draft: Optional[str]) -> Non
 
 @draft_group.group("field")
 def draft_field() -> None:
-    """Changes the wording of a field the draft has written already."""
+    """Writes a field the draft has written already, from the source or by hand."""
 
 
 @draft_field.command("replace")
@@ -469,6 +472,16 @@ def draft_field_replace(
         by,
         draft,
     )
+
+
+@draft_field.command("set")
+@click.argument("field")
+@click.option("--text", required=True, help=_WHERE)
+@_by
+@_draft
+def draft_field_set(field: str, text: str, by: str, draft: Optional[str]) -> None:
+    """Writes FIELD again, quoting the lines --text names into it."""
+    _run("field set", {"field": field, "text": text}, by, draft)
 
 
 @draft_group.command("replay")
