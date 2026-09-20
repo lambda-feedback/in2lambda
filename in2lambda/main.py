@@ -9,6 +9,7 @@
 import getpass
 import importlib
 import shlex
+import warnings
 from collections.abc import (  # Rather than typing's, which beartype warns on.
     Callable,
     Iterator,
@@ -141,9 +142,16 @@ def runner(
         )
 
     # Report before writing anything: the problems are the set's whether or not it is
-    # written out, and an author reading the command line should see them first.
-    for problem in set_obj.problems():
+    # written out, and an author reading the command line should see them first. A check
+    # that could not be run at all - the maths, with no Node.js to render it - warns
+    # instead, and is caught here so that it reads as a line rather than a traceback.
+    with warnings.catch_warnings(record=True) as not_checked:
+        warnings.simplefilter("always")
+        problems = set_obj.problems()
+    for problem in problems:
         click.echo(f"Warning: {problem}")
+    for warning in not_checked:
+        click.echo(f"Warning: {warning.message}")
 
     # Read the Python API format and convert to JSON.
     if output_dir is not None:

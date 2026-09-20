@@ -1,11 +1,14 @@
 """Shared pytest fixtures for the in2lambda test suite."""
 
 import os
+import shutil
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
 import in2lambda
+from in2lambda.validation import _node
 
 EXPORTS_DIR = Path(__file__).parent / "fixtures" / "exports"
 """Real Lambda Feedback exports, one set per folder, exactly as the platform wrote them."""
@@ -30,6 +33,22 @@ DRAFTS_DIR = Path(__file__).parent / "fixtures" / "drafts"
 
 DRAFTS = sorted(path for path in DRAFTS_DIR.iterdir() if path.is_dir())
 """Every draft folder, so that covering another command is a folder and no code."""
+
+
+@pytest.fixture
+def without_node(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Runs the test as if Node.js, which KaTeX is rendered with, were not installed.
+
+    Only node is hidden: pandoc must still be found, or a conversion would fail for a
+    quite different reason.
+    """
+    which = shutil.which
+    monkeypatch.setattr(
+        shutil, "which", lambda command: None if command == "node" else which(command)
+    )
+    _node.cache_clear()
+    yield
+    _node.cache_clear()
 
 
 @pytest.fixture(scope="session")

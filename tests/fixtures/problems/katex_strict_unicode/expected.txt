@@ -1,0 +1,1 @@
+Question 1 "Speed of the trolley", part (a), text, characters 24-46: KaTeX rejects it: LaTeX-incompatible input and strict mode is set to 'error': Unicode text character "с" used in math mode [unicodeTextInMathMode] at position 15: v = 5 \space с̲m/s

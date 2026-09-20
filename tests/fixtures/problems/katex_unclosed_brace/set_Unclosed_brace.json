@@ -1,0 +1,7 @@
+{
+  "name": "Unclosed brace",
+  "description": "Maths whose dollars balance but whose braces do not, so only rendering it finds the fault.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}
