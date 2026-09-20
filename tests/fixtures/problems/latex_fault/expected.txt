@@ -1,1 +1,2 @@
 Question 1 "Undefined command", part (a), text: the PDF generator cannot compile this: Undefined control sequence.
+Question 1 "Undefined command", part (a), text, characters 10-29: KaTeX rejects it: Undefined control sequence: \nosuchcommand at position 5: x = \̲n̲o̲s̲u̲c̲h̲c̲o̲m̲m̲a̲n̲d̲

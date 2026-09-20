@@ -7,11 +7,21 @@ and looking.
 
 Everything here reports, never refuses: :func:`validate` returns what it found and the
 export goes ahead regardless, since a problem may well be deliberate.
+
+Maths is rendered with KaTeX itself, which needs Node.js, and the set is compiled as the
+PDF generator compiles it, which needs pandoc and xelatex. Both are optional: without
+Node the maths check is skipped with a warning saying so, and without the compiler
+:mod:`in2lambda.validation.pdf` reports what to install.
 """
 
+import json
 import re
+import shutil
+import subprocess
+import warnings
 from functools import cache
 from pathlib import Path
+from typing import NamedTuple
 
 from in2lambda.api.problem import Problem
 from in2lambda.api.question import Question
@@ -34,6 +44,20 @@ _COMMAND = re.compile(r"\\[a-zA-Z]+")
 _DEGREES = re.compile(r"\^\s*\{?\s*\\circ")
 """``^\\circ``, with or without braces around it."""
 
+_CHECK = Path(__file__).parent / "katex" / "check.js"
+"""The Node script that renders expressions with the KaTeX packaged beside it."""
+
+
+class _Expression(NamedTuple):
+    """One piece of maths to render, and where in the set it was written."""
+
+    location: str
+    start: int
+    """Where the expression, opening delimiter included, begins in its field, from 1."""
+    end: int
+    tex: str
+    display: bool
+
 
 def validate(question_set: Set, compile: bool = True) -> list[Problem]:
     r"""Everything in2lambda can tell is wrong with a set, in the order it is written.
@@ -46,8 +70,10 @@ def validate(question_set: Set, compile: bool = True) -> list[Problem]:
 
     Returns:
         One :class:`~in2lambda.api.problem.Problem` per problem found, each naming the
-        question, part and field to look at. An empty list means nothing was found -
-        not that the set will import, since only some mistakes can be seen from here.
+        question, part and field to look at, in the order they are written - save for
+        what KaTeX refused, which comes last because the whole set is rendered at once.
+        An empty list means nothing was found - not that the set will import, since
+        only some mistakes can be seen from here.
 
     Examples:
         >>> from in2lambda.api.set import Set
@@ -59,16 +85,18 @@ def validate(question_set: Set, compile: bool = True) -> list[Problem]:
     """
     problems: list[Problem] = []
     # Every markdown field with the location to report it against, kept so that the
-    # whole set can then be compiled in one go rather than a field at a time.
+    # whole set can then be compiled in one go rather than a field at a time. The maths
+    # is collected the same way, and rendered in one Node process.
     fields: list[tuple[str, str]] = []
     images: list[str] = []
+    expressions: list[_Expression] = []
 
     def check(
         markdown: str, question: Question, location: str, compiled: bool = True
     ) -> list[Problem]:
         if compiled:
             fields.append((location, markdown))
-        return _markdown_problems(markdown, question, location)
+        return _markdown_problems(markdown, question, location, expressions)
 
     for number, question in enumerate(question_set.questions, start=1):
         where = f'Question {number} "{question.title}"'
@@ -119,16 +147,22 @@ def validate(question_set: Set, compile: bool = True) -> list[Problem]:
     if compile:
         problems += pdf.problems(fields, images)
 
-    return problems
+    return problems + _katex_rejections(expressions)
 
 
 def _markdown_problems(
-    markdown: str, question: Question, location: str
+    markdown: str,
+    question: Question,
+    location: str,
+    expressions: list[_Expression],
 ) -> list[Problem]:
     """Every problem in one markdown field, reported against `location`.
 
     The question is needed because an image reference is only good if that image is
     among the question's, and so will be written into the export's ``media/``.
+
+    The field's maths is appended to `expressions` rather than rendered here, so that
+    the whole set takes one Node process instead of one per field.
     """
     problems: list[Problem] = []
 
@@ -144,30 +178,44 @@ def _markdown_problems(
                 Problem(location, f"the export will not contain the image {reference}")
             )
 
-    problems += _katex_problems(markdown, location)
+    problems += _katex_problems(markdown, location, expressions, delimiters)
     return problems
 
 
-def _katex_problems(markdown: str, location: str) -> list[Problem]:
-    """Maths that KaTeX, which Lambda Feedback renders with, will not display."""
+def _katex_problems(
+    markdown: str,
+    location: str,
+    expressions: list[_Expression],
+    delimiters: MathDelimiterError,
+) -> list[Problem]:
+    """Maths that KaTeX, which Lambda Feedback renders with, will not display.
+
+    Expressions the lists have nothing to say about are appended to `expressions` for
+    KaTeX itself to render. The ones they do object to are not: their message says what
+    to write instead, where KaTeX's only says what it choked on, and one fault reads
+    better as one line.
+    """
     problems: list[Problem] = []
     lacks = _katex_lacks()
 
     for span in _MATHS.finditer(markdown):
-        maths = span[1] if span[1] is not None else span[2]
-        for command in _COMMAND.findall(maths):
-            if command in lacks:
-                replacement = lacks[command]
-                problems.append(
-                    Problem(
-                        location,
-                        (
-                            f"KaTeX does not render {command}; write {replacement} instead"
-                            if replacement
-                            else f"KaTeX does not render {command}"
-                        ),
-                    )
+        display = span[1] is not None
+        maths = span[1] if display else span[2]
+        unsupported = [
+            command for command in _COMMAND.findall(maths) if command in lacks
+        ]
+        for command in unsupported:
+            replacement = lacks[command]
+            problems.append(
+                Problem(
+                    location,
+                    (
+                        f"KaTeX does not render {command}; write {replacement} instead"
+                        if replacement
+                        else f"KaTeX does not render {command}"
+                    ),
                 )
+            )
         if _DEGREES.search(maths):
             problems.append(
                 Problem(
@@ -175,8 +223,78 @@ def _katex_problems(markdown: str, location: str) -> list[Problem]:
                     "^\\circ does not display; write the degree sign ° instead",
                 )
             )
+        # Where the field's delimiters are wrong, what is between them is not reliably
+        # the expression the author meant, so it is not rendered. The checks above are
+        # reported against the field rather than a character range, so they still run.
+        if not unsupported and delimiters is MathDelimiterError.PASSED:
+            expressions.append(
+                _Expression(location, span.start() + 1, span.end(), maths, display)
+            )
 
     return problems
+
+
+def _katex_rejections(expressions: list[_Expression]) -> list[Problem]:
+    """What KaTeX itself refuses to render, the whole set in one Node process.
+
+    Node is optional: someone authoring questions in Python should not have to install
+    it, so without it this one check is skipped and says what to install instead.
+    """
+    if not expressions:
+        return []
+
+    node = _node()
+    if node is None:
+        warnings.warn(
+            "Maths was not checked against KaTeX: install Node.js "
+            "(https://nodejs.org) and run again",
+            stacklevel=3,
+        )
+        return []
+
+    try:
+        rendered = subprocess.run(
+            [node, str(_CHECK)],
+            input=json.dumps(
+                [
+                    {"tex": expression.tex, "display": expression.display}
+                    for expression in expressions
+                ]
+            ),
+            capture_output=True,
+            # Not the locale's encoding: KaTeX marks where it stopped reading with
+            # combining low lines, so its messages are never ASCII, and Node writes
+            # them as UTF-8 whatever LANG says.
+            encoding="utf-8",
+            check=True,
+        )
+        rejections = json.loads(rendered.stdout)
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
+        # Anything named node on the PATH is run here, and it may not be Node.js at all.
+        # Validation reports, never refuses, so a check that cannot be run says so and
+        # leaves the rest of the report - and the export - alone.
+        warnings.warn(
+            f"Maths was not checked against KaTeX: running {node} failed ({error})",
+            stacklevel=3,
+        )
+        return []
+
+    problems: list[Problem] = []
+    for rejection in rejections:
+        expression = expressions[rejection["index"]]
+        problems.append(
+            Problem(
+                f"{expression.location}, characters {expression.start}-{expression.end}",
+                f"KaTeX rejects it: {rejection['message']}",
+            )
+        )
+    return problems
+
+
+@cache
+def _node() -> str | None:
+    """Where node is, or None if it is not installed."""
+    return shutil.which("node")
 
 
 @cache

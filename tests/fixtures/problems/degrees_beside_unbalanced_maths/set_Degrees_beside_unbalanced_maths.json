@@ -1,0 +1,7 @@
+{
+  "name": "Degrees beside unbalanced maths",
+  "description": "A worked solution whose later dollar is unclosed, so that the degree sign in the expression before it must still be reported.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

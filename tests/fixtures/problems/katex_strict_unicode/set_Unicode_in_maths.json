@@ -1,0 +1,7 @@
+{
+  "name": "Unicode in maths",
+  "description": "Display maths with a Cyrillic letter pasted in for a Latin one, which KaTeX in strict mode refuses.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}
