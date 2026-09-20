@@ -14,9 +14,12 @@ from collections.abc import Callable  # Rather than typing's, which beartype war
 from pathlib import Path
 from typing import Any
 
+import in2lambda.spec
 from in2lambda.source import (
     DRAFT,
     SourceError,
+    _digest,
+    _elements,
     _require_conversion_tools,
     blocks,
     frozen,
@@ -27,11 +30,12 @@ from in2lambda.source import (
 Command = dict[str, Any]
 """One entry of the log: ``{"command": name, "args": {...}, "by": who}``."""
 
-Handler = Callable[[dict[str, Any], str, dict[str, Any], str], None]
-"""What a command does: `handler(draft, markdown, args, by)`, changing the draft.
+Handler = Callable[[dict[str, Any], str, dict[str, Any], str, str], None]
+"""What a command does: `handler(draft, markdown, args, by, directory)`.
 
 The frozen markdown is passed in rather than read, so that a handler quoting the source
-by line range quotes the same text on a replay as it did when it first ran.
+by line range quotes the same text on a replay as it did when it first ran. The
+directory is where the draft is, which is what a file named in the log is relative to.
 """
 
 _HANDLERS: dict[str, Handler] = {}
@@ -52,6 +56,10 @@ class NoSuchBlock(SourceError):
 
 class ReplayDiffers(SourceError):
     """Replaying a draft's log does not reproduce the draft."""
+
+
+class SpecChanged(SourceError):
+    """The spec file a log names is not the one that ran: it has changed, or gone."""
 
 
 def command(name: str) -> Callable[[Handler], Handler]:
@@ -134,7 +142,9 @@ def _argument(args: dict[str, Any], name: str, command: str) -> Any:
     return args[name]
 
 
-def apply(draft: dict[str, Any], markdown: str, entry: Any) -> None:
+def apply(
+    draft: dict[str, Any], markdown: str, entry: Any, directory: str = "."
+) -> None:
     """Runs one command against a draft and records it in the draft's log.
 
     Args:
@@ -143,6 +153,7 @@ def apply(draft: dict[str, Any], markdown: str, entry: Any) -> None:
         entry: The command, as it is written in the log. Anything at all, rather than a
             `Command`, because a log is read from a file anyone can edit: what shape it
             has is something to tell the reader about, not something to assume.
+        directory: Where the draft is, and so what a file the command names is beside.
 
     Raises:
         MalformedCommand: the entry is not a command.
@@ -158,25 +169,29 @@ def apply(draft: dict[str, Any], markdown: str, entry: Any) -> None:
             f"{entry['command']} is not a command this version of in2lambda has, so "
             "the draft cannot be built from its log. It was written by a newer one."
         )
-    handler(draft, markdown, entry["args"], entry["by"])
+    handler(draft, markdown, entry["args"], entry["by"], directory)
     # After the handler, so a command that was refused is not recorded as having run.
     draft["log"].append(entry)
 
 
-def execute(entry: Command, directory: str = ".") -> None:
+def execute(entry: Command, directory: str = ".") -> dict[str, Any]:
     """Runs one command against the draft in a directory and writes it back.
 
     Args:
         entry: The command, as it is written in the log.
         directory: Where the ``draft.json`` to change is.
 
+    Returns:
+        The draft as the command left it, for whatever wants to report on it.
+
     Raises:
         SourceError: the draft is missing, is not one of ours, or was written from
             markdown that has changed since; or the command is unknown or refused.
     """
     draft, markdown = frozen(directory)
-    apply(draft, markdown, entry)
+    apply(draft, markdown, entry, directory)
     save(Path(directory) / DRAFT, draft)
+    return draft
 
 
 def replay(directory: str = ".") -> None:
@@ -194,6 +209,7 @@ def replay(directory: str = ".") -> None:
             the commands would be replayed against lines they were not run against.
         MalformedCommand: the log holds something that is not a command.
         UnknownCommand: the log names a command nothing here registered.
+        SpecChanged: a spec the log was run with has changed or gone since.
         ReplayDiffers: the rebuilt draft is not the one on disk, byte for byte.
     """
     _require_conversion_tools()
@@ -208,7 +224,7 @@ def replay(directory: str = ".") -> None:
         "fields": {},
     }
     for entry in draft["log"]:
-        apply(rebuilt, markdown, entry)
+        apply(rebuilt, markdown, entry, directory)
 
     path = Path(directory) / DRAFT
     if serialise(rebuilt) != path.read_bytes():
@@ -219,9 +235,35 @@ def replay(directory: str = ".") -> None:
         )
 
 
+def coverage(draft: dict[str, Any]) -> list[str]:
+    """The blocks of a draft that nothing has made anything of yet.
+
+    Args:
+        draft: The draft to look over.
+
+    Returns:
+        The ids of the blocks that are in no field and have not been ignored, in
+        document order. A spec run prints these: they are what is left to account for,
+        and an empty list is the whole document spoken for.
+    """
+    ranges = [
+        line_range
+        for field in draft["fields"].values()
+        for line_range in field["ranges"]
+    ]
+    return [
+        block["id"]
+        for block in draft["blocks"]
+        if f"{block['id']}.ignore" not in draft["fields"]
+        and not any(
+            start <= block["end"] and block["start"] <= end for start, end in ranges
+        )
+    ]
+
+
 @command("mark ignore")
 def _mark_ignore(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
 ) -> None:
     """Marks one block of the frozen source as nothing to take a question from."""
     block = _argument(args, "block", "mark ignore")
@@ -238,3 +280,40 @@ def _mark_ignore(
         ranges=[[found["start"], found["end"]]],
         by=by,
     )
+
+
+@command("spec run")
+def _spec_run(
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
+) -> None:
+    """Fills in a draft's fields from a spec of selectors over the frozen source."""
+    _require_conversion_tools()
+    name = _argument(args, "spec", "spec run")
+    path = Path(directory) / name
+    try:
+        raw = path.read_bytes()
+    except FileNotFoundError:
+        raise SpecChanged(
+            f"There is no {name} beside {DRAFT}, and the log says the draft was filled "
+            "in from one. Put it back, or start the draft again with in2lambda source "
+            "add --start-over."
+        ) from None
+    # As the source is checked: a spec that has been edited since would fill the fields
+    # in differently, and a replay is only a check while it runs what was run before.
+    if _digest(raw) != _argument(args, "hash", "spec run"):
+        raise SpecChanged(
+            f"{name} has changed since it was run against {DRAFT}, so replaying the log "
+            "would not write the fields that are in the draft. Put it back, or start "
+            "the draft again with in2lambda source add --start-over."
+        )
+
+    spec = in2lambda.spec.load(raw.decode("utf-8"))
+    fields, ignored = in2lambda.spec.fields(spec, _elements(markdown), markdown)
+    for found in fields:
+        record(draft, found.key, found.value, layer=1, ranges=found.ranges, by=by)
+    lines = {block["id"]: [block["start"], block["end"]] for block in draft["blocks"]}
+    # The field `mark ignore` writes, so that coverage need not care which said so.
+    for block_id in ignored:
+        record(
+            draft, f"{block_id}.ignore", True, layer=1, ranges=[lines[block_id]], by=by
+        )
