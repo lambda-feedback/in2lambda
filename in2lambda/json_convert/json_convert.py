@@ -37,7 +37,10 @@ def _image_for(reference: str, images: list[str]) -> Optional[str]:
     """
     named = [image for image in images if Path(image).name == Path(reference).name]
     if len(named) > 1:
-        parts = Path(reference).parts
+        # A filter keeps the reference as the document wrote it but normalises the path
+        # it lists beside it, so a `..` is present on one side only and has to come off
+        # for the two to line up. A `.` is already gone, dropped by ``pathlib``.
+        parts = tuple(part for part in Path(reference).parts if part != "..")
         named = [
             image for image in named if Path(image).parts[-len(parts) :] == parts
         ] or named
