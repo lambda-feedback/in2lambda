@@ -1,0 +1,1 @@
+Question 1 "Speed of sound", part (a), answer box 1: MATH_SINGLE_LINE and symbolicEqual needs the answer as text, not a list

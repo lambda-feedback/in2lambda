@@ -10,10 +10,11 @@ import json
 import os
 
 import pytest
+from click.testing import CliRunner
 
 from in2lambda.api.set import Set
 from in2lambda.filters import builtin_filters
-from in2lambda.main import runner
+from in2lambda.main import cli, runner
 
 
 def _example(filters_dir: str, filter_name: str) -> str:
@@ -56,3 +57,27 @@ def test_runner_writes_importable_json(
         assert question_json["title"]
         assert "masterContent" in question_json
         assert "parts" in question_json
+
+
+def test_cli_reports_problems_and_exports_anyway(tmp_path) -> None:
+    """A problem is printed, and is a warning rather than a refusal to export."""
+    question_file = tmp_path / "questions.tex"
+    question_file.write_text(
+        "\\documentclass{article}\n"
+        "\\begin{document}\n"
+        "\\section{Buoyancy}\n"
+        "The apparatus is shown in \\includegraphics{absent.png}.\n"
+        "\\end{document}\n"
+    )
+    out_dir = tmp_path / "out"
+
+    result = CliRunner().invoke(
+        cli, [str(question_file), "PartsOneSol", "-o", str(out_dir)]
+    )
+
+    assert result.exit_code == 0
+    assert (
+        'Warning: Question 1 "", main text: '
+        "the export will not contain the image absent.png" in result.output
+    )
+    assert (out_dir / "set.zip").is_file()

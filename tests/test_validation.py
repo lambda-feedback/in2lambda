@@ -1,16 +1,21 @@
-"""Tests for the math-delimiter checker.
+"""Tests for the checks run over a question set before it is exported.
 
-Ported from ``conversion2025/tools and testing/validator_tests.py`` on the
-``Summer2025`` branch and adapted to the :class:`MathDelimiterError` enum.
+Each folder in ``fixtures/problems`` is a hand-written export exhibiting one problem,
+beside the report it should produce, so covering another check means adding a folder
+rather than a test. The real exports in ``fixtures/exports`` are the other half of it:
+whatever the validator reports, it must not report a set the platform itself wrote.
+
+The markdown cases were ported from ``conversion2025/tools and testing/validator_tests.py``
+on the ``Summer2025`` branch.
 """
 
-import pytest
+from pathlib import Path
 
-from in2lambda.validation import (
-    MathDelimiterError,
-    check_markdown,
-    math_delimiter_checker,
-)
+import pytest
+from conftest import EXPORTS, PROBLEM_SETS
+
+from in2lambda.api.set import Set
+from in2lambda.validation import MathDelimiterError, validate
 
 E = MathDelimiterError
 
@@ -74,15 +79,46 @@ INVALID = [
 ]
 
 
+def _messages(markdown: str) -> list[str]:
+    """What the validator says about a single piece of markdown."""
+    question_set = Set()
+    question_set.add_question("Markdown", markdown)
+    return [problem.message for problem in validate(question_set)]
+
+
+@pytest.mark.parametrize("problem_set", PROBLEM_SETS, ids=lambda path: path.name)
+def test_expected_problems_are_reported(problem_set: Path) -> None:
+    """Each hand-written export produces exactly the report written beside it."""
+    expected = (problem_set / "expected.txt").read_text().splitlines()
+    found = validate(Set.from_json(str(problem_set)))
+
+    assert sorted(str(problem) for problem in found) == sorted(expected)
+
+
+@pytest.mark.parametrize("export", EXPORTS, ids=lambda path: path.name)
+def test_real_exports_have_no_problems(export: Path) -> None:
+    """A set the platform wrote and accepted back must never be reported."""
+    assert validate(Set.from_json(str(export))) == []
+
+
 @pytest.mark.parametrize("content", VALID)
 def test_valid_markdown_passes(content: str) -> None:
-    assert math_delimiter_checker(content) is E.PASSED
-    assert check_markdown(content) == []
+    assert _messages(content) == []
 
 
 @pytest.mark.parametrize("content, expected", INVALID)
 def test_invalid_markdown_is_reported(
     content: str, expected: MathDelimiterError
 ) -> None:
-    assert math_delimiter_checker(content) is expected
-    assert check_markdown(content) == [expected]
+    assert _messages(content) == [expected.value]
+
+
+def test_image_that_is_not_on_disk_is_reported(tmp_path: Path) -> None:
+    """An image a question lists but that is not there would break the export."""
+    question_set = Set()
+    question_set.add_question("Rocket", "![pictureTag](rocket.png)")
+    question_set.current_question.images.append(str(tmp_path / "rocket.png"))
+
+    assert [problem.message for problem in question_set.problems()] == [
+        f"there is no image file at {tmp_path / 'rocket.png'}"
+    ]

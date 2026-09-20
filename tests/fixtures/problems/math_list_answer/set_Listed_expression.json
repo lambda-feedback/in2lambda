@@ -1,0 +1,7 @@
+{
+  "name": "Listed expression",
+  "description": "A maths box whose answer is a list of true/false rather than an expression.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "Option count",
+  "description": "A multiple choice with three options but only two true/false answers.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}
