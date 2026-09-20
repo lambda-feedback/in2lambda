@@ -1,6 +1,6 @@
 # 🚀 Quickstart
 
-This page gives a quick overview of how to get started with in2lambda to quickly add documents to Lambda Feedback.
+This page describes how to install in2lambda and convert a document into a Lambda Feedback question set.
 
 ## 1. Installation
 
@@ -8,13 +8,13 @@ This page gives a quick overview of how to get started with in2lambda to quickly
 
 [![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/lambda-feedback/in2lambda/docker-publish.yml?style=flat-square&logo=docker&label=Docker)](https://github.com/lambda-feedback/in2lambda/pkgs/container/in2lambda)
 
-The following creates an interactive container which includes in2lambda and mounts the current working directory into `/files`:
+The following command starts an interactive container holding in2lambda, with the current working directory mounted at `/files`:
 
 ```bash
 $ docker run -it --rm -v $(pwd):/files ghcr.io/lambda-feedback/in2lambda sh
 ```
 
-Within the container, we can access the files and run in2lambda as normal.
+Run in2lambda over those files inside the container.
 
 ```bash
 $ cd files
@@ -23,7 +23,7 @@ $ ...
 $ exit
 ```
 
-The container is stopped and deleted after exiting, although the image remains downloaded for future use.
+Docker stops and deletes the container on exit. The image stays on disk for the next run.
 
 ### PyPi
 
@@ -31,7 +31,7 @@ The container is stopped and deleted after exiting, although the image remains d
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/in2lambda?style=flat-square&logo=python&logoColor=white)](https://pypi.org/project/in2lambda/)
 
 
-in2lambda can be installed via [pip](https://pip.pypa.io/en/stable/). To author questions in Python:
+[pip](https://pip.pypa.io/en/stable/) installs in2lambda. To write questions in Python:
 
 ```shell
 $ pip install in2lambda
@@ -44,50 +44,50 @@ $ pip install 'in2lambda[convert]'
 $ in2lambda --help
 ```
 
-This can also be done through [pipx](https://pypa.github.io/pipx/).
+[pipx](https://pypa.github.io/pipx/) installs in2lambda as well.
 
 ## 2. Choose a Document
 
-`in2lambda convert` takes in two arguments:
+`in2lambda convert` takes two arguments:
 
 - The path to a document.
-- A filter describing how to parse it.
+- A filter describing how to parse that document.
 
-A list of available filters can be found [here](filters/index).
+The [filters page](filters/index) lists every filter.
 
-For instance, the following takes in `questions.tex` and uses a filter that expects [each part to be directly followed by the solution](filters/_autosummary/PartSolPartSol):
+The following command reads `questions.tex` with a filter that expects [each part to be followed by its solution](filters/_autosummary/PartSolPartSol):
 
 ```bash
 $ in2lambda convert questions.tex PartSolPartSol
 ```
 
 :::{note}
-The filter name is case-insensitive. Don't worry about the capital letters.
+The filter name is case-insensitive.
 :::
 
-Another filter might be used if [the answers are in a separate file](filters/_autosummary/PartsSepSol):
+A different filter reads [answers held in a separate file](filters/_autosummary/PartsSepSol):
 
 ```bash
 $ in2lambda convert questions.tex -a solutions.tex PartsSepSol
 ```
 
-By default, this generates an `out` directory in the same place that the command was run in. It contains the zipped question files.
+`in2lambda convert` writes an `out` directory in the directory the command ran in, holding the zipped question files.
 
-Before writing anything, in2lambda prints the problems it can detect that would stop the set importing or make it render wrongly — an answer that doesn't fit the box marking it, a figure the export won't contain, maths that KaTeX can't display. Each names the question, part and field to go and look at. They are warnings rather than errors: the `out` directory is written either way, since a problem found here may well be deliberate.
+Before writing that directory, in2lambda prints the problems that would stop Lambda Feedback importing the set or would render it wrongly: an answer that does not fit the box marking it, a figure the export would not contain, maths KaTeX cannot display. Each problem names the question, the part and the field holding it. Each problem is a warning, and in2lambda writes the `out` directory whatever it finds, because an author may have intended the problem.
 
-The maths is checked by rendering it with KaTeX itself, the way Lambda Feedback will, which needs [Node.js](https://nodejs.org) installed. Without Node.js everything else is still checked and in2lambda says the maths was not.
+in2lambda checks the maths by rendering it with KaTeX, as Lambda Feedback renders it, which needs [Node.js](https://nodejs.org). Without Node.js, in2lambda runs the other checks and reports that it did not check the maths.
 
-With [xelatex](https://tug.org/texlive/) installed alongside pandoc, the set is also compiled the way Lambda Feedback makes a PDF of it, and any LaTeX error names the field it is in. Without it, one warning says which packages to install instead.
+With [xelatex](https://tug.org/texlive/) installed alongside pandoc, in2lambda also compiles the set as Lambda Feedback compiles a PDF of it, and names the field holding each LaTeX error. Without xelatex, in2lambda prints one warning naming the packages to install.
 
-Check the [command line tool reference](reference/command-line) for more information.
+The [command line reference](reference/command-line) describes every command and option.
 
 ## 3. Import into Lambda Feedback
 
-Click on a set in teacher mode. The arrow next to the "Add Question" button allows you to import a question from a file.
+Open a set in teacher mode. The arrow beside the "Add Question" button imports a question from a file.
 
-Choose the zip file you wish to upload, and the question should appear! 🎉
+Choose the zip file to upload, and Lambda Feedback adds the question to the set.
 
-Imported questions arrive published with every display setting on, and the set's own visibility settings still apply. The Python API can set each of these per question — see the
+An imported question arrives published, with every display setting on, and the set's own visibility settings apply to it. The Python API sets each of these per question; see the
 [question format](question-format).
 
 ![Importing Question from file in Teacher Mode](_static/images/import-teacher.png)

@@ -1,22 +1,24 @@
-"""Freezes the source documents of a draft, so their text can be quoted by line range.
+"""Freezes the source documents of a draft, so that their text can be quoted by line range.
 
-Anything that writes questions from a document - the in2lambda agent, say - needs to
-take the wording out of the source rather than retype it, and a line range is only an
-address if the text it points into cannot move underneath it. So the document is frozen
-once: converted to markdown, hashed, and written down beside a ``FILE.draft.json``
-listing every top-level block with the lines it spans.
+A tool that writes questions from a document copies the wording out of the source, and a
+line range identifies that wording only while the text does not change. So in2lambda
+freezes the document once: :func:`add` converts it to markdown, hashes the markdown, and
+writes a ``FILE.draft.json`` beside it listing every top-level block with the lines that
+block spans.
 
 The draft is named after the source it was frozen from, so a folder holding a term's
-worth of sheets holds a draft for each rather than one they take turns overwriting.
+sheets holds one draft per sheet.
 
-A draft freezes several documents where a sheet is written that way - the questions in
-one file and the solutions in another. They are numbered in the order they were frozen,
-and a block id or a line range of any source after the first carries its number:
-``2/b3``, ``2/s10:14``. The first source's are written plain, as they were when a draft
-held one.
+A draft freezes several documents where a sheet is written as several files, such as the
+questions in one file and the solutions in another. The sources are numbered in the order
+they were frozen, and a block id or a line range of any source after the first carries
+that source's number: ``2/b3``, ``2/s10:14``. The first source's ids and ranges are
+written plain.
 
-Everything here needs pandoc, and the parsing needs panflute, which only the ``convert``
-extra installs; :func:`add` says so rather than failing on the import.
+:func:`add` needs pandoc to convert a document to markdown, and :func:`blocks` needs
+panflute to parse that markdown, which only the ``convert`` extra installs. :func:`add`
+raises :class:`ConversionToolsMissing` naming what to install. The other functions here
+read a draft that is already written, and need neither.
 """
 
 import hashlib
@@ -30,22 +32,22 @@ from pathlib import Path
 from typing import Any, Optional
 
 DRAFT_SUFFIX = ".draft.json"
-"""What a frozen source is written to, beside the source itself and named after it."""
+"""The suffix of a draft, which is written beside its source and named after it."""
 
 
 def _field_fault(field: Any) -> str:
-    """What is wrong with the shape of one field of a draft, or "" if nothing is.
+    """What is wrong with the shape of one field of a draft, or "" if nothing is wrong.
 
-    ``ranges``, ``source`` and ``value`` are what is looked for, because they are the
-    parts of a field anything here reads: `in2lambda.draft.record` compares the lines a
+    A field is checked for ``ranges``, ``source`` and ``value``, because this package
+    reads those three parts of a field: `in2lambda.draft.record` compares the lines a
     command is quoting against the lines every field of that source was taken from, and
-    `in2lambda.draft.report.checks` reports a field whose value says nothing. Only
-    whether there is a value is asked, since the checks look at one as a string or not
-    at all. The layer, whether it was edited and by whom are written and read back
-    whole, and an edit to any of them is what a replay catches byte for byte.
+    `in2lambda.draft.report.checks` reports a field holding an empty value. The check
+    asks only whether a value is present, because the checks read a value as a string or
+    not at all. The layer, the edited flag and the editor are written and read back
+    whole, and `in2lambda draft replay` catches an edit to any of them byte for byte.
 
-    A field quoted from the first source has no ``source`` in it, which is what every
-    field of a draft frozen from one document looks like.
+    A field quoted from the first source holds no ``source`` key, as every field of a
+    draft frozen from one document does.
     """
     if not isinstance(field, dict):
         return "is not an object"
@@ -66,31 +68,29 @@ def _field_fault(field: Any) -> str:
 
 
 _FIELDS = ("sources", "log", "fields")
-"""What a draft has in it, and so what one has to have for anything here to read it.
+"""The keys a draft holds, and so the keys a file must hold to be read as a draft.
 
-``sources`` is one ``{source, hash, blocks}`` per frozen document, in the order they
-were frozen. A draft written before there could be more than one holds those three at
-the top level instead, and is refused as one nothing here wrote rather than read as a
-draft of one source: the ids and ranges in it were written against a shape that has
-gone. Freezing the document again is the way through, which is what the refusal says.
+``sources`` holds one ``{source, hash, blocks}`` per frozen document, in the order they
+were frozen. A draft written before a draft could hold more than one source holds those
+three keys at the top level, and is refused as a draft in2lambda did not write: its ids
+and ranges were written against a shape this package no longer reads. The refusal says to
+freeze the document again.
 
-A draft written before ``log`` and ``fields`` existed has neither, and is refused as one
-nothing here wrote: there is no command log to replay it from, and inventing an empty one
-would claim the fields in it came from nowhere. Freezing the source again is the way
-through, which is what the refusal says.
+A draft written before ``log`` and ``fields`` existed holds neither, and is refused as a
+draft in2lambda did not write: there is no command log to replay it from, and an empty log
+would claim its fields came from nowhere. The refusal says to freeze the source again.
 
-A draft `in2lambda validate` has been run on also has a ``report``, which is not required
-and not looked into: nothing here reads one back, and the next run of the checks writes
-whatever is there over.
+A draft that `in2lambda validate` has been run on also holds a ``report``, which is not
+required and not checked: nothing here reads a report back, and the next run of the checks
+writes over it.
 """
 
 _MARKDOWN = "commonmark_x"
 """The dialect the frozen markdown is written in, and read back as.
 
-Writer and reader have to agree: pandoc's ``markdown`` writer emits fenced divs and
-bracketed spans that a commonmark reader would take as ordinary text. ``commonmark_x``
-also covers the ``$...$`` maths and the ``{width=...}`` attributes a converted document
-carries.
+The writer and the reader must agree. Pandoc's ``markdown`` writer emits fenced divs and
+bracketed spans that a commonmark reader reads as ordinary text. ``commonmark_x`` also
+covers the ``$...$`` maths and the ``{width=...}`` attributes a converted document holds.
 """
 
 _POSITION = re.compile(r"(?:[^@;]*@)?(\d+):\d+-(\d+):(\d+)")
@@ -98,12 +98,11 @@ _POSITION = re.compile(r"(?:[^@;]*@)?(\d+):\d+-(\d+):(\d+)")
 
 
 class SourceError(RuntimeError):
-    """Freezing or printing a source could not be done, for a reason worth printing.
+    """Freezing or printing a source failed, for a reason worth printing.
 
-    The command line turns any of these into a message and a non-zero exit, so
-    anything a reader could do something about - a draft from somewhere else, a file
-    that has moved - is raised as one of these rather than left as whatever the
-    standard library raised on the way past.
+    The command line prints the message of any of these and exits non-zero. A fault a
+    reader can act on, such as a draft another tool wrote or a file that has moved, is
+    raised as one of these.
     """
 
 
@@ -112,32 +111,32 @@ class ConversionToolsMissing(SourceError):
 
 
 class DraftExists(SourceError):
-    """A draft is already there and was not made from this version of the source."""
+    """A draft is already there and was not written from this version of the source."""
 
 
 class DraftMissing(SourceError):
-    """There is no draft where one was looked for."""
+    """There is no draft at the path a command looked in."""
 
 
 class ManyDrafts(SourceError):
-    """A directory holds more than one draft, so which was meant has to be said."""
+    """A directory holds more than one draft, so the command cannot choose one."""
 
 
 class DraftUnreadable(SourceError):
-    """There is a file where the draft goes, but it is not a draft."""
+    """A file is at the draft's path, and that file is not a draft."""
 
 
 class SourceUnreadable(SourceError):
-    """The markdown to read has moved, or is not text."""
+    """The markdown to read has moved, or is not UTF-8 text."""
 
 
 def draft_of(source: str | Path) -> Path:
-    """Where the draft of a document goes, which is beside it and named after it.
+    """The path of a document's draft, which is beside the document and named after it.
 
     Args:
         source: The document that was or would be frozen, in any format :func:`add`
-            takes. A draft's own path is given back as it is, so that anything taking
-            one from a reader can take either.
+            takes. A draft's own path is returned unchanged, so that a command reading a
+            path from a reader accepts either.
 
     Returns:
         The path of that document's draft.
@@ -156,20 +155,19 @@ def draft_of(source: str | Path) -> Path:
 
 
 def find(given: Optional[str] = None, directory: str = ".") -> Path:
-    """Which draft a command was asked to work on, or the one draft there is.
+    """The draft a command was asked to work on, or the one draft in a directory.
 
     Args:
-        given: What a reader named, as the draft or as the source it was frozen from,
-            or nothing to go by what is in `directory`.
-        directory: Where to look when nothing was named.
+        given: The draft a reader named, as the draft's path or as the path of the
+            source it was frozen from. None reads `directory` instead.
+        directory: Where to look when the reader named no draft.
 
     Returns:
         The path of the draft to read.
 
     Raises:
-        DraftMissing: nothing was named and there is no draft to fall back on.
-        ManyDrafts: nothing was named and there is more than one, so a folder of
-            sheets does not silently act on whichever sorts first.
+        DraftMissing: the reader named no draft and `directory` holds none.
+        ManyDrafts: the reader named no draft and `directory` holds several.
     """
     if given is not None:
         return draft_of(given)
@@ -183,7 +181,7 @@ def find(given: Optional[str] = None, directory: str = ".") -> Path:
         )
     raise ManyDrafts(
         f"There is more than one draft in {where}: "
-        f"{', '.join(path.name for path in found)}. Say which with --draft."
+        f"{', '.join(path.name for path in found)}. Name one with --draft."
     )
 
 
@@ -191,7 +189,7 @@ def _require_conversion_tools() -> None:
     missing = []
     if shutil.which("pandoc") is None:
         missing.append("pandoc (see https://pandoc.org/installing.html)")
-    # Both come from the one extra, so they are named together rather than twice over.
+    # panflute and pyyaml come from the one extra, so one hint names both packages.
     if absent := [
         package
         for module, package in (("panflute", "panflute"), ("yaml", "pyyaml"))
@@ -205,16 +203,16 @@ def _require_conversion_tools() -> None:
 
 
 def file_type(file: str) -> str:
-    """Determines which pandoc file format to use for a given file.
+    """The pandoc input format for a file, read from the file's extension.
 
     See https://github.com/jgm/pandoc/blob/bad922a69236e22b20d51c4ec0b90c5a6c038433/src/Text/Pandoc/Format.hs#L171
-    (or any newer commit) for pandoc's supported file extensions.
+    (or any newer commit) for the extensions pandoc supports.
 
     Args:
-        file: A file path with the file extension included.
+        file: A file path, including the file extension.
 
     Returns:
-        An option in `pandoc --list-input-formats` that matches the given file type
+        The option of `pandoc --list-input-formats` that matches the extension.
 
     Examples:
         >>> from in2lambda.source import file_type
@@ -245,15 +243,15 @@ def file_type(file: str) -> str:
         ):
             return "markdown"
         case "docx":
-            return "docx"  # Pandoc doesn't seem to support .doc, and panflute doesn't like .docx.
+            return "docx"  # Pandoc reads no .doc, and panflute does not read .docx.
     raise RuntimeError(f"Unsupported file extension: .{extension}")
 
 
 def _pandoc(file: str, to: str, *options: str) -> bytes:
     """The given file, as pandoc writes it in the `to` format.
 
-    Undecoded, because what is written to disk and what is hashed have to be the same
-    bytes; whoever wants the text of it decodes it themselves.
+    The bytes are returned undecoded, because the file written to disk and the bytes
+    hashed must be the same. A caller wanting the text decodes them.
     """
     return subprocess.check_output(
         ["pandoc", file, "-f", file_type(file), "-t", to, *options]
@@ -419,22 +417,22 @@ def _display_maths_blocked(markdown: str) -> str:
 
 
 def _digest(data: bytes) -> str:
-    """How a frozen markdown is named in its draft, so that a change to it shows up.
+    """How a frozen markdown is named in its draft, so that a change to it is reported.
 
-    The bytes of the file, not the text they decode to: the draft is checked by whoever
-    is quoting the markdown, who has nothing but the file, and `sha256sum` on it has to
-    give the same answer whatever the line endings in it are.
+    The digest is of the bytes of the file, not of the text they decode to: whoever
+    quotes the markdown checks the draft against the file alone, and `sha256sum` on that
+    file must give the same answer whatever line endings the file holds.
     """
     return f"sha256:{hashlib.sha256(data).hexdigest()}"
 
 
 def _source(path: Path) -> tuple[bytes, str]:
-    """A markdown file as bytes and as text, given it is still there and still text.
+    """A markdown file as bytes and as text, where the file is present and is text.
 
-    Both freezing and showing read one, and someone who has moved the file or saved it
-    in some other encoding wants telling which it was, not a traceback. The bytes are
-    what gets hashed, and `bytes.decode` rewrites no line endings, so the text still
-    has whatever the file has.
+    Both freezing and showing read a markdown file, and a reader who has moved the file
+    or saved it in another encoding is told which fault occurred. The bytes are what
+    :func:`_digest` hashes, and `bytes.decode` rewrites no line endings, so the text
+    holds the line endings the file holds.
     """
     try:
         raw = path.read_bytes()
@@ -453,12 +451,12 @@ def _source(path: Path) -> tuple[bytes, str]:
 
 
 def _draft(path: Path) -> dict[str, Any]:
-    """The draft at the given path, given that something here wrote it.
+    """The draft at the given path, where in2lambda wrote it.
 
     Raises:
-        DraftMissing: nothing is there at all.
-        DraftUnreadable: something is, but it is not JSON or it is not a draft. Either
-            way it is not this package's to read from or write over.
+        DraftMissing: there is no file at that path.
+        DraftUnreadable: the file is not JSON, or is not a draft. in2lambda neither
+            reads from nor writes over such a file.
     """
     if not path.is_file():
         raise DraftMissing(
@@ -478,11 +476,11 @@ def _draft(path: Path) -> dict[str, Any]:
         ) from None
     if missing := [field for field in _FIELDS if field not in fields]:
         raise DraftUnreadable(
-            f"{path} is not a draft anything here wrote: it has no "
-            f"{' or '.join(missing)} in it. {advice}"
+            f"{path} is not a draft in2lambda wrote: it holds no "
+            f"{' or '.join(missing)}. {advice}"
         )
-    # The one gate everything reading a draft passes through, so a hand-edited log or
-    # fields is refused here rather than as a TypeError from whatever iterated it.
+    # Every read of a draft passes through here, so a hand-edited log or fields is
+    # refused with a message instead of a TypeError from the code that iterates it.
     for field, shape, called in (
         ("sources", list, "a list"),
         ("log", list, "a list"),
@@ -490,45 +488,43 @@ def _draft(path: Path) -> dict[str, Any]:
     ):
         if not isinstance(draft[field], shape):
             raise DraftUnreadable(
-                f"{path} is not a draft anything here wrote: its {field} is "
+                f"{path} is not a draft in2lambda wrote: its {field} is "
                 f"{draft[field]!r} rather than {called}. {advice}"
             )
     if not draft["sources"]:
-        # Nothing here writes one: `add` freezes a file or refuses. So an empty list is
-        # a hand-edited draft, and every id and range in it names a document that is no
-        # longer there - which is what the rest of this package would trip over rather
-        # than report, since it takes the first source as the one an unqualified id is
-        # of.
+        # `add` freezes a file or refuses, so in2lambda writes no empty list. A draft
+        # holding one has been edited by hand, and every id and range in it names a
+        # document that is no longer frozen. The rest of this package reads the first
+        # source as the one an unqualified id belongs to.
         raise DraftUnreadable(
-            f"{path} is not a draft anything here wrote: its sources is empty, so "
-            f"there is no frozen document for its fields to have been quoted out of. "
-            f"{advice}"
+            f"{path} is not a draft in2lambda wrote: its sources is empty, so it names "
+            f"no frozen document for its fields to have been quoted out of. {advice}"
         )
     for source in draft["sources"]:
         if not isinstance(source, dict) or not all(
             key in source for key in ("source", "hash", "blocks")
         ):
             raise DraftUnreadable(
-                f"{path} is not a draft anything here wrote: its sources holds "
+                f"{path} is not a draft in2lambda wrote: its sources holds "
                 f"{source!r} rather than a frozen document, its hash and its blocks. "
                 f"{advice}"
             )
     for key, field in draft["fields"].items():
         if fault := _field_fault(field):
             raise DraftUnreadable(
-                f"{path} is not a draft anything here wrote: its fields has {key} "
-                f"that {fault}. {advice}"
+                f"{path} is not a draft in2lambda wrote: its fields holds {key}, which "
+                f"{fault}. {advice}"
             )
     return draft
 
 
 def serialise(draft: dict[str, Any]) -> bytes:
-    """The bytes a draft is written as, which is the only form it is ever written in.
+    """The bytes a draft is written as, which is the only form a draft is written in.
 
-    Sorted, and bytes rather than text, so that the same draft is the same file:
-    replaying a command log has to reproduce the draft exactly, which it cannot do
-    if the key order depends on what order something happened to write the keys in, or
-    if the newlines depend on which machine wrote them.
+    The keys are sorted and the result is bytes, so that the same draft is the same
+    file. `in2lambda draft replay` reproduces a draft byte for byte, which fails if the
+    key order follows the order the keys were written in, or if the newlines follow the
+    machine that wrote them.
     """
     return (json.dumps(draft, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
@@ -539,22 +535,22 @@ def save(path: Path, draft: dict[str, Any]) -> None:
 
 
 def frozen(draft: str | Path) -> tuple[dict[str, Any], list[str]]:
-    """A draft and the markdown of every source it names, still unmoved.
+    """A draft and the markdown of every source it names, where no source has changed.
 
     Args:
         draft: The path of the draft to read.
 
     Returns:
-        The draft, and the text of each markdown it names, in the order it froze them:
-        the first is source 1, whose blocks and lines are the ones named unqualified.
+        The draft, and the text of each markdown it names, in the order it froze them.
+        The first is source 1, whose blocks and lines are named unqualified.
 
     Raises:
         DraftMissing: there is no draft at that path.
-        DraftUnreadable: what is there is not a draft anything here wrote.
+        DraftUnreadable: the file at that path is not a draft in2lambda wrote.
         SourceUnreadable: a markdown the draft names has moved, or is not text.
         DraftExists: a markdown has changed since the draft was written from it, so the
             line ranges in the draft no longer name the lines they were taken from. The
-            refusal names the file that changed, since a draft may hold several.
+            message names the file that changed, because a draft may hold several.
     """
     path = Path(draft)
     found = _draft(path)
@@ -591,11 +587,11 @@ class Block:
 
 
 def _numbered(source: int, name: str) -> str:
-    """A block id or a line range as the source it names something in writes it.
+    """A block id or a line range as the source it names writes it.
 
-    The first source writes them plain - ``b3``, ``s10:14`` - which is what everything
-    wrote when a draft held one source; every source after it puts its number and a
-    slash in front, so that an id or a range says which document it is of.
+    The first source writes them plain - ``b3``, ``s10:14`` - as every draft did when a
+    draft held one source. Every source after it prefixes its number and a slash, so
+    that an id or a range names the document it belongs to.
     """
     return name if source == 1 else f"{source}/{name}"
 
@@ -610,9 +606,8 @@ def blocks(markdown: str, source: int = 1) -> list[Block]:
 
     Returns:
         One :class:`Block` per block, numbered ``b1`` onwards. The blocks do not
-        overlap and every line of the document falls in at most one: a block that is
-        none of the types the agent quotes is still listed, as ``other``, rather than
-        leaving its lines unaddressable.
+        overlap, and every line of the document falls in at most one block. A block of a
+        type no command quotes is listed as ``other``, so that its lines have an id.
 
     Examples:
         >>> from in2lambda.source import blocks
@@ -627,21 +622,19 @@ def blocks(markdown: str, source: int = 1) -> list[Block]:
 def dedented(text: str) -> str:
     r"""Some lines of a list item, with the item's own indentation off every one.
 
-    A field quoted out of a list item would otherwise carry the marker and the
-    continuation indent the markdown needed to hold it together, and four leading
-    spaces after a blank line are a code block wherever the field is rendered.
+    A field quoted out of a list item would otherwise hold the marker and the
+    continuation indent the markdown needs, and four leading spaces after a blank line
+    render as a code block.
 
     Args:
-        text: The lines as the source writes them, the first of them holding the
-            item's marker.
+        text: The lines as the source writes them, the first holding the item's marker.
 
     Returns:
-        The same lines with the marker off the first and as much of the same width
-        off each of the rest as it has to give, so that a list nested inside the item
-        keeps its own relative indent. Text whose first line has no marker on it comes
-        back unchanged, but a paragraph reading like one - ``A. Smith says`` - would be
-        dedented, so what this is called on is decided by the block's type rather than
-        by its text.
+        The same lines, with the marker off the first line and as much of the same width
+        off each line below as that line has to give, so that a list nested inside the
+        item keeps its relative indent. Text whose first line holds no marker is returned
+        unchanged. A paragraph that reads like a marker - ``A. Smith says`` - would be
+        dedented, so the caller decides by the block's type and not by its text.
 
     Examples:
         >>> from in2lambda.source import dedented
@@ -665,9 +658,9 @@ def dedented(text: str) -> str:
 def _elements(markdown: str, source: int = 1) -> list[tuple[Block, Any]]:
     """Every block of some markdown, each beside the panflute element it was taken from.
 
-    A selector matches on what the element is - its type, its heading level, the text it
-    stringifies to - which the block alone does not say, so anything matching against
-    the source takes this and projects the blocks out of it, as :func:`blocks` does.
+    A selector matches on the element's type, its heading level and the text it
+    stringifies to, none of which a block records, so code matching against the source
+    calls this and projects the blocks out of the result, as :func:`blocks` does.
     """
     import panflute as pf
 
@@ -676,9 +669,9 @@ def _elements(markdown: str, source: int = 1) -> list[tuple[Block, Any]]:
     )
     found = [span for element in document.content for span in _spans(element, pf)]
     # Where no blank line separates one block from the next - a list straight after a
-    # paragraph, a definition list - pandoc reports the first as running on into the
-    # second's first line, so no block is allowed to reach where the next one starts,
-    # nor past the end of the document.
+    # paragraph, a definition list - pandoc reports the first block as reaching into the
+    # second block's first line. So a block ends before the next block starts, and
+    # before the end of the document.
     limits = [start - 1 for _, start, _, _ in found[1:]] + [len(markdown.splitlines())]
     return [
         (Block(_numbered(source, f"b{number}"), kind, start, min(end, limit)), element)
@@ -691,16 +684,15 @@ def _elements(markdown: str, source: int = 1) -> list[tuple[Block, Any]]:
 def _spans(element, pf):  # type: ignore[no-untyped-def]
     """The ``(type, start, end, element)`` quadruples one top-level element accounts for.
 
-    A list is several: the ticket asks for a list item, not a list, and an item spans
-    everything nested under it. The element given back is the one that block is, past
-    the Div `sourcepos` wraps it in, so that whatever matches on it matches on what an
-    author would call it.
+    A list accounts for several: a command quotes a list item, not a list, and an item
+    spans everything nested under it. The element returned is the block itself, past the
+    Div `sourcepos` wraps it in, so that a selector matches the element an author would
+    name.
     """
     inner = _unwrapped(element, pf)
     if isinstance(inner, (pf.BulletList, pf.OrderedList)):
-        # An item with nothing in it - a lone bullet, which a .docx often has - holds
-        # no element to take a position from, so there is no range to give it and it
-        # is left out rather than guessed at.
+        # An empty item - a lone bullet, which a .docx often holds - carries no element
+        # with a position, so it has no range and is left out.
         return [
             ("list item", _range(item.content[0])[0], _range(item.content[-1])[1], item)
             for item in inner.content
@@ -710,10 +702,11 @@ def _spans(element, pf):  # type: ignore[no-untyped-def]
 
 
 def _unwrapped(element, pf):  # type: ignore[no-untyped-def]
-    """What an element is, past the Div that `sourcepos` wraps it in.
+    """An element, past the Div that `sourcepos` wraps it in.
 
-    Only elements that take attributes of their own (a heading, a table) carry
-    ``data-pos`` directly; pandoc wraps the rest in a Div to hang it on.
+    Only elements that take attributes of their own, such as a heading or a table, carry
+    ``data-pos`` directly. Pandoc wraps every other element in a Div to hang ``data-pos``
+    on.
     """
     if isinstance(element, pf.Div) and element.attributes.get("wrapper"):
         return element.content[0]
@@ -721,11 +714,12 @@ def _unwrapped(element, pf):  # type: ignore[no-untyped-def]
 
 
 def _kind(inner, pf) -> str:  # type: ignore[no-untyped-def]
-    """Which of the ticket's block types an unwrapped element is."""
+    """The :class:`Block` type an unwrapped element is."""
     if isinstance(inner, pf.Header):
         return "heading"
     if isinstance(inner, (pf.Para, pf.Plain)):
-        # A paragraph holding nothing but one image, or one $$...$$, is that thing.
+        # A paragraph holding one image, or one $$...$$, and nothing else is typed as
+        # that element.
         contents = [
             item
             for element in inner.content
@@ -744,8 +738,8 @@ def _kind(inner, pf) -> str:  # type: ignore[no-untyped-def]
 def _range(element) -> tuple[int, int]:  # type: ignore[no-untyped-def]
     """The first and last line an element covers, from its ``data-pos``.
 
-    An element may carry more than one position, in which case they are parts of it and
-    the whole of it is wanted. An end at column 1 means the block stopped before that
+    An element may carry more than one position, one per part of the element, and the
+    whole element is wanted. An end at column 1 means the block stopped before that
     line, which is how pandoc reports every block that ends in a newline.
     """
     positions = _POSITION.findall(element.attributes["data-pos"])
@@ -762,65 +756,64 @@ def add(
 ) -> Path:
     """Freezes one or more documents and writes the draft of them beside the files.
 
-    A .docx or .tex file is converted to markdown next to it; a markdown file is taken
-    as it is and nothing is copied. Either way the markdown is hashed and its blocks
-    written to ``FILE.draft.json``, so that whatever quotes a source by line range can
-    tell that the lines it was given still say what they said. A converted file is
-    written unwrapped - a paragraph is one line, however long - with each ``$$ ... $$``
-    on lines of its own, which is the maths Lambda Feedback renders.
+    A .docx or .tex file is converted to markdown beside it. A markdown file is frozen
+    as it stands and nothing is copied. Either way the markdown is hashed and its blocks
+    are written to ``FILE.draft.json``, so that code quoting a source by line range can
+    check that those lines still hold the text they held. A converted file is written
+    unwrapped: a paragraph is one line, however long, and each ``$$ ... $$`` is written
+    on lines of its own. Lambda Feedback renders display maths written that way.
 
-    The files are numbered in the order they are given, and a file already frozen into
-    the draft beside them is checked against the hash it was frozen at rather than
-    frozen afresh. So a sheet and the solutions written separately from it are frozen
-    together, or the solutions added later as the next source; either way the questions
-    keep the ids and the lines the commands so far were run against.
+    The files are numbered in the order they are given. A file already frozen into the
+    draft beside them is checked against the hash it was frozen at, and is not frozen
+    again. So a sheet and the solutions written separately are frozen together, or the
+    solutions added later as the next source, and the questions keep the ids and the
+    lines the commands so far were run against.
 
     Args:
         files: The documents to freeze, as .docx, .tex or markdown, all in the one
             directory, in the order they are to be numbered in.
-        start_over: Freeze them again, discarding whatever draft is already there.
-        into: The draft to freeze them into, as its own path or that of a source
-            already in it, and None for the one named after the first file. A file
-            frozen into a draft already written is a source of that draft rather than
-            the first source of one of its own.
+        start_over: Freeze the files again, discarding the draft already there.
+        into: The draft to freeze the files into, as the draft's path or as the path of
+            a source already in it. None names the draft after the first file. A file
+            frozen into a draft already written becomes a source of that draft.
 
     Returns:
         The path of the draft that was written.
 
     Raises:
         ConversionToolsMissing: pandoc or panflute is not installed.
-        SourceError: the files are not all in one directory, so there is no one draft
-            beside them to freeze them into.
-        SourceUnreadable: a file is markdown, but not UTF-8 text.
-        DraftUnreadable: there is a draft beside the files that nothing here wrote,
-            so it is not ours to read a hash out of or to write over.
+        SourceError: the files are not all in one directory, so no one draft is beside
+            them all.
+        SourceUnreadable: a file is markdown, and is not UTF-8 text.
+        DraftUnreadable: a draft beside the files is not a draft in2lambda wrote, so
+            this function neither reads a hash out of it nor writes over it.
         DraftExists: a source has changed since it was frozen, or a markdown would
-            overwrite a file that no draft claims. Neither happens with `start_over`.
+            overwrite a file that no draft claims. `start_over` overrides both.
     """
     _require_conversion_tools()
     paths = [Path(file) for file in files]
     if len({path.parent for path in paths}) != 1:
         raise SourceError(
-            "A draft sits beside the documents it is of, so the files frozen into one "
-            f"are all in the same directory: {', '.join(files)}."
+            "A draft is written beside the documents it was frozen from, so the files "
+            f"frozen into one draft are in the same directory: {', '.join(files)}. Move "
+            "them into one directory, or run in2lambda source add once per directory."
         )
     draft = draft_of(paths[0] if into is None else into)
 
-    # What a draft already here has been told, which freezing the same files again does
-    # not undo: the commands were run against these very lines, so they still hold. The
-    # blocks are kept for the same reason, and are not always what parsing the markdown
-    # gives: `split block` cuts one in two, and parsing again would undo that while
-    # keeping the log entry saying it happened, leaving the ids the fields were written
-    # against naming nothing. --start-over is the way to throw all of it away, and the
-    # only one.
+    # A draft already here holds the commands run against it, which freezing the same
+    # files again does not undo: those commands were run against these lines, so they
+    # still hold. The blocks are kept for the same reason, and parsing the markdown does
+    # not always give them: `split block` cuts a block in two, and parsing again would
+    # undo that cut while keeping the log entry recording it, leaving the ids the fields
+    # were written against naming nothing. --start-over is the only way to discard them.
     existing: dict[str, Any] = {"sources": [], "log": [], "fields": {}}
     if not start_over and draft.is_file():
         existing = _draft(draft)
     sources: list[dict[str, Any]] = list(existing["sources"])
 
-    # Every file is read and parsed before any is written: a parse that fails half way
-    # through would otherwise leave a markdown there with no draft claiming it, and the
-    # next run would refuse to touch a file this one wrote.
+    # Every file is read and parsed before any file is written: a parse that fails part
+    # way through would otherwise leave a markdown on disk that no draft claims, and the
+    # next run would refuse to overwrite a file this run wrote.
     converted: list[tuple[Path, bytes]] = []
     for path in paths:
         if file_type(str(path)) == "markdown":
@@ -850,7 +843,7 @@ def add(
         if not start_over and frozen_path != path and frozen_path.exists():
             raise DraftExists(
                 f"{frozen_path.name} is already there and no {draft.name} claims it, "
-                "so it is not ours to overwrite. Move it aside, or run in2lambda "
+                "so in2lambda does not overwrite it. Move it aside, or run in2lambda "
                 "source add --start-over."
             )
         sources.append(
@@ -864,22 +857,22 @@ def add(
         )
 
     for frozen_path, raw in converted:
-        # The bytes pandoc wrote, so that the file on disk is what `digest` is of;
-        # writing text would rewrite the line endings on Windows and it would not be.
+        # The bytes pandoc wrote, so that the file on disk hashes to `digest`. Writing
+        # text would rewrite the line endings on Windows.
         frozen_path.write_bytes(raw)
-    # Freezing is where a draft starts, not something it records: a replay is the log
-    # applied to this, so `add` is the only thing that writes a draft it did not run.
+    # Freezing starts a draft and is not recorded in the log: a replay applies the log
+    # to what `add` wrote, so `add` writes no log entry of its own.
     save(
         draft,
         {
             "sources": sources,
             "log": existing["log"],
             "fields": existing["fields"],
-            # What the checks found still holds where every file named was frozen
-            # already, since then this writes the draft back as it was. A source
-            # appended is a document the checks have never seen, every block of which
-            # is in no field, so the report is dropped as any change to a draft drops
-            # it - and `build`, which is gated on one, asks for the checks again.
+            # The report still describes the draft where every file named was frozen
+            # already, because `add` then writes the draft back unchanged. An appended
+            # source is a document the checks have never read, and every block of it is
+            # in no field, so the report is deleted as any change to a draft deletes it.
+            # `in2lambda build` then asks for the checks again.
             **(
                 {"report": existing["report"]}
                 if existing.get("report") is not None and sources == existing["sources"]
@@ -898,20 +891,19 @@ def show(draft: str | Path) -> str:
 
     Returns:
         One line per line of each frozen markdown: the id of the block starting there,
-        where one does, then the line number and the line itself. A draft of more than
-        one source heads each with its number and its name, since the line numbers
-        start again at 1 in every one of them.
+        where a block starts there, then the line number and the line itself. A draft of
+        more than one source heads each source with its number and its name, because the
+        line numbers start again at 1 in each source.
 
     Raises:
         DraftMissing: there is no draft at that path.
-        DraftUnreadable: what is there is not a draft anything here wrote.
+        DraftUnreadable: the file at that path is not a draft in2lambda wrote.
         SourceUnreadable: a markdown the draft names has moved, or is not text.
         DraftExists: a markdown has changed since the draft was written from it, so
-            the ids would be printed against lines they are not the ids of.
+            the ids would be printed against lines they were not taken from.
     """
-    # A line range is only an address while the lines have not moved: printing ids
-    # against markdown the draft was not written from would be worse than printing
-    # nothing, because it would look right.
+    # A line range identifies text only while that text does not change: ids printed
+    # against markdown the draft was not written from would look right and be wrong.
     found, sources = frozen(draft)
 
     printed = []

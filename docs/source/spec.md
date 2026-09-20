@@ -1,8 +1,8 @@
 # 📐 Specs
 
-A spec is a small YAML file saying which blocks of a document are questions, which are parts and
-which are solutions. Running one fills in the draft beside the documents it was frozen from, so
-that the wording of every question comes out of the source rather than being retyped:
+A spec is a YAML file that says which blocks of a document are questions, which are parts and
+which are solutions. `in2lambda spec run` fills in the draft beside the documents the spec was
+frozen from, copying the wording of every question out of the source:
 
 ```bash
 $ in2lambda source add questions.docx solutions.docx
@@ -10,12 +10,12 @@ $ in2lambda spec run spec.yaml
 b6 (lines 12-13) is in no field and not marked ignore.
 ```
 
-The last line is the point of it: a spec run reports every block it made nothing of, naming the
-lines it is, so what is left to account for is in front of you rather than quietly missing.
+The last line illustrates the purpose of a spec. Blocks not matched to a field are reported, with
+their line numbers, so that all content is accounted for.
 
-The fields a draft holds belong to the spec that wrote them, so a spec is run over a draft once.
-Running an edited one again is refused; freeze the document afresh and run it, which is two
-commands:
+The fields of a draft belong to the spec that wrote them, so a spec runs over a draft once.
+`in2lambda spec run` refuses an edited spec over a draft it has already filled in. Freeze the
+documents again and run the spec, which takes two commands:
 
 ```bash
 $ in2lambda source add --start-over questions.docx solutions.docx
@@ -33,28 +33,28 @@ ignore:   Header level=1
 layout:   PartsSepSol
 ```
 
-`question` and `layout` have to be there; `part`, `solution`, `strip`, `ignore` and
-`predicates` need not be.
+A spec must set `question` and `layout`. A spec may set `part`, `solution`, `strip`, `ignore` and
+`predicates`.
 
-- **`question`, `part`, `solution`** select the blocks that are each of those things.
-- **`ignore`** selects the blocks that are none of them - a running header, a page of
-  instructions - and marks them as `in2lambda draft mark ignore` would, so they are not reported
-  as left out.
-- **`strip`** is a list of patterns taken off the front of every value: the `Q1. ` or
-  `Solution: ` that labels a block in the document, but not in the question. A list marker is
-  not one of them, since a value quoted out of a list item arrives dedented.
-- **`predicates`** names a Python file beside the spec, for the selectors that cannot say what
-  they mean in constraints alone. See below.
-- **`layout`** is one of the [filters](filters/index), and says which solution answers which
-  question or part. See below.
+- **`question`, `part`, `solution`** select the blocks that are questions, parts and solutions.
+- **`ignore`** selects the blocks that are none of those three, such as a running header or a page
+  of instructions. `in2lambda spec run` marks each one as `in2lambda draft mark ignore` does, so
+  that the run does not report it.
+- **`strip`** lists the patterns removed from the front of every value, such as the `Q1. ` or
+  `Solution: ` that labels a block in the document but not in the question. A list marker is not
+  one of those patterns, because a value quoted out of a list item is already dedented.
+- **`predicates`** names a Python file beside the spec, for the selectors that constraints alone
+  cannot express. See [Predicates](#predicates).
+- **`layout`** is one of the [filters](filters/index), and assigns each solution to a question or
+  part. See [Layouts](#layouts).
 
-A block is whatever the first of `ignore`, `question`, `part`, `solution` to match it says it is.
-That order is fixed, whatever order the keys are written in, so a spec whose selectors overlap
-has to tell them apart by what they match rather than by where they are in the file.
+`in2lambda spec run` classifies a block as the first of `ignore`, `question`, `part` and
+`solution` that matches it. That order is fixed, whatever order the keys are written in. A spec
+whose selectors overlap must tell them apart by what they match.
 
-`question`, `part`, `solution` and `ignore` each take one selector, or a list of them written
-under the key. A block has that role where any one of the selectors in the list matches it, so
-one spec selects the questions of a document that writes them two different ways:
+`question`, `part`, `solution` and `ignore` each take one selector, or a list of selectors
+written under the key. A block has that role where any one of those selectors matches the block,
+so one spec selects the questions of a document that writes its questions two ways:
 
 ```yaml
 ignore:
@@ -64,41 +64,40 @@ ignore:
 
 ## Selectors
 
-A selector is a block type, then any number of constraints:
+A selector is a block type followed by any number of constraints:
 
 ```
 [after SELECTOR,] [Type] name=value name~'regex' ...
 ```
 
-The type is a pandoc element - `Header`, `Para`, `ListItem` - and may be left out to match any
-block. A constraint is about one of three things:
+The type is a pandoc element: `Header`, `Para`, `ListItem`. A selector that omits the type matches
+any block. A constraint names one of three attributes:
 
-| Attribute | What it is |
-|-----------|------------|
-| `level`   | A heading's level: `level=2` is `##`. |
-| `text`    | The whole block as text, with the markup taken off. |
-| `label`   | The first word of that text, which is usually what numbers a question. |
+| Attribute | Meaning |
+|-----------|---------|
+| `level`   | A heading's level. `level=2` matches `##`. |
+| `text`    | The whole block as text, with the markup removed. |
+| `label`   | The first word of that text, which usually numbers a question. |
 
-`=` asks for exactly that; `~` for a regular expression anywhere in it. `after SELECTOR,` says
-the block has to come after the first block that selector matches, which is how the solutions at
-the end of a problem sheet are told apart from the questions at the front.
+`=` matches the whole value. `~` matches a regular expression anywhere in the value. `after
+SELECTOR,` requires the block to follow the first block that the named selector matches, which is
+how a spec tells the solutions at the end of a problem sheet from the questions at the front.
 
-A regular expression goes in single quotes. YAML reads `\(` inside double quotes as an escape
-and complains, and `'^\([a-z]\)'` is the same string without the argument.
+Write a regular expression in single quotes. YAML reads `\(` inside double quotes as an escape
+sequence and reports an error, and single quotes pass the backslash through.
 
-A selector matches what **pandoc** makes of the document, while a field holds the **markdown** of
-the lines it came from. That is worth knowing where a part is written `(a) Find the load.`: it is
-a `ListItem`, because pandoc reads `(a)` as a list marker, and the value comes dedented the way
-pandoc reads the item - the marker off the first line and as much of the same width off every
-line under it - so `strip` is only for what pandoc does not read as a marker, the `Q1. ` and the
-`Solution: `.
+A selector matches the document as **pandoc** parses it, and a field holds the **markdown** of the
+lines the block came from. A part written `(a) Find the load.` is a `ListItem`, because pandoc
+reads `(a)` as a list marker. Its value is dedented as pandoc reads the item: the marker comes off
+the first line, and the same width of indentation off every line below it. Use `strip` for the
+labels pandoc does not read as a marker, such as `Q1. ` and `Solution: `.
 
+(predicates)=
 ## Predicates
 
-Some documents cannot be told apart by their text. If the questions are the paragraphs written
-in bold, and a paragraph about marking starts with the word `Question` as surely as they do,
-then no `text~` constraint will do it. For those, a spec names a Python file beside it and calls
-functions from it:
+Some documents cannot be classified by their text. If the questions are the paragraphs written in
+bold, and a paragraph about marking also starts with the word `Question`, no `text~` constraint
+separates them. A spec then names a Python file beside it and calls functions from that file:
 
 ```yaml
 predicates: predicates.py
@@ -107,10 +106,10 @@ solution:   Para italic_lead()
 layout:     PartsOneSol
 ```
 
-A `name()` anywhere in a selector is a call, and goes with a type, with constraints and with
-`after` - `after Header text=Solutions, is_solution()` - all of which have to hold as well. A
-predicate is an ordinary function of one argument, the [panflute](https://scorreia.com/software/panflute/)
-element the block is, that says whether the block is one of those:
+A `name()` anywhere in a selector calls a predicate. A call combines with a type, with constraints
+and with `after` — `after Header text=Solutions, is_solution()` — and every one of them must hold.
+A predicate is a function of one argument, the [panflute](https://scorreia.com/software/panflute/)
+element for the block, that returns whether the selector matches:
 
 ```python
 import panflute as pf
@@ -124,25 +123,28 @@ def bold_lead(element: pf.Element) -> bool:
     return isinstance(first, pf.Strong)
 ```
 
-The frozen source is parsed with pandoc's `sourcepos`, so that each block knows which lines it
-came from, and that leaves every inline wrapped in a `Span` carrying where it is. A predicate
-looking at the markup has to see through them, as the one above does.
+`in2lambda source add` parses the frozen source with pandoc's `sourcepos`, so that each block
+records the lines it came from. `sourcepos` wraps every inline element in a `Span` holding that
+element's position, and a predicate reading the markup must look through those spans, as
+`bold_lead` above does.
 
-The file is named in the draft's log with its hash, exactly as the spec is, and it is run from
-the bytes that hash was taken of. So a predicate edited after a run is refused the same way an
-edited spec is, by `in2lambda draft replay` and by running the spec again.
+The draft's log names the predicate file with its hash, as it names the spec, and `in2lambda spec
+run` runs the file from the bytes that hash was taken of. `in2lambda draft replay` and a second
+`in2lambda spec run` refuse a predicate file edited since the first run, as they refuse an edited
+spec.
 
+(layouts)=
 ## Layouts
 
-The layout is the one thing that differs between problem sheets that are otherwise alike: where
-the solutions are, and what each of them answers.
+The layout says where the solutions are written and which question or part each one
+answers. Problem sheets that are otherwise alike differ in their layout.
 
 | Layout | Which solution answers what |
 |--------|-----------------------------|
-| `PartsOneSol` | One solution to the whole question, however many parts it has. |
-| `PartSolPartSol` | Each solution answers the part just before it, or the question if it has no parts yet. |
-| `PartPartSolSol` | The parts come together and their solutions come after, in the same order. |
-| `PartsSepSol` | Every solution is at the end: the first answers the first part of the first question, and so on. |
+| `PartsOneSol` | One solution answers the whole question, however many parts it has. |
+| `PartSolPartSol` | Each solution answers the part before it, or the question where no part precedes it. |
+| `PartPartSolSol` | The parts come together and their solutions follow, in the same order. |
+| `PartsSepSol` | Every solution is at the end. The first answers the first part of the first question, and so on. |
 
 A sheet holding more solutions than the layout has questions and parts to answer sends two of
 them to the one field. The second is left in no field and reported, naming the field and the
@@ -150,57 +152,58 @@ block that holds it. The section below says the same of a document of solutions.
 
 ## A separate solutions document
 
-Many sheets come as two files: the questions, and the solutions written separately from them.
-Freeze both, in that order, and the draft holds them as source 1 and source 2. A file can be
-added to a draft later just as well, which freezes it as the next source:
+Many sheets come as two files: the questions, and the solutions written separately. Freeze both,
+in that order, and the draft holds them as source 1 and source 2. `in2lambda source add` also adds
+a file to an existing draft, which freezes that file as the next source:
 
 ```bash
 $ in2lambda source add questions.docx
 $ in2lambda source add solutions.docx
 ```
 
-`in2lambda source show` then prints each source under its number and its name, and everything
-that names a block or a line range says which source it means. `b3` and `s10:14` are the first
-source's, as they have always been; `2/b3` and `2/s14:20` are the second's, and `1/b3` is `b3`
-the long way round. A field quoted from a source after the first records that source's number
-beside the lines it came from, since line 5 of the solutions is not line 5 of the sheet.
+`in2lambda source show` prints each source under its number and its name, and every block id and
+line range names the source it belongs to. `b3` and `s10:14` name the first source, `2/b3` and
+`2/s14:20` the second, and `1/b3` names the block `b3` names. A field quoted from a source after
+the first records that source's number beside the lines it was copied from, because line 5 of the
+solutions is not line 5 of the sheet.
 
-The same spec runs over every source, and each selector matches within the source it is being
-run over - `after Header text=Solutions` is about where a block sits in its own document. What
-changes is what the selectors mean in a document of solutions, which is what `in2lambda convert
--a` makes of an answers file:
+`in2lambda spec run` runs the same spec over every source, and each selector matches within the
+source being run over: `after Header text=Solutions` names a position in one document. The
+selectors mean something different in a document of solutions, the document `in2lambda convert
+-a` reads as an answers file:
 
-- A block the **`question`** selector matches is a **marker** - the `Q2.` written above the
-  solutions to the second question. It answers nothing itself, is marked ignored, and sends what
-  follows it to that question's first slot.
-- A block the **`part`** or the **`solution`** selector matches is a **solution**, and they take
-  the slots in order: each question's parts, or the question itself where it has none.
-- The **`layout`** is the sheet's, and says nothing about the documents after it. Solutions
-  written separately come in the order the questions do, which is the `PartsSepSol` rule whatever
-  the sheet itself is laid out as.
+- A block the **`question`** selector matches is a **marker**, such as the `Q2.` written above the
+  solutions to the second question. A marker answers nothing. `in2lambda spec run` marks the
+  marker ignored and assigns the blocks after it to that question's first slot.
+- A block the **`part`** or **`solution`** selector matches is a **solution**. Solutions fill the
+  slots in order: each question's parts, or the question itself where it has no parts.
+- The **`layout`** describes the sheet, and describes no document after it. Solutions written
+  separately follow the order of the questions, which is the `PartsSepSol` rule, whatever layout
+  the sheet uses.
 
-A solution past the last slot is reported as being in no field, like any other block the spec
-made nothing of. So is one landing on a question the solutions before it have answered, with a
-second line naming the field it would have gone in and the block that holds it:
+`in2lambda spec run` reports a solution past the last slot as being in no field, like any other
+unmatched block. `in2lambda spec run` reports a solution assigned to a question that an earlier
+solution has answered in the same way, and adds a second line naming the field the solution
+would have been written to and the block already written there:
 
 ```
 b7 (lines 14-15) is in no field and not marked ignore.
 b7 (lines 14-15) would be q2.solution, which b5 (lines 10-11) already holds.
 ```
 
-The run writes every other field, so a spec that sends two solutions to one field still fills
-the draft in and names the block to look at.
+`in2lambda spec run` writes every other field, so a spec that sends two solutions to one field
+fills the draft in and names the block to read.
 
-## What it writes
+## What a spec writes
 
-Each question is `q1`, `q2` and so on in the order they appear, and each of its parts `q1.p1`,
-`q1.p2`. So a spec fills in `q1.text`, `q1.p1.text`, `q1.p1.solution` and, for a question
-answered as a whole, `q1.solution`. They are the names the `in2lambda draft` commands give out
-as well, so a draft filled in either way is the same draft. Every one of them records the lines it was copied from, and that a
-spec wrote it.
+The questions are `q1`, `q2` and so on in the order they appear, and the parts of a question are
+`q1.p1`, `q1.p2`. A spec fills in `q1.text`, `q1.p1.text`, `q1.p1.solution` and, for a question
+answered as a whole, `q1.solution`. The `in2lambda draft` commands write the same names, so a
+draft filled in either way holds the same fields. Each field records the lines it was copied from
+and that a spec wrote it.
 
-The spec is recorded in the draft's log with its hash, so `in2lambda draft replay` rebuilds the
-same draft from the same spec - and refuses if the spec has been edited since, because then it
-would be checking the draft against something else. That is why running an edited spec over a
-draft it has already filled in is refused too: the draft would be left holding fields no spec on
-disk wrote, and no replay could ever check it again.
+The draft's log names the spec with its hash, so `in2lambda draft replay` rebuilds the same draft
+from the same spec. `in2lambda draft replay` refuses a spec edited since the run, because the spec
+on disk describes a different draft. `in2lambda spec run` refuses an edited spec over a draft it
+has already filled in for the same reason: the draft would hold fields that no spec on disk wrote,
+and no replay could check it again.
