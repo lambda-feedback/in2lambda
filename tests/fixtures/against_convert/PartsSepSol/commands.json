@@ -1,0 +1,61 @@
+[
+  {
+    "args": {
+      "block": "b1"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "text": "s3:4"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "question": "q1",
+      "text": "s5:9"
+    },
+    "by": "tests",
+    "command": "part add"
+  },
+  {
+    "args": {
+      "question": "q1",
+      "text": "s10:11"
+    },
+    "by": "tests",
+    "command": "part add"
+  },
+  {
+    "args": {
+      "at": 14,
+      "block": "b3"
+    },
+    "by": "tests",
+    "command": "split block"
+  },
+  {
+    "args": {
+      "text": "b3a"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "block": "b3b"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "text": "b4"
+    },
+    "by": "tests",
+    "command": "question add"
+  }
+]
