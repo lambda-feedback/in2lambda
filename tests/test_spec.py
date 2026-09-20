@@ -58,7 +58,7 @@ def test_a_spec_fills_in_the_fields_beside_it_and_replays(
     result = runner.invoke(cli, ["spec", "run", "spec.yaml", "--by", "tests"])
 
     assert result.exit_code == 0, result.output
-    draft_path = tmp_path / "draft.json"
+    draft_path = tmp_path / "source.draft.json"
     draft = json.loads(draft_path.read_text())
     assert draft["fields"] == json.loads((folder / "expected.json").read_text())
 
@@ -117,7 +117,7 @@ def test_a_spec_ignoring_a_block_the_draft_has_split_covers_both_halves(
     result = runner.invoke(cli, ["spec", "run", "spec.yaml", "--by", "tests"])
 
     assert result.exit_code == 0, result.output
-    fields = json.loads((tmp_path / "draft.json").read_text())["fields"]
+    fields = json.loads((tmp_path / "source.draft.json").read_text())["fields"]
     assert fields["b1.ignore"]["ranges"] == [[1, 2]]
     # Both halves are within the lines the ignore field was written over, so neither is
     # reported as left out.
@@ -132,7 +132,7 @@ def test_the_checks_read_the_fields_a_spec_wrote(tmp_path: Path, monkeypatch) ->
     assert run.exit_code == 0, run.output
     # The spec answers the second part where it stands and leaves the first unanswered;
     # renumbering the second question is the gap, which no command makes.
-    draft_path = tmp_path / "draft.json"
+    draft_path = tmp_path / "source.draft.json"
     draft = json.loads(draft_path.read_text())
     for key in ("q2.text", "q2.solution"):
         draft["fields"][key.replace("q2", "q3")] = draft["fields"].pop(key)
@@ -157,7 +157,7 @@ def test_a_replay_is_refused_once_the_spec_has_changed(
     monkeypatch.chdir(tmp_path)
     runner = _frozen(PREDICATES, tmp_path)
     assert runner.invoke(cli, ["spec", "run", "spec.yaml"]).exit_code == 0
-    draft_path = tmp_path / "draft.json"
+    draft_path = tmp_path / "source.draft.json"
     written = draft_path.read_bytes()
 
     _edit(tmp_path / file)
@@ -196,7 +196,7 @@ def test_running_an_edited_spec_again_is_refused(
     monkeypatch.chdir(tmp_path)
     runner = _frozen(PREDICATES, tmp_path)
     assert runner.invoke(cli, ["spec", "run", "spec.yaml"]).exit_code == 0
-    draft_path = tmp_path / "draft.json"
+    draft_path = tmp_path / "source.draft.json"
     written = draft_path.read_bytes()
 
     edited = tmp_path / file
@@ -229,7 +229,7 @@ def test_a_spec_run_over_a_log_holding_something_that_is_not_a_command_is_refuse
     monkeypatch.chdir(tmp_path)
     runner = _frozen(WORKED_EXAMPLE, tmp_path)
     assert runner.invoke(cli, ["spec", "run", "spec.yaml"]).exit_code == 0
-    draft_path = tmp_path / "draft.json"
+    draft_path = tmp_path / "source.draft.json"
     draft = json.loads(draft_path.read_text())
     draft["log"].append(entry)
     draft_path.write_text(json.dumps(draft))
@@ -254,7 +254,7 @@ def test_a_replay_is_refused_once_the_spec_has_gone(
     monkeypatch.chdir(tmp_path)
     runner = _frozen(PREDICATES, tmp_path)
     assert runner.invoke(cli, ["spec", "run", "spec.yaml"]).exit_code == 0
-    written = (tmp_path / "draft.json").read_bytes()
+    written = (tmp_path / "source.draft.json").read_bytes()
     (tmp_path / file).unlink()
 
     result = runner.invoke(cli, ["draft", "replay"])
@@ -266,7 +266,7 @@ def test_a_replay_is_refused_once_the_spec_has_gone(
     assert file in result.output
     assert again.exit_code != 0
     assert file in again.output
-    assert (tmp_path / "draft.json").read_bytes() == written
+    assert (tmp_path / "source.draft.json").read_bytes() == written
 
 
 @pytest.mark.parametrize(
@@ -311,7 +311,7 @@ def test_a_spec_that_cannot_be_read_says_which_line_to_look_at(
     monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.chdir(tmp_path)
     runner = _frozen(WORKED_EXAMPLE, tmp_path)
-    written = (tmp_path / "draft.json").read_bytes()
+    written = (tmp_path / "source.draft.json").read_bytes()
     (tmp_path / "spec.yaml").write_text(spec)
 
     result = runner.invoke(cli, ["spec", "run", "spec.yaml"])
@@ -321,7 +321,7 @@ def test_a_spec_that_cannot_be_read_says_which_line_to_look_at(
     assert line in result.output
     assert isinstance(result.exception, SystemExit)
     # Nothing is half written: the draft is as it was before the spec was run.
-    assert (tmp_path / "draft.json").read_bytes() == written
+    assert (tmp_path / "source.draft.json").read_bytes() == written
 
 
 @pytest.mark.parametrize(
@@ -345,7 +345,7 @@ def test_a_spec_calling_a_predicate_nothing_holds_is_refused(
     monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.chdir(tmp_path)
     runner = _frozen(PREDICATES, tmp_path)
-    written = (tmp_path / "draft.json").read_bytes()
+    written = (tmp_path / "source.draft.json").read_bytes()
     (tmp_path / "spec.yaml").write_text(spec)
 
     result = runner.invoke(cli, ["spec", "run", "spec.yaml"])
@@ -354,7 +354,7 @@ def test_a_spec_calling_a_predicate_nothing_holds_is_refused(
     for name in named:
         assert name in result.output
     assert isinstance(result.exception, SystemExit)
-    assert (tmp_path / "draft.json").read_bytes() == written
+    assert (tmp_path / "source.draft.json").read_bytes() == written
 
 
 def test_a_spec_that_is_not_there_is_refused_rather_than_left_to_the_file_system(
@@ -363,7 +363,7 @@ def test_a_spec_that_is_not_there_is_refused_rather_than_left_to_the_file_system
     """The command line checks the path; a script calling this straight does not."""
     monkeypatch.chdir(tmp_path)
     with pytest.raises(SourceError, match="nowhere.yaml"):
-        in2lambda.draft.spec_command("nowhere.yaml", "tests")
+        in2lambda.draft.spec_command("nowhere.yaml", "tests", "source.draft.json")
 
 
 def test_a_spec_saved_as_utf_16_is_read_like_any_other(
@@ -378,7 +378,7 @@ def test_a_spec_saved_as_utf_16_is_read_like_any_other(
     result = runner.invoke(cli, ["spec", "run", "spec.yaml", "--by", "tests"])
 
     assert result.exit_code == 0, result.output
-    fields = json.loads((tmp_path / "draft.json").read_text())["fields"]
+    fields = json.loads((tmp_path / "source.draft.json").read_text())["fields"]
     assert fields == json.loads((WORKED_EXAMPLE / "expected.json").read_text())
 
 
@@ -389,7 +389,7 @@ def test_a_spec_in_an_encoding_yaml_cannot_read_is_refused(
     monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.chdir(tmp_path)
     runner = _frozen(WORKED_EXAMPLE, tmp_path)
-    written = (tmp_path / "draft.json").read_bytes()
+    written = (tmp_path / "source.draft.json").read_bytes()
     (tmp_path / "spec.yaml").write_bytes(
         "question: Header\nstrip: ['^Solución ']\nlayout: PartsOneSol\n".encode(
             "cp1252"
@@ -401,7 +401,7 @@ def test_a_spec_in_an_encoding_yaml_cannot_read_is_refused(
     assert result.exit_code != 0
     assert "not YAML" in result.output
     assert isinstance(result.exception, SystemExit)
-    assert (tmp_path / "draft.json").read_bytes() == written
+    assert (tmp_path / "source.draft.json").read_bytes() == written
 
 
 def test_running_a_spec_without_pyyaml_says_what_to_install(

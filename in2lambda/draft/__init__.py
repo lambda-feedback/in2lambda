@@ -18,7 +18,6 @@ from typing import Any
 import in2lambda.spec
 from in2lambda.draft.report import _order, checks, overlapping, uncovered
 from in2lambda.source import (
-    DRAFT,
     SourceError,
     _digest,
     _elements,
@@ -285,12 +284,12 @@ def apply(
     return written
 
 
-def execute(entry: Command, directory: str = ".") -> str:
-    """Runs one command against the draft in a directory and writes it back.
+def execute(entry: Command, draft: str | Path) -> str:
+    """Runs one command against a draft and writes it back.
 
     Args:
         entry: The command, as it is written in the log.
-        directory: Where the ``draft.json`` to change is.
+        draft: The path of the draft to change.
 
     Returns:
         What the command wrote, as the handler names it: the key of a field, the block
@@ -300,21 +299,24 @@ def execute(entry: Command, directory: str = ".") -> str:
         SourceError: the draft is missing, is not one of ours, or was written from
             markdown that has changed since; or the command is unknown or refused.
     """
-    draft, sources = frozen(directory)
-    written = apply(draft, sources, entry, directory)
-    save(Path(directory) / DRAFT, draft)
+    path = Path(draft)
+    found, sources = frozen(path)
+    # The handlers are given the folder rather than the draft: what they read beside it
+    # - a spec, a file of predicates - is named from there, whichever draft is theirs.
+    written = apply(found, sources, entry, str(path.parent))
+    save(path, found)
     return written
 
 
-def replay(directory: str = ".") -> None:
-    """Rebuilds the draft in a directory from its source and its log, and checks it.
+def replay(draft: str | Path) -> None:
+    """Rebuilds a draft from its source and its log, and checks it is the same.
 
     Nothing is written: the point is to find out whether what is on disk is what its
     commands say it should be, and a replay that wrote the answer could not tell anyone
     it was different.
 
     Args:
-        directory: Where the ``draft.json`` to replay is.
+        draft: The path of the draft to replay.
 
     Raises:
         DraftExists: the markdown has changed since the draft was written from it, so
@@ -325,7 +327,8 @@ def replay(directory: str = ".") -> None:
         ReplayDiffers: the rebuilt draft is not the one on disk, byte for byte.
     """
     _require_conversion_tools()
-    draft, sources = frozen(directory)
+    path = Path(draft)
+    found, sources = frozen(path)
     # From the markdown rather than from the draft: the blocks are as much a product of
     # the sources as the fields are, and copying them across would not check them.
     rebuilt: dict[str, Any] = {
@@ -336,32 +339,31 @@ def replay(directory: str = ".") -> None:
                 "blocks": [block.to_dict() for block in blocks(markdown, number)],
             }
             for number, (source, markdown) in enumerate(
-                zip(draft["sources"], sources), start=1
+                zip(found["sources"], sources), start=1
             )
         ],
         "log": [],
         "fields": {},
     }
-    for entry in draft["log"]:
-        apply(rebuilt, sources, entry, directory)
+    for entry in found["log"]:
+        apply(rebuilt, sources, entry, str(path.parent))
     # The one thing in a draft that no command wrote: the checks did, over the draft the
     # commands left, so rebuilding it is running them again rather than copying it. What
     # `in2lambda.validation` found over the set is carried across instead, since it
     # depends on whether xelatex and Node are installed and the draft does not: rebuilt
     # here it would come out shorter on a machine whose toolchain is not the one that
     # validated, and an untouched draft would be accused of having been edited.
-    if "report" in draft:
+    if "report" in found:
         carried = [
-            finding for finding in draft["report"] if finding["check"] == "problem"
+            finding for finding in found["report"] if finding["check"] == "problem"
         ]
         rebuilt["report"] = sorted(checks(rebuilt) + carried, key=_order)
 
-    path = Path(directory) / DRAFT
     if serialise(rebuilt) != path.read_bytes():
         raise ReplayDiffers(
-            f"Replaying the log in {DRAFT} does not reproduce it, so what is in it did "
-            "not all come from the commands it records - something has changed it since "
-            "they ran. Run in2lambda source add --start-over to begin again."
+            f"Replaying the log in {path.name} does not reproduce it, so what is in it "
+            "did not all come from the commands it records - something has changed it "
+            "since they ran. Run in2lambda source add --start-over to begin again."
         )
 
 
@@ -402,7 +404,7 @@ def _block(draft: dict[str, Any], block: str) -> tuple[int, dict[str, Any]]:
     )
     if found is None:
         raise NoSuchBlock(
-            f"There is no block {block} in {DRAFT}. Run in2lambda source show to see "
+            f"There is no block {block} in the draft. Run in2lambda source show to see "
             "the ids of the blocks there are."
         )
     return source, found
@@ -431,7 +433,7 @@ def _lines(
         return in_source, found["start"], found["end"]
     if not 1 <= source <= len(sources):
         raise NoSuchLines(
-            f"{command} was given {where}, and there is no source {source} in {DRAFT}: "
+            f"{command} was given {where}, and there is no source {source} in the draft: "
             f"it holds {len(sources)}. Run in2lambda source add FILE to freeze another "
             "beside them."
         )
@@ -554,8 +556,8 @@ def _require_question(draft: dict[str, Any], question: str, command: str) -> Non
     """
     if f"{question}.text" not in draft["fields"]:
         raise NoSuchQuestion(
-            f"There is no question {question} in {DRAFT}: {command} adds to a question "
-            "that in2lambda draft question add has already written."
+            f"There is no question {question} in the draft: {command} adds to a "
+            "question that in2lambda draft question add has already written."
         )
 
 
@@ -680,7 +682,7 @@ def _field_replace(
     field = draft["fields"].get(key)
     if field is None or not isinstance(field.get("value"), str):
         raise NoSuchField(
-            f"There is no field {key} holding text in {DRAFT}: field replace changes "
+            f"There is no field {key} holding text in the draft: field replace changes "
             "the wording of a field one of the commands before it has written."
         )
     value = field["value"]
@@ -766,13 +768,13 @@ def _file_as_run(directory: str, name: str, digest: str) -> bytes:
         raw = (Path(directory) / name).read_bytes()
     except FileNotFoundError:
         raise SpecChanged(
-            f"There is no {name} beside {DRAFT}, and the log says the draft was filled "
-            "in with it. Put it back, or start the draft again with in2lambda source "
-            "add --start-over."
+            f"There is no {name} beside the draft, and the log says the draft was "
+            "filled in with it. Put it back, or start the draft again with in2lambda "
+            "source add --start-over."
         ) from None
     if _digest(raw) != digest:
         raise SpecChanged(
-            f"{name} has changed since it was run against {DRAFT}, so the fields the "
+            f"{name} has changed since it was run against the draft, so the fields the "
             "spec wrote are not the ones it would write now. Put it back, or start the "
             "draft again with in2lambda source add --start-over."
         )
@@ -804,7 +806,7 @@ def _files(args: dict[str, Any]) -> list[tuple[str, str]]:
     return files
 
 
-def spec_command(name: str, by: str, directory: str = ".") -> Command:
+def spec_command(name: str, by: str, draft: str | Path) -> Command:
     """The `spec run` entry for a spec, with everything it depends on hashed into it.
 
     The hashes go in the log beside the names, so that a replay can tell whether it is
@@ -813,7 +815,7 @@ def spec_command(name: str, by: str, directory: str = ".") -> Command:
     Args:
         name: The spec to run, as it is to be named in the log: beside the draft.
         by: Who is running it, as a name or a model.
-        directory: Where the draft is, and so what the spec is beside.
+        draft: The path of the draft the spec is to fill in, which the spec is beside.
 
     Returns:
         The command, for :func:`execute` to run.
@@ -823,8 +825,9 @@ def spec_command(name: str, by: str, directory: str = ".") -> Command:
             it names a file of predicates that is not beside it.
     """
     _require_conversion_tools()
+    directory = Path(draft).parent
     try:
-        raw = (Path(directory) / name).read_bytes()
+        raw = (directory / name).read_bytes()
     except OSError:
         raise in2lambda.spec.BadSpec(
             f"There is no {name} to read a spec from. A spec is the file of selectors "
@@ -838,7 +841,7 @@ def spec_command(name: str, by: str, directory: str = ".") -> Command:
         # what the log names things from.
         beside = (Path(name).parent / spec.predicates).as_posix()
         try:
-            code = (Path(directory) / beside).read_bytes()
+            code = (directory / beside).read_bytes()
         except OSError:
             raise in2lambda.spec.BadSpec(
                 f"There is no {beside} to read the spec's predicates from. The "

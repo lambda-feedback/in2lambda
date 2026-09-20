@@ -3,8 +3,11 @@
 Anything that writes questions from a document - the in2lambda agent, say - needs to
 take the wording out of the source rather than retype it, and a line range is only an
 address if the text it points into cannot move underneath it. So the document is frozen
-once: converted to markdown, hashed, and written down beside a ``draft.json`` listing
-every top-level block with the lines it spans.
+once: converted to markdown, hashed, and written down beside a ``FILE.draft.json``
+listing every top-level block with the lines it spans.
+
+The draft is named after the source it was frozen from, so a folder holding a term's
+worth of sheets holds a draft for each rather than one they take turns overwriting.
 
 A draft freezes several documents where a sheet is written that way - the questions in
 one file and the solutions in another. They are numbered in the order they were frozen,
@@ -24,10 +27,10 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-DRAFT = "draft.json"
-"""What a frozen source is written to, beside the source itself."""
+DRAFT_SUFFIX = ".draft.json"
+"""What a frozen source is written to, beside the source itself and named after it."""
 
 
 def _field_fault(field: Any) -> str:
@@ -113,7 +116,11 @@ class DraftExists(SourceError):
 
 
 class DraftMissing(SourceError):
-    """There is no draft to show in the directory asked about."""
+    """There is no draft where one was looked for."""
+
+
+class ManyDrafts(SourceError):
+    """A directory holds more than one draft, so which was meant has to be said."""
 
 
 class DraftUnreadable(SourceError):
@@ -122,6 +129,62 @@ class DraftUnreadable(SourceError):
 
 class SourceUnreadable(SourceError):
     """The markdown to read has moved, or is not text."""
+
+
+def draft_of(source: str | Path) -> Path:
+    """Where the draft of a document goes, which is beside it and named after it.
+
+    Args:
+        source: The document that was or would be frozen, in any format :func:`add`
+            takes. A draft's own path is given back as it is, so that anything taking
+            one from a reader can take either.
+
+    Returns:
+        The path of that document's draft.
+
+    Examples:
+        >>> from in2lambda.source import draft_of
+        >>> draft_of("sheets/week1.tex").name
+        'week1.draft.json'
+        >>> draft_of("sheets/week1.draft.json").name
+        'week1.draft.json'
+    """
+    path = Path(source)
+    if path.name.endswith(DRAFT_SUFFIX):
+        return path
+    return path.with_name(f"{path.stem}{DRAFT_SUFFIX}")
+
+
+def find(given: Optional[str] = None, directory: str = ".") -> Path:
+    """Which draft a command was asked to work on, or the one draft there is.
+
+    Args:
+        given: What a reader named, as the draft or as the source it was frozen from,
+            or nothing to go by what is in `directory`.
+        directory: Where to look when nothing was named.
+
+    Returns:
+        The path of the draft to read.
+
+    Raises:
+        DraftMissing: nothing was named and there is no draft to fall back on.
+        ManyDrafts: nothing was named and there is more than one, so a folder of
+            sheets does not silently act on whichever sorts first.
+    """
+    if given is not None:
+        return draft_of(given)
+    found = sorted(Path(directory).glob(f"*{DRAFT_SUFFIX}"))
+    if len(found) == 1:
+        return found[0]
+    where = Path(directory).resolve()
+    if not found:
+        raise DraftMissing(
+            f"There is no draft in {where}. Run in2lambda source add FILE first."
+        )
+    raise ManyDrafts(
+        f"There is more than one draft in {where}: "
+        f"{', '.join(path.name for path in found)}. Say which with --draft."
+    )
 
 
 def _require_conversion_tools() -> None:
@@ -239,8 +302,7 @@ def _draft(path: Path) -> dict[str, Any]:
     """
     if not path.is_file():
         raise DraftMissing(
-            f"There is no {DRAFT} in {path.parent.resolve()}. "
-            "Run in2lambda source add FILE first."
+            f"There is no {path.resolve()}. Run in2lambda source add FILE first."
         )
     advice = (
         "Move it aside and run in2lambda source add FILE, or pass --start-over to "
@@ -304,7 +366,7 @@ def serialise(draft: dict[str, Any]) -> bytes:
     """The bytes a draft is written as, which is the only form it is ever written in.
 
     Sorted, and bytes rather than text, so that the same draft is the same file:
-    replaying a command log has to reproduce ``draft.json`` exactly, which it cannot do
+    replaying a command log has to reproduce the draft exactly, which it cannot do
     if the key order depends on what order something happened to write the keys in, or
     if the newlines depend on which machine wrote them.
     """
@@ -316,37 +378,38 @@ def save(path: Path, draft: dict[str, Any]) -> None:
     path.write_bytes(serialise(draft))
 
 
-def frozen(directory: str = ".") -> tuple[dict[str, Any], list[str]]:
-    """The draft in a directory and the markdown of every source it names, unmoved.
+def frozen(draft: str | Path) -> tuple[dict[str, Any], list[str]]:
+    """A draft and the markdown of every source it names, still unmoved.
 
     Args:
-        directory: Where the ``draft.json`` is.
+        draft: The path of the draft to read.
 
     Returns:
         The draft, and the text of each markdown it names, in the order it froze them:
         the first is source 1, whose blocks and lines are the ones named unqualified.
 
     Raises:
-        DraftMissing: there is no draft in that directory.
+        DraftMissing: there is no draft at that path.
         DraftUnreadable: what is there is not a draft anything here wrote.
         SourceUnreadable: a markdown the draft names has moved, or is not text.
         DraftExists: a markdown has changed since the draft was written from it, so the
             line ranges in the draft no longer name the lines they were taken from. The
             refusal names the file that changed, since a draft may hold several.
     """
-    path = Path(directory) / DRAFT
-    draft = _draft(path)
+    path = Path(draft)
+    found = _draft(path)
     texts = []
-    for source in draft["sources"]:
+    for source in found["sources"]:
         raw, markdown = _source(path.parent / source["source"])
         if _digest(raw) != source["hash"]:
             raise DraftExists(
-                f"{source['source']} has changed since {DRAFT} was written from it, so "
-                "its block ids no longer name the lines they were written against. Run "
-                "in2lambda source add --start-over to freeze the file as it now is."
+                f"{source['source']} has changed since {path.name} was written from "
+                "it, so its block ids no longer name the lines they were written "
+                "against. Run in2lambda source add --start-over to freeze the file as "
+                "it now is."
             )
         texts.append(markdown)
-    return draft, texts
+    return found, texts
 
 
 @dataclass
@@ -363,7 +426,7 @@ class Block:
     end: int
 
     def to_dict(self) -> dict[str, str | int]:
-        """The block as it is written into ``draft.json``."""
+        """The block as it is written into the draft."""
         return {"id": self.id, "type": self.type, "start": self.start, "end": self.end}
 
 
@@ -538,13 +601,15 @@ def _range(element) -> tuple[int, int]:  # type: ignore[no-untyped-def]
     )
 
 
-def add(files: list[str], start_over: bool = False) -> Path:
+def add(
+    files: list[str], start_over: bool = False, into: str | Path | None = None
+) -> Path:
     """Freezes one or more documents and writes the draft of them beside the files.
 
     A .docx or .tex file is converted to markdown next to it; a markdown file is taken
     as it is and nothing is copied. Either way the markdown is hashed and its blocks
-    written to ``draft.json``, so that whatever quotes a source by line range can tell
-    that the lines it was given still say what they said.
+    written to ``FILE.draft.json``, so that whatever quotes a source by line range can
+    tell that the lines it was given still say what they said.
 
     The files are numbered in the order they are given, and a file already frozen into
     the draft beside them is checked against the hash it was frozen at rather than
@@ -556,16 +621,20 @@ def add(files: list[str], start_over: bool = False) -> Path:
         files: The documents to freeze, as .docx, .tex or markdown, all in the one
             directory, in the order they are to be numbered in.
         start_over: Freeze them again, discarding whatever draft is already there.
+        into: The draft to freeze them into, as its own path or that of a source
+            already in it, and None for the one named after the first file. A file
+            frozen into a draft already written is a source of that draft rather than
+            the first source of one of its own.
 
     Returns:
-        The path of the ``draft.json`` that was written.
+        The path of the draft that was written.
 
     Raises:
         ConversionToolsMissing: pandoc or panflute is not installed.
         SourceError: the files are not all in one directory, so there is no one draft
             beside them to freeze them into.
         SourceUnreadable: a file is markdown, but not UTF-8 text.
-        DraftUnreadable: there is a draft.json beside the files that nothing here wrote,
+        DraftUnreadable: there is a draft beside the files that nothing here wrote,
             so it is not ours to read a hash out of or to write over.
         DraftExists: a source has changed since it was frozen, or a markdown would
             overwrite a file that no draft claims. Neither happens with `start_over`.
@@ -577,7 +646,7 @@ def add(files: list[str], start_over: bool = False) -> Path:
             "A draft sits beside the documents it is of, so the files frozen into one "
             f"are all in the same directory: {', '.join(files)}."
         )
-    draft = paths[0].parent / DRAFT
+    draft = draft_of(paths[0] if into is None else into)
 
     # What a draft already here has been told, which freezing the same files again does
     # not undo: the commands were run against these very lines, so they still hold. The
@@ -610,16 +679,16 @@ def add(files: list[str], start_over: bool = False) -> Path:
         ):
             if found["hash"] != digest:
                 raise DraftExists(
-                    f"{path.name} has changed since {DRAFT} was written from it. "
+                    f"{path.name} has changed since {draft.name} was written from it. "
                     "Run in2lambda source add --start-over to freeze it again, which "
                     "invalidates every line range taken from the old draft."
                 )
             continue
         if not start_over and frozen_path != path and frozen_path.exists():
             raise DraftExists(
-                f"{frozen_path.name} is already there and no {DRAFT} claims it, so it "
-                "is not ours to overwrite. Move it aside, or run in2lambda source add "
-                "--start-over."
+                f"{frozen_path.name} is already there and no {draft.name} claims it, "
+                "so it is not ours to overwrite. Move it aside, or run in2lambda "
+                "source add --start-over."
             )
         sources.append(
             {
@@ -658,11 +727,11 @@ def add(files: list[str], start_over: bool = False) -> Path:
     return draft
 
 
-def show(directory: str = ".") -> str:
+def show(draft: str | Path) -> str:
     """The frozen markdown of a draft, numbered, with block ids in the margin.
 
     Args:
-        directory: Where the ``draft.json`` to print is.
+        draft: The path of the draft to print.
 
     Returns:
         One line per line of each frozen markdown: the id of the block starting there,
@@ -671,7 +740,7 @@ def show(directory: str = ".") -> str:
         start again at 1 in every one of them.
 
     Raises:
-        DraftMissing: there is no draft in that directory.
+        DraftMissing: there is no draft at that path.
         DraftUnreadable: what is there is not a draft anything here wrote.
         SourceUnreadable: a markdown the draft names has moved, or is not text.
         DraftExists: a markdown has changed since the draft was written from it, so
@@ -680,11 +749,11 @@ def show(directory: str = ".") -> str:
     # A line range is only an address while the lines have not moved: printing ids
     # against markdown the draft was not written from would be worse than printing
     # nothing, because it would look right.
-    draft, sources = frozen(directory)
+    found, sources = frozen(draft)
 
     printed = []
     for number, (source, markdown) in enumerate(
-        zip(draft["sources"], sources), start=1
+        zip(found["sources"], sources), start=1
     ):
         ids = {block["start"]: block["id"] for block in source["blocks"]}
         lines = markdown.splitlines()

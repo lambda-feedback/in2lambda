@@ -10,10 +10,7 @@ import getpass
 import importlib
 import shlex
 import warnings
-from collections.abc import (  # Rather than typing's, which beartype warns on.
-    Callable,
-    Iterator,
-)
+from collections.abc import Callable  # Rather than typing's, which beartype warns on.
 from contextlib import contextmanager
 from typing import Any, Optional
 
@@ -39,7 +36,8 @@ from in2lambda.source import (  # noqa: F401  # Re-exported, so not unused.
 
 
 @contextmanager
-def _message_not_traceback() -> Iterator[None]:
+def _message_not_traceback():  # No annotation: beartype 0.22 on 3.10 checks the
+    # decorated object, a _GeneratorContextManager, against a generator hint.
     """Turns anything raised for a reader into what to do about it and a non-zero exit.
 
     Every command wraps whatever it calls in this: a missing pandoc, a draft from
@@ -53,7 +51,7 @@ def _message_not_traceback() -> Iterator[None]:
 
 
 @contextmanager
-def _warnings_said() -> Iterator[None]:
+def _warnings_said():  # Unannotated for the same reason as _message_not_traceback.
     """Echoes whatever is warned inside it as a line, as `runner` says its problems.
 
     What `build` and `render` warn about is something they wrote out anyway - a question
@@ -246,6 +244,15 @@ def source_group() -> None:
     """Freezes the source documents of a draft, so their text can be quoted by line range."""
 
 
+_draft = click.option(
+    "--draft",
+    type=click.Path(exists=True, dir_okay=False),
+    help="The draft to work on, as FILE.draft.json or the source it was frozen from. "
+    " [default: the one draft in this directory]",
+)
+"""Which draft a command is about, since a folder of sheets holds one draft each."""
+
+
 @source_group.command("add")
 @click.argument(
     "files",
@@ -258,30 +265,39 @@ def source_group() -> None:
     is_flag=True,
     help="Freeze FILES again, discarding the draft already there.",
 )
-def source_add(files: tuple[str, ...], start_over: bool) -> None:
-    """Converts each FILE to markdown and records its blocks in draft.json beside them.
+@click.option(
+    "--draft",
+    type=click.Path(exists=True, dir_okay=False),
+    help="The draft to freeze FILES into, as FILE.draft.json or a source already in "
+    "it.  [default: the draft named after the first FILE]",
+)
+def source_add(files: tuple[str, ...], start_over: bool, draft: Optional[str]) -> None:
+    """Converts each FILE to markdown and records its blocks in a draft beside them.
 
-    A sheet written as two documents - the questions in one file and the solutions in
-    another - is frozen as both, in that order: in2lambda source add questions.docx
-    solutions.docx. A file can be added to the draft later, as the next source. The
-    first source's blocks and lines are named b3 and s10:14; every source after it
-    carries its number - 2/b3, 2/s10:14.
+    The draft is named after the first file - questions.draft.json - unless --draft
+    says which one to freeze into. A sheet written as two documents, the questions in
+    one file and the solutions in another, is frozen as both, in that order: in2lambda
+    source add questions.docx solutions.docx. A file can be added to a draft already
+    written as its next source, by naming that draft with --draft. The first source's
+    blocks and lines are named b3 and s10:14; every source after it carries its number
+    - 2/b3, 2/s10:14.
     """
     with _message_not_traceback():
-        draft = in2lambda.source.add(list(files), start_over)
-    click.echo(f"Wrote {draft}")
+        written = in2lambda.source.add(list(files), start_over, draft)
+    click.echo(f"Wrote {written}")
 
 
 @source_group.command("show")
-def source_show() -> None:
-    """Prints the frozen markdown of the draft in this directory, numbered."""
+@_draft
+def source_show(draft: Optional[str]) -> None:
+    """Prints the frozen markdown of a draft, numbered."""
     with _message_not_traceback():
-        click.echo(in2lambda.source.show())
+        click.echo(in2lambda.source.show(in2lambda.source.find(draft)))
 
 
 @cli.group("draft")
 def draft_group() -> None:
-    """Builds up the draft in this directory, recording every command in it."""
+    """Builds up a draft, recording every command in it."""
 
 
 _by = click.option(
@@ -311,8 +327,8 @@ def _text_or_literal(command: Callable[..., None]) -> Callable[..., None]:
     return command
 
 
-def _run(command: str, args: dict[str, Any], by: str) -> None:
-    """Runs one draft command against the draft here and says what it wrote.
+def _run(command: str, args: dict[str, Any], by: str, draft: Optional[str]) -> None:
+    """Runs one draft command against the draft asked for and says what it wrote.
 
     Arguments nobody gave are left out rather than recorded as nulls: the log is what a
     replay runs, and an option that was not passed is not an argument of the command.
@@ -325,7 +341,8 @@ def _run(command: str, args: dict[str, Any], by: str) -> None:
                     name: given for name, given in args.items() if given is not None
                 },
                 "by": by,
-            }
+            },
+            in2lambda.source.find(draft),
         )
     click.echo(f"Wrote {written}.")
 
@@ -338,9 +355,10 @@ def draft_mark() -> None:
 @draft_mark.command("ignore")
 @click.argument("block")
 @_by
-def draft_mark_ignore(block: str, by: str) -> None:
+@_draft
+def draft_mark_ignore(block: str, by: str, draft: Optional[str]) -> None:
     """Marks BLOCK as nothing to take a question from."""
-    _run("mark ignore", {"block": block}, by)
+    _run("mark ignore", {"block": block}, by, draft)
 
 
 @draft_group.group("question")
@@ -351,23 +369,32 @@ def draft_question() -> None:
 @draft_question.command("add")
 @_text_or_literal
 @_by
-def draft_question_add(text: Optional[str], literal: Optional[str], by: str) -> None:
+@_draft
+def draft_question_add(
+    text: Optional[str], literal: Optional[str], by: str, draft: Optional[str]
+) -> None:
     """Adds a question, numbered after the ones already there."""
-    _run("question add", {"text": text, "literal": literal}, by)
+    _run("question add", {"text": text, "literal": literal}, by, draft)
 
 
 @draft_question.command("solution")
 @click.argument("question")
 @_text_or_literal
 @_by
+@_draft
 def draft_question_solution(
-    question: str, text: Optional[str], literal: Optional[str], by: str
+    question: str,
+    text: Optional[str],
+    literal: Optional[str],
+    by: str,
+    draft: Optional[str],
 ) -> None:
     """Gives QUESTION the worked solution written at --text or --literal."""
     _run(
         "question solution",
         {"question": question, "text": text, "literal": literal},
         by,
+        draft,
     )
 
 
@@ -380,11 +407,18 @@ def draft_part() -> None:
 @click.argument("question")
 @_text_or_literal
 @_by
+@_draft
 def draft_part_add(
-    question: str, text: Optional[str], literal: Optional[str], by: str
+    question: str,
+    text: Optional[str],
+    literal: Optional[str],
+    by: str,
+    draft: Optional[str],
 ) -> None:
     """Adds a part of QUESTION, numbered after the parts it already has."""
-    _run("part add", {"question": question, "text": text, "literal": literal}, by)
+    _run(
+        "part add", {"question": question, "text": text, "literal": literal}, by, draft
+    )
 
 
 @draft_group.group("split")
@@ -396,9 +430,10 @@ def draft_split() -> None:
 @click.argument("block")
 @click.argument("at", type=int)
 @_by
-def draft_split_block(block: str, at: int, by: str) -> None:
+@_draft
+def draft_split_block(block: str, at: int, by: str, draft: Optional[str]) -> None:
     """Splits BLOCK in two, the second half starting at line AT."""
-    _run("split block", {"block": block, "at": at}, by)
+    _run("split block", {"block": block, "at": at}, by, draft)
 
 
 @draft_group.group("field")
@@ -416,41 +451,53 @@ def draft_field() -> None:
     help="Read OLD as a regular expression, and NEW as what to replace it with.",
 )
 @_by
-def draft_field_replace(field: str, old: str, new: str, regex: bool, by: str) -> None:
+@_draft
+def draft_field_replace(
+    field: str, old: str, new: str, regex: bool, by: str, draft: Optional[str]
+) -> None:
     """Replaces OLD with NEW in FIELD, which OLD has to occur exactly once in."""
     _run(
         "field replace",
         {"field": field, "old": old, "new": new, "regex": True if regex else None},
         by,
+        draft,
     )
 
 
 @draft_group.command("replay")
-def draft_replay() -> None:
-    """Rebuilds the draft in this directory from its log and checks it is the same."""
+@_draft
+def draft_replay(draft: Optional[str]) -> None:
+    """Rebuilds a draft from its log and checks it is the same."""
     with _message_not_traceback():
-        in2lambda.draft.replay()
+        in2lambda.draft.replay(in2lambda.source.find(draft))
     click.echo("Replays as it stands.")
 
 
 @cli.group("spec")
 def spec_group() -> None:
-    """Runs a YAML spec of selectors over the frozen source in this directory."""
+    """Runs a YAML spec of selectors over a draft's frozen source."""
 
 
 @spec_group.command("run")
-@click.argument("spec", type=click.Path(exists=True, dir_okay=False))
+# Named from the draft's directory rather than from here, which is where `spec_command`
+# looks for it and how the log records it, so click is not the one to check it is there.
+@click.argument("spec")
 @_by
-def spec_run(spec: str, by: str) -> None:
+@_draft
+def spec_run(spec: str, by: str, draft: Optional[str]) -> None:
     """Fills the draft's fields in from SPEC, and says which blocks it left out."""
     with _message_not_traceback():
-        report = in2lambda.draft.execute(in2lambda.draft.spec_command(spec, by))
+        path = in2lambda.source.find(draft)
+        report = in2lambda.draft.execute(
+            in2lambda.draft.spec_command(spec, by, path), path
+        )
     click.echo(report)
 
 
 @cli.command("validate")
-def validate() -> None:
-    """Checks the draft in this directory over and writes the report into it.
+@_draft
+def validate(draft: Optional[str]) -> None:
+    """Checks a draft over and writes the report into it.
 
     Reports source blocks in no field and not marked ignore, two fields taken from the
     same lines, gaps in the numbering of the questions or their parts, and fields holding
@@ -459,11 +506,11 @@ def validate() -> None:
     Feedback's PDF generator does where pandoc and xelatex are installed - each against
     the field it is written in. All of those in2lambda build refuses; a question or part
     nothing answers is reported as a warning, which it builds over. Finding something is
-    not a failure: the report is written into draft.json either way, and replaced by the
+    not a failure: the report is written into the draft either way, and replaced by the
     next one.
     """
     with _message_not_traceback():
-        report = in2lambda.draft.report.validate()
+        report = in2lambda.draft.report.validate(in2lambda.source.find(draft))
     for finding in report:
         # Marked as such, since the two are acted on differently and the report is often
         # read off the terminal rather than out of the draft.
@@ -489,8 +536,9 @@ _out = click.option(
 
 @cli.command("build")
 @_out
-def build(output_dir: str) -> None:
-    """Writes the draft in this directory out as a Lambda Feedback set.
+@_draft
+def build(output_dir: str, draft: Optional[str]) -> None:
+    """Writes a draft out as a Lambda Feedback set.
 
     Refused unless in2lambda validate has been run since the draft last changed and
     found no error, so that what is uploaded is what the checks have been over. What it
@@ -498,14 +546,17 @@ def build(output_dir: str) -> None:
     said, and the set written all the same.
     """
     with _message_not_traceback(), _warnings_said():
-        written = in2lambda.draft.export.build(output_dir=output_dir)
+        written = in2lambda.draft.export.build(
+            in2lambda.source.find(draft), output_dir=output_dir
+        )
     click.echo(f"Wrote {written}")
 
 
 @cli.command("render")
 @_out
-def render(output_dir: str) -> None:
-    """Writes each question of the draft in this directory as a PDF, for review.
+@_draft
+def render(output_dir: str, draft: Optional[str]) -> None:
+    """Writes each question of a draft as a PDF, for review.
 
     The questions are compiled as Lambda Feedback's PDF generator compiles them, which
     needs pandoc and xelatex. What the checks have to say about the draft is not asked:
@@ -514,7 +565,9 @@ def render(output_dir: str) -> None:
     # A question xelatex complains about is still written out, and what it refused is a
     # line to read rather than a traceback.
     with _message_not_traceback(), _warnings_said():
-        written = in2lambda.draft.export.render(output_dir=output_dir)
+        written = in2lambda.draft.export.render(
+            in2lambda.source.find(draft), output_dir=output_dir
+        )
     for pdf in written:
         click.echo(f"Wrote {pdf}")
 

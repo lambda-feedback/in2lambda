@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from in2lambda.draft.export import as_set, located
-from in2lambda.source import DRAFT, frozen, save
+from in2lambda.source import frozen, save
 from in2lambda.validation import pdf
 
 Finding = dict[str, Any]
@@ -402,22 +402,22 @@ def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
     return found
 
 
-def validate(directory: str = ".") -> list[Finding]:
-    """Checks the draft in a directory over and writes the report into it.
+def validate(draft: str | Path) -> list[Finding]:
+    """Checks a draft over and writes the report into it.
 
     The report replaces whatever one is there, and is dropped again by the next command
     that changes the draft: it describes the draft as it stood, and a report saying
     something else is worse than none at all.
 
     Args:
-        directory: Where the ``draft.json`` to check is.
+        draft: The path of the draft to check.
 
     Returns:
         What the checks and `in2lambda.validation` found, as it was written into the
         draft.
 
     Raises:
-        DraftMissing: there is no draft in that directory.
+        DraftMissing: there is no draft at that path.
         DraftUnreadable: what is there is not a draft anything here wrote.
         SourceUnreadable: a markdown the draft names has moved, or is not text.
         DraftExists: a markdown has changed since the draft was written from it, so
@@ -426,7 +426,10 @@ def validate(directory: str = ".") -> list[Finding]:
     Warns:
         UserWarning: a check could not be run here - see :func:`problems`.
     """
-    draft, _ = frozen(directory)
-    draft["report"] = sorted(checks(draft) + problems(draft, directory), key=_order)
-    save(Path(directory) / DRAFT, draft)
-    return draft["report"]
+    path = Path(draft)
+    found, _ = frozen(path)
+    found["report"] = sorted(
+        checks(found) + problems(found, str(path.parent)), key=_order
+    )
+    save(path, found)
+    return found["report"]
