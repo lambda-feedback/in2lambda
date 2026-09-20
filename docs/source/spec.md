@@ -7,11 +7,11 @@ every question comes out of the source rather than being retyped:
 ```bash
 $ in2lambda source add questions.docx
 $ in2lambda spec run spec.yaml
-b6 is in no field.
+b6 (lines 12-13) is in no field and not marked ignore.
 ```
 
-The last line is the point of it: a spec run reports every block it made nothing of, so what is
-left to account for is in front of you rather than quietly missing.
+The last line is the point of it: a spec run reports every block it made nothing of, naming the
+lines it is, so what is left to account for is in front of you rather than quietly missing.
 
 The fields a draft holds belong to the spec that wrote them, so a spec is run over a draft once.
 Running an edited one again is refused; freeze the document afresh and run it, which is two
@@ -91,9 +91,10 @@ the solutions are, and what each of them answers.
 
 ## What it writes
 
-Each question is `q1`, `q2` and so on in the order they appear, and each of its parts `q1.a`,
-`q1.b`. So a spec fills in `q1.text`, `q1.a.text`, `q1.a.solution` and, for a question answered
-as a whole, `q1.solution`. Every one of them records the lines it was copied from, and that a
+Each question is `q1`, `q2` and so on in the order they appear, and each of its parts `q1.p1`,
+`q1.p2`. So a spec fills in `q1.text`, `q1.p1.text`, `q1.p1.solution` and, for a question
+answered as a whole, `q1.solution`. They are the names the `in2lambda draft` commands give out
+as well, so a draft filled in either way is the same draft. Every one of them records the lines it was copied from, and that a
 spec wrote it.
 
 The spec is recorded in the draft's log with its hash, so `in2lambda draft replay` rebuilds the

@@ -105,6 +105,30 @@ def test_a_spec_ignoring_a_block_the_draft_has_split_covers_both_halves(
     assert "is in no field" not in result.output
 
 
+def test_the_checks_read_the_fields_a_spec_wrote(tmp_path: Path, monkeypatch) -> None:
+    """A spec names questions and parts as the draft commands do, so `validate` reads both."""
+    monkeypatch.chdir(tmp_path)
+    runner = _frozen(SPECS_DIR / "part_sol_part_sol", tmp_path)
+    run = runner.invoke(cli, ["spec", "run", "spec.yaml", "--by", "tests"])
+    assert run.exit_code == 0, run.output
+    # The spec answers the second part where it stands and leaves the first unanswered;
+    # renumbering the second question is the gap, which no command makes.
+    draft_path = tmp_path / "draft.json"
+    draft = json.loads(draft_path.read_text())
+    for key in ("q2.text", "q2.solution"):
+        draft["fields"][key.replace("q2", "q3")] = draft["fields"].pop(key)
+    draft_path.write_text(json.dumps(draft))
+
+    result = runner.invoke(cli, ["validate"])
+
+    assert result.exit_code == 0, result.output
+    report = json.loads(draft_path.read_text())["report"]
+    assert [(finding["check"], finding["field"]) for finding in report] == [
+        ("no-solution", "q1.p1"),
+        ("gap", "q2.text"),
+    ]
+
+
 def test_a_replay_is_refused_once_the_spec_has_changed(
     tmp_path: Path, monkeypatch
 ) -> None:

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import in2lambda.spec
+from in2lambda.draft.report import checks, overlapping, uncovered
 from in2lambda.source import (
     DRAFT,
     SourceError,
@@ -148,8 +149,11 @@ def record(
             "in2lambda source add --start-over to begin the draft again."
         )
     for filled, field in draft["fields"].items():
+        # Each of the field's ranges on its own, so that the refusal names the one in
+        # the way: a field edited by hand can be quoted from several, and the rest of
+        # them may be lines nobody wants.
         for taken in field["ranges"]:
-            if any(taken[0] <= end and start <= taken[1] for start, end in ranges):
+            if overlapping(ranges, [taken]):
                 raise AlreadyFilled(
                     f"Lines {taken[0]}-{taken[1]} are where {filled} came from, so "
                     f"they cannot also be {key}. Run in2lambda source show to see "
@@ -251,6 +255,9 @@ def apply(
     written = handler(draft, markdown, entry["args"], entry["by"], directory)
     # After the handler, so a command that was refused is not recorded as having run.
     draft["log"].append(entry)
+    # A report is about the draft as it was, so the command that changes it takes the
+    # report with it rather than leaving one that describes something else.
+    draft.pop("report", None)
     return written
 
 
@@ -306,6 +313,10 @@ def replay(directory: str = ".") -> None:
     }
     for entry in draft["log"]:
         apply(rebuilt, markdown, entry, directory)
+    # The one thing in a draft that no command wrote: the checks did, over the draft the
+    # commands left, so rebuilding it is running them again rather than copying it.
+    if "report" in draft:
+        rebuilt["report"] = checks(rebuilt)
 
     path = Path(directory) / DRAFT
     if serialise(rebuilt) != path.read_bytes():
@@ -314,32 +325,6 @@ def replay(directory: str = ".") -> None:
             "not all come from the commands it records - something has changed it since "
             "they ran. Run in2lambda source add --start-over to begin again."
         )
-
-
-def coverage(draft: dict[str, Any]) -> list[str]:
-    """The blocks of a draft that nothing has made anything of yet.
-
-    Args:
-        draft: The draft to look over.
-
-    Returns:
-        The ids of the blocks that are in no field and have not been ignored, in
-        document order. A spec run prints these: they are what is left to account for,
-        and an empty list is the whole document spoken for.
-    """
-    ranges = [
-        line_range
-        for field in draft["fields"].values()
-        for line_range in field["ranges"]
-    ]
-    return [
-        block["id"]
-        for block in draft["blocks"]
-        if f"{block['id']}.ignore" not in draft["fields"]
-        and not any(
-            start <= block["end"] and block["start"] <= end for start, end in ranges
-        )
-    ]
 
 
 def _block(draft: dict[str, Any], block: str) -> dict[str, Any]:
@@ -675,20 +660,21 @@ def _spec_run(
     # The blocks the selectors run over are the ones the parser makes of the source, and
     # a `split block` since has left the draft holding halves the parser never made. So
     # an ignored block is named and ranged from here rather than from the draft: the
-    # field then spans the whole of what was ignored, and coverage, which goes by lines
-    # as well as by name, counts each half of a split block as covered by it.
+    # field then spans the whole of what was ignored, and `uncovered`, which goes by the
+    # lines a field was taken from, counts each half of a split block as covered by it.
     elements = _elements(markdown)
     fields, ignored = in2lambda.spec.fields(spec, elements, markdown)
     for found in fields:
         record(draft, found.key, found.value, layer=1, ranges=found.ranges, by=by)
     lines = {block.id: [block.start, block.end] for block, _ in elements}
-    # The field `mark ignore` writes, so that coverage need not care which said so.
+    # The field `mark ignore` writes, so that `uncovered` need not care which said so.
     for block_id in ignored:
         record(
             draft, f"{block_id}.ignore", True, layer=1, ranges=[lines[block_id]], by=by
         )
     # A spec writes a draft's worth of fields, so what it hands back is the other way
-    # round: what it made nothing of, which is what is left for anyone to act on.
-    if uncovered := coverage(draft):
-        return "\n".join(f"{block} is in no field." for block in uncovered)
+    # round: what it made nothing of, which is what is left for anyone to act on. Said
+    # in the words `in2lambda validate` says it in, since it is the same check.
+    if left_out := uncovered(draft):
+        return "\n".join(finding["message"] for finding in left_out)
     return "Every block is in a field or ignored."

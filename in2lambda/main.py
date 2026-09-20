@@ -21,6 +21,7 @@ from typing import Any, Optional
 import rich_click as click
 
 import in2lambda.draft
+import in2lambda.draft.report
 import in2lambda.filters
 import in2lambda.source
 from in2lambda.api.set import Set
@@ -424,6 +425,23 @@ def spec_run(spec: str, by: str) -> None:
             }
         )
     click.echo(report)
+
+
+@cli.command("validate")
+def validate() -> None:
+    """Checks the draft in this directory over and writes the report into it.
+
+    Reports source blocks in no field and not marked ignore, two fields taken from the
+    same lines, gaps in the numbering of the questions or their parts, parts nothing
+    answers, and fields holding nothing. Finding something is not a failure: the report
+    is written into draft.json either way, and replaced by the next one.
+    """
+    with _message_not_traceback():
+        report = in2lambda.draft.report.validate()
+    for finding in report:
+        click.echo(finding["message"])
+    if not report:
+        click.echo("Nothing to report.")
 
 
 if __name__ == "__main__":

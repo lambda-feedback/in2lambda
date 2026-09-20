@@ -17,6 +17,7 @@ from click.testing import CliRunner
 from conftest import DRAFTS, DRAFTS_DIR
 
 import in2lambda.draft
+import in2lambda.draft.report
 from in2lambda.main import cli
 
 MARK_IGNORE = DRAFTS_DIR / "mark_ignore"
@@ -27,12 +28,21 @@ TWO_QUESTIONS = DRAFTS_DIR / "two_questions"
 
 
 def _built(folder: Path, tmp_path: Path) -> Path:
-    """A folder's document, frozen in `tmp_path` with its commands applied to it."""
+    """A folder's document, frozen in `tmp_path` with its commands applied and checked."""
     shutil.copytree(folder, tmp_path, dirs_exist_ok=True)
     assert CliRunner().invoke(cli, ["source", "add", "source.md"]).exit_code == 0
     for entry in json.loads((folder / "commands.json").read_text()):
         in2lambda.draft.execute(entry)
+    # Checked as well as built, so that what a folder's commands leave for the checks to
+    # find is fixture data like the fields they write are.
+    in2lambda.draft.report.validate()
     return tmp_path / "draft.json"
+
+
+def _reported(folder: Path) -> list[dict[str, Any]]:
+    """What the checks should find in a folder's draft; nothing, where it says none."""
+    report = folder / "report.json"
+    return json.loads(report.read_text()) if report.is_file() else []
 
 
 @pytest.mark.parametrize("folder", DRAFTS, ids=lambda path: path.name)
@@ -46,6 +56,7 @@ def test_a_draft_built_by_commands_replays_identically(
     draft = json.loads(draft_path.read_text())
     assert draft["fields"] == json.loads((folder / "expected.json").read_text())
     assert draft["log"] == json.loads((folder / "commands.json").read_text())
+    assert draft["report"] == _reported(folder)
 
     written = draft_path.read_bytes()
     result = CliRunner().invoke(cli, ["draft", "replay"])
@@ -204,6 +215,7 @@ def test_a_log_entry_that_is_not_a_command_is_refused(
         ("fields", {"b1.ignore": 5}),
         ("fields", {"b1.ignore": {"ranges": "s1"}}),
         ("fields", {"b1.ignore": {"ranges": [[1]]}}),
+        ("fields", {"b1.ignore": {"ranges": [[1, 1]], "layer": 3}}),
     ],
     ids=[
         "log",
@@ -211,12 +223,13 @@ def test_a_log_entry_that_is_not_a_command_is_refused(
         "a field that is a number",
         "ranges that are not a list",
         "a range that is not a pair",
+        "a field with no value",
     ],
 )
 @pytest.mark.parametrize(
     "arguments",
-    [["draft", "replay"], ["draft", "mark", "ignore", "b2"]],
-    ids=["replay", "mark"],
+    [["draft", "replay"], ["draft", "mark", "ignore", "b2"], ["validate"]],
+    ids=["replay", "mark", "validate"],
 )
 def test_a_draft_whose_log_or_fields_is_the_wrong_shape_is_refused(
     field: str, value: Any, arguments: list[str], tmp_path: Path, monkeypatch
@@ -288,6 +301,26 @@ def test_lines_another_field_was_taken_from_are_refused(
     assert "q1.solution" in result.output
     assert "q3.text" in result.output
     assert draft_path.read_bytes() == built
+
+
+def test_the_refusal_names_the_lines_that_are_in_the_way(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A field edited by hand can be quoted from several ranges, only one of them clashing."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(MARK_IGNORE, tmp_path)
+    draft = json.loads(draft_path.read_text())
+    # The maths is part of the heading's block as far as this draft is concerned, which
+    # no command would write but an editor might.
+    draft["fields"]["b1.ignore"]["ranges"] = [[1, 1], [9, 10]]
+    draft_path.write_text(json.dumps(draft))
+
+    result = CliRunner().invoke(cli, ["draft", "question", "add", "--text", "s9:10"])
+
+    assert result.exit_code != 0
+    # Lines 1-1 are free, so naming them would send whoever reads this to the wrong end.
+    assert "Lines 9-10" in result.output
 
 
 @pytest.mark.parametrize(
@@ -382,6 +415,61 @@ def test_a_command_says_what_it_wrote(tmp_path: Path, monkeypatch) -> None:
     }
     # --regex is an option, so a command nobody passed it to logs no argument for it.
     assert "regex" not in draft["log"][-1]["args"]
+
+
+def test_a_draft_edited_into_an_overlap_or_a_gap_is_reported(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Neither can be made by a command, so a hand-edited draft is the only way to one."""
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(TWO_QUESTIONS, tmp_path)
+    draft = json.loads(draft_path.read_text())
+    # Renumbering the second question leaves nothing numbered 2, and giving the first
+    # question's part the lines the question came from claims those lines twice.
+    for key in ("q2.text", "q2.p1.text", "q2.solution"):
+        draft["fields"][key.replace("q2", "q3")] = draft["fields"].pop(key)
+    draft["fields"]["q1.p1.text"]["ranges"] = [[5, 6]]
+    draft_path.write_text(json.dumps(draft))
+
+    result = CliRunner().invoke(cli, ["validate"])
+
+    assert result.exit_code == 0, result.output
+    report = json.loads(draft_path.read_text())["report"]
+    assert [(finding["check"], finding["field"]) for finding in report] == [
+        ("overlap", "q1.p1.text"),
+        ("gap", "q2.text"),
+    ]
+    # Both sides of the overlap, so that either field can be looked at without the draft.
+    assert "q1.text" in report[0]["message"]
+    assert result.output == f"{report[0]['message']}\n{report[1]['message']}\n"
+
+
+def test_a_clean_draft_is_reported_as_having_nothing_wrong_with_it(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A report of nothing is still an answer, and is said rather than printed empty."""
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(TWO_QUESTIONS, tmp_path)
+
+    result = CliRunner().invoke(cli, ["validate"])
+
+    assert result.exit_code == 0, result.output
+    assert result.output == "Nothing to report.\n"
+    assert json.loads(draft_path.read_text())["report"] == []
+
+
+def test_a_command_run_after_a_report_leaves_none_behind(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A report describes the draft it was run against, and that draft has changed."""
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(MARK_IGNORE, tmp_path)
+    assert json.loads(draft_path.read_text())["report"]
+
+    result = CliRunner().invoke(cli, ["draft", "mark", "ignore", "b2"])
+
+    assert result.exit_code == 0, result.output
+    assert "report" not in json.loads(draft_path.read_text())
 
 
 def test_the_halves_of_a_split_block_are_blocks_like_any_other(

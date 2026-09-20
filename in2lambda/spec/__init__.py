@@ -324,7 +324,11 @@ def _optional(
 
 
 def _stems(roles: list[Optional[str]]) -> list[Optional[str]]:
-    """What each question and part is called - ``q1``, ``q1.a`` - in document order."""
+    """What each question and part is called - ``q1``, ``q1.p1`` - in document order.
+
+    The same names `in2lambda.draft._next` gives out, so that a draft filled in by a spec
+    and one filled in by hand hold the same keys, and the checks read either.
+    """
     stems: list[Optional[str]] = [None] * len(roles)
     questions, parts = 0, 0
     for index, role in enumerate(roles):
@@ -332,8 +336,8 @@ def _stems(roles: list[Optional[str]]) -> list[Optional[str]]:
             questions, parts = questions + 1, 0
             stems[index] = f"q{questions}"
         elif role == "part" and questions:
-            stems[index] = f"q{questions}.{chr(ord('a') + parts)}"
             parts += 1
+            stems[index] = f"q{questions}.p{parts}"
     return stems
 
 
