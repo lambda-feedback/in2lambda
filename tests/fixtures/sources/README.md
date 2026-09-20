@@ -8,9 +8,10 @@ which format an author brought it in; `empty_list_item` is a bullet with nothing
 no position of its own and so no block; `unseparated_list` is a list with no blank line before it,
 which pandoc reports as part of the paragraph above, so that paragraph's block has to stop where
 the list starts rather than where pandoc says it ends; `display_maths` is a `.tex` with display
-maths standing alone, mid-sentence and inside a list item, and a paragraph well over 72 columns
-whose inline maths would straddle the wrap, which is what the unwrapped freeze and the `$$`
-rewrite below are there for; `crlf` is the `markdown` case saved with
+maths standing alone, mid-sentence and inside a list item, each of which the `$$` rewrite below
+puts on three lines, and a paragraph well over 72 columns, whose block is the one line the
+unwrapped freeze leaves it as rather than the two pandoc's own wrapping made of it; `crlf` is
+the `markdown` case saved with
 Windows line endings, which is what a document off a teacher's machine usually has, and it has to
 freeze to the same blocks and to a hash that `sha256sum source.md` reproduces. The `.gitattributes`
 at the top of the repository is what stops a checkout rewriting those endings away.

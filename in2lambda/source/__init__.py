@@ -264,6 +264,39 @@ _DISPLAY_MATHS = re.compile(r"(?<!\\)\$\$(.+?)(?<!\\)\$\$", re.DOTALL)
 """Display maths as ``commonmark_x`` writes it: opened and closed on the one line."""
 
 
+def _verbatim_lines(markdown: str) -> set[int]:
+    r"""The lines of some markdown whose ``$$`` is code rather than maths.
+
+    ``commonmark_x`` writes a code block indented four spaces, or fenced where the block
+    carries a language, and a ``$$ ... $$`` in one is text the document shows rather than
+    maths it renders. A list item's continuation paragraph is indented four as well, so
+    display maths in one is left as pandoc wrote it and ``in2lambda validate`` reports
+    it: leaving that maths costs a finding, rewriting a code block would make the frozen
+    markdown say something the document does not.
+
+    Examples:
+        >>> from in2lambda.source import _verbatim_lines
+        >>> sorted(_verbatim_lines("Text\n\n    $$x = y$$\n"))
+        [3]
+        >>> sorted(_verbatim_lines("``` python\n$$x = y$$\n```\n"))
+        [1, 2, 3]
+    """
+    verbatim = set()
+    fence = ""
+    for number, line in enumerate(markdown.split("\n"), start=1):
+        stripped = line.lstrip(" ")
+        if fence:
+            verbatim.add(number)
+            if stripped.startswith(fence):
+                fence = ""
+        elif stripped[:3] in ("```", "~~~"):
+            fence = stripped[:3]
+            verbatim.add(number)
+        elif line.startswith("    "):
+            verbatim.add(number)
+    return verbatim
+
+
 def _display_maths_blocked(markdown: str) -> str:
     r"""Markdown pandoc wrote, with its display maths moved onto lines of its own.
 
@@ -274,9 +307,9 @@ def _display_maths_blocked(markdown: str) -> str:
 
     The inserted lines take the indent of the line the maths began on - a list item's
     marker width included, so maths in an item stays in the item - and whatever stood
-    either side of it on that line becomes a paragraph of its own. A pipe table's row
-    and a block quote's line are left as pandoc wrote them, so the maths in one of those
-    is still reported by ``in2lambda validate``.
+    either side of it on that line becomes a paragraph of its own. A pipe table's row, a
+    block quote's line and a code block's line are left as pandoc wrote them, so the
+    maths in one of the first two is still reported by ``in2lambda validate``.
 
     Examples:
         >>> from in2lambda.source import _display_maths_blocked
@@ -288,6 +321,10 @@ def _display_maths_blocked(markdown: str) -> str:
         'A load\r\n\r\n$$\r\nF = pA\r\n$$\r\n'
         >>> _display_maths_blocked("> The load is $$F = pA$$ here.\n")
         '> The load is $$F = pA$$ here.\n'
+        >>> _display_maths_blocked("Type this:\n\n    $$x = y$$\n")
+        'Type this:\n\n    $$x = y$$\n'
+        >>> _display_maths_blocked("``` python\nprint(\"$$x = y$$\")\n```\n")
+        '``` python\nprint("$$x = y$$")\n```\n'
     """
     if "\r\n" in markdown:
         # Pandoc writes the line endings of whoever is running it, and the file on disk
@@ -295,14 +332,17 @@ def _display_maths_blocked(markdown: str) -> str:
         blocked = _display_maths_blocked(markdown.replace("\r\n", "\n"))
         return blocked.replace("\n", "\r\n")
 
+    verbatim = _verbatim_lines(markdown)
     written: list[str] = []
     end = 0
     for match in _DISPLAY_MATHS.finditer(markdown):
         before = markdown[markdown.rfind("\n", 0, match.start()) + 1 : match.start()]
-        if before.lstrip()[:1] in ("|", ">"):
-            # A pipe table's cell cannot hold a block, and an inserted line carries the
+        line = markdown.count("\n", 0, match.start()) + 1
+        if before.lstrip()[:1] in ("|", ">") or line in verbatim:
+            # A pipe table's cell cannot hold a block; an inserted line carries the
             # indent of the line the maths began on but not a block quote's `> `, so the
-            # rewrite would put the maths and the words after it outside the quote.
+            # rewrite would put the maths and the words after it outside the quote; and
+            # a code block's `$$` is characters the document shows, not maths.
             continue
         marker = _MARKER.match(before)
         indent = " " * (
