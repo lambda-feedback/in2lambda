@@ -174,7 +174,21 @@ def test_a_log_entry_that_is_not_a_command_is_refused(
 
 
 @pytest.mark.parametrize(
-    ("field", "value"), [("log", 5), ("fields", [])], ids=["log", "fields"]
+    ("field", "value"),
+    [
+        ("log", 5),
+        ("fields", []),
+        ("fields", {"b1.ignore": 5}),
+        ("fields", {"b1.ignore": {"ranges": "s1"}}),
+        ("fields", {"b1.ignore": {"ranges": [[1]]}}),
+    ],
+    ids=[
+        "log",
+        "fields",
+        "a field that is a number",
+        "ranges that are not a list",
+        "a range that is not a pair",
+    ],
 )
 @pytest.mark.parametrize(
     "arguments",
@@ -290,6 +304,27 @@ def test_a_command_naming_what_the_draft_has_not_got_is_refused(
     assert result.exit_code != 0, result.output
     assert named in result.output
     assert draft_path.read_bytes() == built
+
+
+def test_a_command_says_what_it_wrote(tmp_path: Path, monkeypatch) -> None:
+    """What a command wrote is what the next one names, so it is said rather than hunted."""
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(TWO_QUESTIONS, tmp_path)
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["draft", "question", "add", "--literal", "Words."])
+
+    assert result.exit_code == 0, result.output
+    assert result.output == "Wrote q3.text.\n"
+    # And the field of that name, so that what is said and what is written cannot part.
+    field = json.loads(draft_path.read_text())["fields"]["q3.text"]
+    assert (field["value"], field["layer"]) == ("Words.", 4)
+
+    # A split writes no field, so what it names is the two blocks it left behind.
+    result = runner.invoke(cli, ["draft", "split", "block", "b3", "6"])
+
+    assert result.exit_code == 0, result.output
+    assert result.output == "Wrote b3a and b3b.\n"
 
 
 def test_the_halves_of_a_split_block_are_blocks_like_any_other(

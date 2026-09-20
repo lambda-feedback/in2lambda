@@ -23,6 +23,30 @@ from typing import Any, Optional
 DRAFT = "draft.json"
 """What a frozen source is written to, beside the source itself."""
 
+
+def _field_fault(field: Any) -> str:
+    """What is wrong with the shape of one field of a draft, or "" if nothing is.
+
+    Only ``ranges`` is looked inside for, because it is the only part of a field
+    anything here reads: `in2lambda.draft.record` compares the lines a command is
+    quoting against the lines every field was taken from. The value, the layer, whether
+    it was edited and by whom are written and read back whole, and an edit to any of
+    them is what a replay catches byte for byte.
+    """
+    if not isinstance(field, dict):
+        return "is not an object"
+    if "ranges" not in field:
+        return "has no ranges"
+    if not isinstance(field["ranges"], list) or not all(
+        isinstance(pair, list)
+        and len(pair) == 2
+        and all(isinstance(line, int) for line in pair)
+        for pair in field["ranges"]
+    ):
+        return f"has ranges {field['ranges']!r} rather than pairs of line numbers"
+    return ""
+
+
 _FIELDS = ("source", "hash", "blocks", "log", "fields")
 """What a draft has in it, and so what one has to have for anything here to read it.
 
@@ -215,6 +239,12 @@ def _draft(path: Path) -> dict[str, Any]:
             raise DraftUnreadable(
                 f"{path} is not a draft anything here wrote: its {field} is "
                 f"{draft[field]!r} rather than {called}. {advice}"
+            )
+    for key, field in draft["fields"].items():
+        if fault := _field_fault(field):
+            raise DraftUnreadable(
+                f"{path} is not a draft anything here wrote: its fields has {key} "
+                f"that {fault}. {advice}"
             )
     return draft
 
