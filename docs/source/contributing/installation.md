@@ -21,6 +21,9 @@ $ pre-commit install
 $ in2lambda --help
 ```
 
+The test suite also renders maths with KaTeX, so install [Node.js](https://nodejs.org) to run all of
+it; the tests that need it skip without it.
+
 To exit the environment:
 ```shell
 $ exit

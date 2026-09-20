@@ -7,8 +7,12 @@ whatever the validator reports, it must not report a set the platform itself wro
 
 The markdown cases were ported from ``conversion2025/tools and testing/validator_tests.py``
 on the ``Summer2025`` branch.
+
+The folders whose report says ``KaTeX rejects it`` need Node.js to render with, and skip
+without it; CI always has it.
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -16,10 +20,10 @@ import sys
 from pathlib import Path
 
 import pytest
-from conftest import EXPORTS, PROBLEM_SETS
+from conftest import EXPORTS, PROBLEM_SETS, PROBLEMS_DIR
 
 from in2lambda.api.set import Set
-from in2lambda.validation import MathDelimiterError, pdf, validate
+from in2lambda.validation import MathDelimiterError, _node, pdf, validate
 
 E = MathDelimiterError
 
@@ -101,6 +105,8 @@ def _messages(markdown: str) -> list[str]:
 def test_expected_problems_are_reported(problem_set: Path) -> None:
     """Each hand-written export produces exactly the report written beside it."""
     expected = (problem_set / "expected.txt").read_text().splitlines()
+    if _node() is None and any("KaTeX rejects it" in line for line in expected):
+        pytest.skip("KaTeX needs Node.js to render with")
     found = validate(Set.from_json(str(problem_set)))
 
     assert sorted(str(problem) for problem in found) == sorted(expected)
@@ -123,6 +129,69 @@ def test_invalid_markdown_is_reported(
     content: str, expected: MathDelimiterError
 ) -> None:
     assert _messages(content) == [expected.value]
+
+
+def test_without_node_the_maths_is_not_checked(without_node: None) -> None:
+    """Node.js being optional, its absence is said out loud rather than passed over."""
+    question_set = Set.from_json(
+        str(PROBLEMS_DIR / "katex_undefined_command")
+    )  # $\vect{v}$, which only KaTeX itself objects to.
+
+    with pytest.warns(UserWarning, match="nodejs.org"):
+        problems = validate(question_set, compile=False)
+
+    assert problems == []
+
+
+def test_a_node_that_does_not_render_is_not_fatal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Anything named node may be on the PATH; the rest of the report must survive it.
+
+    ``false`` stands in for it: on the PATH, runnable, and no use for rendering maths.
+    """
+    monkeypatch.setattr("in2lambda.validation._node", lambda: shutil.which("false"))
+    question_set = Set.from_json(str(PROBLEMS_DIR / "degrees"))
+
+    with pytest.warns(UserWarning, match="Maths was not checked against KaTeX"):
+        problems = validate(question_set, compile=False)
+
+    assert [str(problem) for problem in problems] == (
+        (PROBLEMS_DIR / "degrees" / "expected.txt").read_text().splitlines()
+    )
+
+
+@pytest.mark.skipif(_node() is None, reason="KaTeX needs Node.js to render with")
+def test_katex_is_read_back_whatever_the_locale() -> None:
+    """KaTeX underlines where it stopped reading, so its messages are never ASCII.
+
+    Run in a process of its own because the locale is read when Python starts.
+    """
+    expected = [
+        line
+        for line in (PROBLEMS_DIR / "katex_undefined_command" / "expected.txt")
+        .read_text()
+        .splitlines()
+        if "KaTeX rejects it" in line
+    ]
+    script = (
+        "import json\n"
+        "from in2lambda.api.set import Set\n"
+        "from in2lambda.validation import validate\n"
+        f"question_set = Set.from_json({str(PROBLEMS_DIR / 'katex_undefined_command')!r})\n"
+        # ensure_ascii so that the child's own stdout cannot fail for a different reason.
+        "print(json.dumps([str(p) for p in validate(question_set, compile=False)]))\n"
+    )
+    run = subprocess.run(
+        [sys.executable, "-c", script],
+        env=os.environ
+        | {"LC_ALL": "C", "LANG": "C", "PYTHONUTF8": "0", "PYTHONCOERCECLOCALE": "0"},
+        capture_output=True,
+        encoding="utf-8",
+    )
+
+    assert run.returncode == 0, run.stderr
+    assert json.loads(run.stdout) == expected
 
 
 def test_image_that_is_not_on_disk_is_reported(tmp_path: Path) -> None:

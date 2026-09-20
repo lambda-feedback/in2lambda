@@ -81,3 +81,26 @@ def test_cli_reports_problems_and_exports_anyway(tmp_path) -> None:
         "the export will not contain the image absent.png" in result.output
     )
     assert (out_dir / "set.zip").is_file()
+
+
+def test_cli_says_when_the_maths_could_not_be_checked(
+    tmp_path, without_node: None
+) -> None:
+    """Node.js is optional, so a check that could not run says so rather than passing."""
+    question_file = tmp_path / "questions.tex"
+    question_file.write_text(
+        "\\documentclass{article}\n"
+        "\\begin{document}\n"
+        "\\section{Continuity}\n"
+        "Show that $\\rho v A$ is constant.\n"
+        "\\end{document}\n"
+    )
+
+    result = CliRunner().invoke(
+        cli, ["convert", str(question_file), "PartsOneSol", "-o", str(tmp_path / "out")]
+    )
+
+    assert result.exit_code == 0
+    assert (
+        "Warning: Maths was not checked against KaTeX: install Node.js" in result.output
+    )
