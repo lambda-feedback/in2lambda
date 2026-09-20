@@ -29,6 +29,9 @@ from in2lambda.validation import _IMAGE, pdf
 QUESTION = re.compile(r"q(\d+)\.text")
 """A question's text among a folder's fields, which is one question of the export."""
 
+PART = re.compile(r"q(\d+)\.p(\d+)\.text")
+"""A part's text, which is one part of the question it is numbered under."""
+
 MARK_IGNORE = DRAFTS_DIR / "mark_ignore"
 """The case the tests below happen to use; what they check holds for any of them."""
 
@@ -49,6 +52,22 @@ def _built(folder: Path, tmp_path: Path) -> Path:
     # find is fixture data like the fields they write are.
     in2lambda.draft.report.validate()
     return tmp_path / "draft.json"
+
+
+def _expected_parts(fields: dict[str, Any], number: int) -> int:
+    """How many parts a question's fields describe, counted from the fields themselves.
+
+    One per ``qN.pM.text``, and one more where ``qN.solution`` is written beside a
+    solution for every part there is: nothing is left for it to answer, so it is a part
+    of its own, as `in2lambda convert` writes one.
+    """
+    written = [
+        int(found[2])
+        for key in fields
+        if (found := PART.fullmatch(key)) and int(found[1]) == number
+    ]
+    answered = all(f"q{number}.p{part}.solution" in fields for part in written)
+    return len(written) + (answered and f"q{number}.solution" in fields)
 
 
 def _reported(folder: Path) -> list[dict[str, Any]]:
@@ -543,7 +562,16 @@ def test_build_follows_the_report(folder: Path, tmp_path: Path, monkeypatch) -> 
     assert len(questions) == len([key for key in fields if QUESTION.fullmatch(key)])
     for number, question in enumerate(questions, start=1):
         assert question.main_text == fields[f"q{number}.text"]["value"]
+        # Counted from the fields rather than read off the question, since a loop over
+        # parts that were dropped runs no assertions and passes saying nothing.
+        assert len(question.parts) == _expected_parts(fields, number)
         for index, part in enumerate(question.parts, start=1):
+            if f"q{number}.p{index}.text" not in fields:
+                # The question's own solution, written where every part is answered
+                # already: last, and holding nothing but that solution.
+                assert part.text == ""
+                assert part.worked_solution == fields[f"q{number}.solution"]["value"]
+                continue
             assert part.text == fields[f"q{number}.p{index}.text"]["value"]
             # A part's own solution, or the question's where it has none of its own.
             solution = fields.get(
@@ -581,6 +609,27 @@ def test_build_refuses_a_field_naming_an_image_that_is_not_there(
     assert result.exit_code != 0
     assert "figure.png" in result.output
     assert not (tmp_path / "out").exists()
+
+
+@needs_compiler
+def test_render_leaves_out_a_figure_that_is_not_there(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A draft is rendered to look at, and a figure yet to be found is one such fault.
+
+    The compiler drops the reference and typesets the rest, which is what `build`
+    refuses to upload and what a reviewer wants to see.
+    """
+    monkeypatch.chdir(tmp_path)
+    _built(FIGURE, tmp_path)
+    (tmp_path / "figure.png").unlink()
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code == 0, result.output
+    written = sorted((tmp_path / "out").glob("*.pdf"))
+    assert len(written) == 1
+    assert written[0].stat().st_size
 
 
 @needs_compiler

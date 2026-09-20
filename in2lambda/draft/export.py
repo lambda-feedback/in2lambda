@@ -55,13 +55,12 @@ def as_set(draft: dict[str, Any], directory: str = ".") -> Set:
     Returns:
         One question per ``qN.text``, holding one part per ``qN.pM.text`` with the
         worked solution written for it. A question's own ``qN.solution`` answers every
-        part that has none of its own, or is the whole of a question written without
-        parts, which is the rule :meth:`~in2lambda.api.question.Question.add_solution`
-        applies. A block marked ignore is in no question: it is the source's, not the
-        set's.
-
-    Raises:
-        MissingImage: a field refers to an image file that is not beside the draft.
+        part that has none of its own; where every part has one already, or the
+        question was written without parts, it becomes a part of its own holding
+        nothing but that solution. That is the rule
+        :meth:`~in2lambda.api.question.Question.add_solution` applies, so a draft
+        exports as the same sheet converted by `in2lambda convert` does. A block marked
+        ignore is in no question: it is the source's, not the set's.
 
     Examples:
         >>> from in2lambda.draft.export import as_set
@@ -91,27 +90,24 @@ def as_set(draft: dict[str, Any], directory: str = ".") -> Set:
                 question.parts[-1].worked_solution = fields[written]["value"]
         if (written := f"q{number}.solution") in fields:
             # A sheet often writes one worked solution for a whole question, which
-            # answers each part it does not answer separately; a question with no parts
-            # at all is the one part that solution belongs to.
-            if not question.parts:
-                question.parts.append(Part())
-            for part_of in question.parts:
-                if not part_of.worked_solution:
-                    part_of.worked_solution = fields[written]["value"]
+            # answers each part it does not answer separately. Where nothing is left for
+            # it to answer it is a part of its own, as `add_solution` makes it one: a
+            # solution written beside a solution for every part is still the author's
+            # wording, and dropping it would export less than the draft holds.
+            if all(part_of.worked_solution for part_of in question.parts):
+                question.parts.append(Part(worked_solution=fields[written]["value"]))
+            else:
+                for part_of in question.parts:
+                    if not part_of.worked_solution:
+                        part_of.worked_solution = fields[written]["value"]
         # As the export refers to them: beside the draft, since that is where a command
-        # naming a file names one. Both the export's media/ and the renderer work from
-        # the question's images rather than from the references in its markdown, so a
-        # file that is not there would be copied into media/ from nowhere.
-        for where, markdown in _fields(question, number):
-            for reference in _IMAGE.findall(markdown):
-                image = Path(directory) / reference
-                if not image.is_file():
-                    raise MissingImage(
-                        f"{where} refers to the image {reference}, and there is no "
-                        f"file at {image}. Put the image there, or take the reference "
-                        "out of the field with in2lambda draft field replace."
-                    )
-                question.images.append(str(image))
+        # naming a file names one. Whether the file is there is `build`'s question, not
+        # asked here, so that a draft can be rendered while its figures are being found.
+        for _, markdown in _fields(question, number):
+            question.images += [
+                str(Path(directory) / reference)
+                for reference in _IMAGE.findall(markdown)
+            ]
     return question_set
 
 
@@ -146,7 +142,21 @@ def build(directory: str = ".", output_dir: str = "out") -> Path:
             "names, or mark the blocks it is about as ignored, and run in2lambda "
             "validate again."
         )
-    as_set(draft, directory).to_json(output_dir)
+    exported = as_set(draft, directory)
+    # The export carries every image a field refers to into media/, which is the only
+    # place Lambda Feedback looks for one, so a file that is not there is not something
+    # to write the set without: `json_convert` would raise a bare FileNotFoundError over
+    # it. The checks read the draft and not the folder it is in, so a draft they found
+    # nothing in can still say this.
+    for number, question in enumerate(exported.questions, start=1):
+        for image in question.images:
+            if not Path(image).is_file():
+                raise MissingImage(
+                    f"Question {number} refers to an image, and there is no file at "
+                    f"{image}. Put the image there, or take the reference out of the "
+                    "field with in2lambda draft field replace."
+                )
+    exported.to_json(output_dir)
     return Path(output_dir) / "set.zip"
 
 
@@ -156,6 +166,8 @@ def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
     The questions are compiled as Lambda Feedback's own PDF generator compiles them,
     under a heading naming each, so what comes out is what a student would be shown.
     The checks are not run first: looking at a draft is how what they found gets fixed.
+    Nor does a figure that is not beside the draft stop a question being looked at -
+    the compiler drops the reference and typesets the rest of it.
 
     Args:
         directory: Where the ``draft.json`` to render is.
@@ -168,7 +180,6 @@ def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
         ConversionToolsMissing: pandoc or xelatex is not installed.
         CompileFailed: a question produced no PDF at all, or the compiler did not
             finish with it.
-        MissingImage: a field refers to an image file that is not beside the draft.
         SourceError: the draft is missing, is not one of ours, or was written from
             markdown that has changed since.
 

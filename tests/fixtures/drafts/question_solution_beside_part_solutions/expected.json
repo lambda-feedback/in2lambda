@@ -1,0 +1,86 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "Each support carries $W/2$, by symmetry."
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "Find the reaction at each support."
+  },
+  "q1.p2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        11,
+        11
+      ]
+    ],
+    "value": "The moment is largest under the load, where it is $WL/4$."
+  },
+  "q1.p2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": "Find the maximum bending moment."
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        13,
+        13
+      ]
+    ],
+    "value": "Both answers are in SI units."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "A beam of length $L$ rests on two supports and carries a point load $W$ at its centre."
+  }
+}
