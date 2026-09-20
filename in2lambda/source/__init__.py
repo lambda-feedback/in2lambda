@@ -249,13 +249,173 @@ def file_type(file: str) -> str:
     raise RuntimeError(f"Unsupported file extension: .{extension}")
 
 
-def _pandoc(file: str, to: str) -> bytes:
+def _pandoc(file: str, to: str, *options: str) -> bytes:
     """The given file, as pandoc writes it in the `to` format.
 
     Undecoded, because what is written to disk and what is hashed have to be the same
     bytes; whoever wants the text of it decodes it themselves.
     """
-    return subprocess.check_output(["pandoc", file, "-f", file_type(file), "-t", to])
+    return subprocess.check_output(
+        ["pandoc", file, "-f", file_type(file), "-t", to, *options]
+    )
+
+
+_DISPLAY_MATHS = re.compile(r"(?<!\\)\$\$(.+?)(?<!\\)\$\$", re.DOTALL)
+"""Display maths as ``commonmark_x`` writes it: opened and closed on the one line."""
+
+_MARKER = re.compile(r" *(?:[-+*]|\(?(?:\d+|[ivxlcdm]+|[IVXLCDM]+|[A-Za-z])[.)]) {1,4}")
+"""A list item's marker on its first line, as `commonmark_x` reads one."""
+
+
+def _verbatim_lines(markdown: str) -> set[int]:
+    r"""The lines of some markdown whose ``$$`` is code rather than maths.
+
+    ``commonmark_x`` fences a code block that carries a language and indents one that
+    carries nothing four spaces, and a ``$$ ... $$`` in either is text the document
+    shows rather than maths it renders. A list item's continuation paragraph is indented
+    four as well, so the indent is measured from the item the line stands in rather than
+    from the margin: a line four past the enclosing item's content column is code, and
+    display maths standing as an item's own paragraph is maths. The column is the one
+    :func:`dedented` takes off again, so a line this leaves alone is a line the field
+    quoting it reads as code too.
+
+    Examples:
+        >>> from in2lambda.source import _verbatim_lines
+        >>> sorted(_verbatim_lines("Text\n\n    $$x = y$$\n"))
+        [3]
+        >>> sorted(_verbatim_lines("1.  Item\n\n    $$x = y$$\n"))
+        []
+        >>> sorted(_verbatim_lines("1.  Item\n\n        $$x = y$$\n"))
+        [3]
+        >>> sorted(_verbatim_lines("``` python\n$$x = y$$\n```\n"))
+        [1, 2, 3]
+    """
+    verbatim = set()
+    fence = ""
+    items: list[int] = []  # The content column of each list item open at this line.
+    for number, line in enumerate(markdown.split("\n"), start=1):
+        stripped = line.lstrip(" ")
+        indent = len(line) - len(stripped)
+        if fence:
+            verbatim.add(number)
+            if stripped.startswith(fence):
+                fence = ""
+        elif not stripped:
+            # Commonmark closes an item at the next non-blank line indented less than
+            # its content column, not at the blank line before that one.
+            continue
+        else:
+            while items and indent < items[-1]:
+                items.pop()
+            base = items[-1] if items else 0
+            if stripped[:3] in ("```", "~~~"):
+                fence = stripped[:3]
+                verbatim.add(number)
+            elif indent >= base + 4:
+                verbatim.add(number)
+            elif marker := _MARKER.match(line):
+                items.append(marker.end())
+    return verbatim
+
+
+def _display_maths_blocked(markdown: str) -> str:
+    r"""Markdown pandoc wrote, with its display maths moved onto lines of its own.
+
+    ``commonmark_x`` writes ``$$F = p A$$`` on one line wherever in a paragraph the
+    maths stood, which is the one form the delimiter checks refuse and no real Lambda
+    Feedback export uses. Rewriting it at the freeze rather than at the field is what
+    makes every range quoted out of the markdown render, however the maths was written.
+
+    The inserted lines take the indent of the line the maths began on - a list item's
+    marker width included, so maths in an item stays in the item - and whatever stood
+    either side of it on that line becomes a paragraph of its own.
+
+    A ``$$`` that opens or closes on a pipe table's row, on a block quote's line or on a
+    code block's line is left as pandoc wrote it: a table cell cannot hold a block, an
+    inserted line carries the indent of the opening line but not a quote's ``> ``, and a
+    code block's ``$$`` is characters the document shows. A match holding a backtick, or
+    running across a blank line, is left as written as well: display maths holds
+    neither, so such a match is an unpaired ``$$`` - one in inline code, say - closed by
+    the opening ``$$`` of a later maths, and that later maths is then left as written
+    too. ``in2lambda validate`` reports the maths left in any of these.
+
+    Examples:
+        >>> from in2lambda.source import _display_maths_blocked
+        >>> _display_maths_blocked("The load is $$F = pA$$ here.\n")
+        'The load is\n\n$$\nF = pA\n$$\n\nhere.\n'
+        >>> _display_maths_blocked("1.  Find $$F = pA$$\n")
+        '1.  Find\n\n    $$\n    F = pA\n    $$\n'
+        >>> _display_maths_blocked("A load $$F = pA$$\r\n")
+        'A load\r\n\r\n$$\r\nF = pA\r\n$$\r\n'
+        >>> _display_maths_blocked("> The load is $$F = pA$$ here.\n")
+        '> The load is $$F = pA$$ here.\n'
+        >>> _display_maths_blocked("Type this:\n\n    $$x = y$$\n")
+        'Type this:\n\n    $$x = y$$\n'
+        >>> _display_maths_blocked("``` python\nprint(\"$$x = y$$\")\n```\n")
+        '``` python\nprint("$$x = y$$")\n```\n'
+        >>> _display_maths_blocked("Type `$$` first.\n\nThe load is $$F = pA$$\n")
+        'Type `$$` first.\n\nThe load is $$F = pA$$\n'
+        >>> _display_maths_blocked("Type `$$` then $$F = pA$$ ends.\n")
+        'Type `$$` then $$F = pA$$ ends.\n'
+        >>> _display_maths_blocked("The load is $$F = pA\n> and $$ here.\n")
+        'The load is $$F = pA\n> and $$ here.\n'
+    """
+    if "\r\n" in markdown:
+        # Pandoc writes the line endings of whoever is running it, and the file on disk
+        # is hashed as it is written, so a Windows freeze stays a Windows file.
+        blocked = _display_maths_blocked(markdown.replace("\r\n", "\n"))
+        return blocked.replace("\n", "\r\n")
+
+    verbatim = _verbatim_lines(markdown)
+
+    def blocked(position: int) -> bool:
+        """Whether the `$$` at this offset stands in a table row, a quote or code."""
+        opening = markdown[markdown.rfind("\n", 0, position) + 1 : position]
+        return opening.lstrip()[:1] in ("|", ">") or (
+            markdown.count("\n", 0, position) + 1 in verbatim
+        )
+
+    written: list[str] = []
+    end = 0
+    for match in _DISPLAY_MATHS.finditer(markdown):
+        if "`" in match.group(1) or any(
+            not line.strip() for line in match.group().split("\n")
+        ):
+            # Display maths holds neither a backtick nor a blank line, so a match over
+            # one of the two is an unpaired `$$` - one in inline code, say - closed by
+            # the opening `$$` of a later maths. Rewriting it would make a maths block
+            # of the words standing between the two.
+            continue
+        if blocked(match.start()) or blocked(match.end()):
+            # A pipe table's cell cannot hold a block; an inserted line carries the
+            # indent of the line the maths began on but not a block quote's `> `, so the
+            # rewrite would put the maths and the words after it outside the quote; and
+            # a code block's `$$` is characters the document shows, not maths. Either
+            # delimiter standing in one of the three is enough to leave the match alone.
+            continue
+        before = markdown[markdown.rfind("\n", 0, match.start()) + 1 : match.start()]
+        marker = _MARKER.match(before)
+        indent = " " * (
+            marker.end() if marker else len(before) - len(before.lstrip(" "))
+        )
+        # Maths that already starts its line - or the line's list item - needs no break
+        # before it, and the indent it would be given is in the line already.
+        opens_the_line = not before.strip() or (
+            marker is not None and marker.end() == len(before)
+        )
+        head = markdown[end : match.start()]
+        written.append(head if opens_the_line else f"{head.rstrip(' ')}\n\n{indent}")
+        body = "\n".join(
+            f"{indent}{line.strip()}" for line in match.group(1).strip().split("\n")
+        )
+        written.append(f"$$\n{body}\n{indent}$$")
+        end = match.end()
+        rest = markdown[end:].split("\n", 1)[0]
+        if rest.strip():
+            written.append(f"\n\n{indent}")
+            end += len(rest) - len(rest.lstrip(" "))
+    written.append(markdown[end:])
+    return "".join(written)
 
 
 def _digest(data: bytes) -> str:
@@ -464,10 +624,6 @@ def blocks(markdown: str, source: int = 1) -> list[Block]:
     return [block for block, _ in _elements(markdown, source)]
 
 
-_MARKER = re.compile(r" *(?:[-+*]|\(?(?:\d+|[ivxlcdm]+|[IVXLCDM]+|[A-Za-z])[.)]) {1,4}")
-"""A list item's marker on its first line, as `commonmark_x` reads one."""
-
-
 def dedented(text: str) -> str:
     r"""Some lines of a list item, with the item's own indentation off every one.
 
@@ -609,7 +765,9 @@ def add(
     A .docx or .tex file is converted to markdown next to it; a markdown file is taken
     as it is and nothing is copied. Either way the markdown is hashed and its blocks
     written to ``FILE.draft.json``, so that whatever quotes a source by line range can
-    tell that the lines it was given still say what they said.
+    tell that the lines it was given still say what they said. A converted file is
+    written unwrapped - a paragraph is one line, however long - with each ``$$ ... $$``
+    on lines of its own, which is the maths Lambda Feedback renders.
 
     The files are numbered in the order they are given, and a file already frozen into
     the draft beside them is checked against the hash it was frozen at rather than
@@ -669,8 +827,13 @@ def add(
             raw, markdown = _source(path)
             frozen_path = path
         else:
-            raw = _pandoc(str(path), _MARKDOWN)
-            markdown = raw.decode("utf-8")
+            # Unwrapped, and with the display maths blocked out, before anything is
+            # hashed: both are habits of pandoc's writer rather than anything the author
+            # did, and both are what a field quoting these lines would have to render.
+            markdown = _display_maths_blocked(
+                _pandoc(str(path), _MARKDOWN, "--wrap=none").decode("utf-8")
+            )
+            raw = markdown.encode("utf-8")
             frozen_path = path.with_suffix(".md")
             converted.append((frozen_path, raw))
         digest = _digest(raw)

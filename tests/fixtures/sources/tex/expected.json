@@ -6,33 +6,33 @@
     "type": "heading"
   },
   {
-    "end": 4,
+    "end": 3,
     "id": "b2",
     "start": 3,
     "type": "paragraph"
   },
   {
-    "end": 6,
+    "end": 5,
     "id": "b3",
-    "start": 6,
+    "start": 5,
     "type": "list item"
   },
   {
-    "end": 8,
+    "end": 7,
     "id": "b4",
-    "start": 8,
+    "start": 7,
     "type": "list item"
   },
   {
-    "end": 10,
+    "end": 11,
     "id": "b5",
-    "start": 10,
+    "start": 9,
     "type": "display maths"
   },
   {
-    "end": 12,
+    "end": 13,
     "id": "b6",
-    "start": 12,
+    "start": 13,
     "type": "image"
   }
 ]
