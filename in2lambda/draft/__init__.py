@@ -307,7 +307,7 @@ def _spec_run(
             "the draft again with in2lambda source add --start-over."
         )
 
-    spec = in2lambda.spec.load(raw.decode("utf-8"))
+    spec = in2lambda.spec.load(raw)
     fields, ignored = in2lambda.spec.fields(spec, _elements(markdown), markdown)
     for found in fields:
         record(draft, found.key, found.value, layer=1, ranges=found.ranges, by=by)

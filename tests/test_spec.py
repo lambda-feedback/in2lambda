@@ -138,6 +138,44 @@ def test_a_spec_that_cannot_be_read_says_which_line_to_look_at(
     assert (tmp_path / "draft.json").read_bytes() == written
 
 
+def test_a_spec_saved_as_utf_16_is_read_like_any_other(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A spec is written in whatever the editor saves in, and YAML reads the BOM."""
+    monkeypatch.chdir(tmp_path)
+    runner = _frozen(WORKED_EXAMPLE, tmp_path)
+    spec = tmp_path / "spec.yaml"
+    spec.write_bytes(spec.read_text().encode("utf-16"))
+
+    result = runner.invoke(cli, ["spec", "run", "spec.yaml", "--by", "tests"])
+
+    assert result.exit_code == 0, result.output
+    fields = json.loads((tmp_path / "draft.json").read_text())["fields"]
+    assert fields == json.loads((WORKED_EXAMPLE / "expected.json").read_text())
+
+
+def test_a_spec_in_an_encoding_yaml_cannot_read_is_refused(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A spec saved as cp1252 is something to say so about, not a decoding traceback."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    runner = _frozen(WORKED_EXAMPLE, tmp_path)
+    written = (tmp_path / "draft.json").read_bytes()
+    (tmp_path / "spec.yaml").write_bytes(
+        "question: Header\nstrip: ['^Solución ']\nlayout: PartsOneSol\n".encode(
+            "cp1252"
+        )
+    )
+
+    result = runner.invoke(cli, ["spec", "run", "spec.yaml"])
+
+    assert result.exit_code != 0
+    assert "not YAML" in result.output
+    assert isinstance(result.exception, SystemExit)
+    assert (tmp_path / "draft.json").read_bytes() == written
+
+
 def test_running_a_spec_without_pyyaml_says_what_to_install(
     tmp_path: Path, monkeypatch
 ) -> None:

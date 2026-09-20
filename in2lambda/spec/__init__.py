@@ -232,19 +232,22 @@ def _selector(text: Any, line: int) -> Selector:
     return _clause(head.strip(), line)
 
 
-def load(text: str) -> Spec:
+def load(text: "str | bytes") -> Spec:
     r"""Reads a spec, given that it says what a spec says.
 
     Args:
-        text: The contents of the spec file.
+        text: The contents of the spec file, as text or as the bytes it was read as.
+            The bytes are handed to YAML rather than decoded here, since YAML knows
+            which encoding a file is in from its byte order mark and refuses one it
+            cannot read the way it refuses anything else about a spec.
 
     Returns:
         The spec, with its selectors parsed and its strip patterns compiled.
 
     Raises:
-        BadSpec: the text is not YAML, is not a mapping, says something a spec does
-            not, or holds a selector, pattern or layout that cannot be read. Every one
-            of them says which line of the file to look at.
+        BadSpec: the text is not YAML, is in an encoding YAML cannot read, is not a
+            mapping, says something a spec does not, or holds a selector, pattern or
+            layout that cannot be read. Every one of them says which line to look at.
 
     Examples:
         >>> from in2lambda.spec import load
