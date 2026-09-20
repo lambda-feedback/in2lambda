@@ -24,6 +24,9 @@ is why the block it was typed from is marked ignore rather than left unaccounted
 brace back and another, with `--regex`, writes a `\tfrac` over the division in the solution, so
 both fields end up edited while their ranges still name the lines they were quoted from, and the
 backslash in what the second one writes is written rather than read as a replacement template.
+`field_set` is the repair for the field `empty_field` leaves empty: `question add --text s2` quotes
+a blank line into `q1.text`, which the checks report as empty, and `field set q1.text --text b2`
+writes the paragraph into the field instead, at layer 3 with the block's range and `edited` false.
 `part_without_solution` and `empty_field` are the smallest drafts the other two checks have
 anything to say about; an overlap and a gap in the numbering are not here, because no run of
 commands can make one. `figure_in_a_question` is a question whose text runs on into an image, so
