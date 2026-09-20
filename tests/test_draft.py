@@ -2,29 +2,44 @@
 
 Each folder in ``fixtures/drafts`` is a document, the commands to run against its draft
 and the fields they should write, so covering another command means adding a folder
-rather than a test. The rest is what the command line does when a replay cannot be
-trusted - a source that has moved on, a log naming a command nothing has, a draft edited
-by hand - which is not something a fixture can say.
+rather than a test. Each is also what `in2lambda build` and `in2lambda render` make of
+it: the one with no ``report.json`` is exported, the rest are refused. The remainder is
+what the command line does when a replay cannot be trusted - a source that has moved on,
+a log naming a command nothing has, a draft edited by hand - which is not something a
+fixture can say.
 """
 
 import json
+import re
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
 import pytest
 from click.testing import CliRunner
-from conftest import DRAFTS, DRAFTS_DIR
+from conftest import DRAFTS, DRAFTS_DIR, needs_compiler
 
 import in2lambda.draft
 import in2lambda.draft.report
+from in2lambda.api.set import Set
 from in2lambda.main import cli
+from in2lambda.validation import _IMAGE, pdf
+
+QUESTION = re.compile(r"q(\d+)\.text")
+"""A question's text among a folder's fields, which is one question of the export."""
+
+PART = re.compile(r"q(\d+)\.p(\d+)\.text")
+"""A part's text, which is one part of the question it is numbered under."""
 
 MARK_IGNORE = DRAFTS_DIR / "mark_ignore"
 """The case the tests below happen to use; what they check holds for any of them."""
 
 TWO_QUESTIONS = DRAFTS_DIR / "two_questions"
 """The one with questions written into it, which is what refusing a second one needs."""
+
+FIGURE = DRAFTS_DIR / "figure_in_a_question"
+"""The one whose fields refer to an image file, which the export has to carry."""
 
 
 def _built(folder: Path, tmp_path: Path) -> Path:
@@ -37,6 +52,25 @@ def _built(folder: Path, tmp_path: Path) -> Path:
     # find is fixture data like the fields they write are.
     in2lambda.draft.report.validate()
     return tmp_path / "draft.json"
+
+
+def _expected_parts(fields: dict[str, Any], number: int) -> int:
+    """How many parts a question's fields describe, counted from the fields themselves.
+
+    One per ``qN.pM.text``, and one more where ``qN.solution`` is written beside a
+    solution for every part there is: nothing is left for it to answer, so it is a part
+    of its own, as `in2lambda convert` writes one. A question with no parts written for
+    it at all is one empty part, since a question exported holding none carries the
+    template's placeholder wording instead.
+    """
+    written = [
+        int(found[2])
+        for key in fields
+        if (found := PART.fullmatch(key)) and int(found[1]) == number
+    ]
+    answered = all(f"q{number}.p{part}.solution" in fields for part in written)
+    parts = len(written) + (answered and f"q{number}.solution" in fields)
+    return parts or 1
 
 
 def _reported(folder: Path) -> list[dict[str, Any]]:
@@ -485,3 +519,221 @@ def test_the_halves_of_a_split_block_are_blocks_like_any_other(
     # In the margin against the first line of each half, which is where the ids are.
     assert "b5a  10" in result.output
     assert "b5b  12" in result.output
+
+
+def test_build_refuses_a_draft_that_has_not_been_validated(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Every command that changes a draft drops its report, so this is every draft."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    shutil.copytree(TWO_QUESTIONS, tmp_path, dirs_exist_ok=True)
+    assert CliRunner().invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+    for entry in json.loads((TWO_QUESTIONS / "commands.json").read_text()):
+        in2lambda.draft.execute(entry)
+
+    result = CliRunner().invoke(cli, ["build"])
+
+    assert result.exit_code != 0
+    assert "in2lambda validate" in result.output
+    assert not (tmp_path / "out").exists()
+
+
+@pytest.mark.parametrize("folder", DRAFTS, ids=lambda path: path.name)
+def test_build_follows_the_report(folder: Path, tmp_path: Path, monkeypatch) -> None:
+    """A draft is exported once the checks have been over it and found nothing."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(folder, tmp_path)
+    fields = json.loads((folder / "expected.json").read_text())
+
+    result = CliRunner().invoke(cli, ["build"])
+
+    if report := _reported(folder):
+        assert result.exit_code != 0, result.output
+        # Every finding, so that what is left to do can be read off the refusal itself.
+        for finding in report:
+            assert finding["message"] in result.output
+        assert not (tmp_path / "out").exists()
+        return
+
+    assert result.exit_code == 0, result.output
+    exported = tmp_path / "out" / "set.zip"
+    assert exported.is_file()
+
+    questions = Set.from_json(str(exported)).questions
+    assert len(questions) == len([key for key in fields if QUESTION.fullmatch(key)])
+    for number, question in enumerate(questions, start=1):
+        assert question.main_text == fields[f"q{number}.text"]["value"]
+        # Counted from the fields rather than read off the question, since a loop over
+        # parts that were dropped runs no assertions and passes saying nothing.
+        assert len(question.parts) == _expected_parts(fields, number)
+        for index, part in enumerate(question.parts, start=1):
+            if f"q{number}.p{index}.text" not in fields:
+                # The question's own solution, written where every part is answered
+                # already: last, and holding nothing but that solution. Or, where the
+                # question has no solution either, the empty part a question with no
+                # parts written for it exports as.
+                assert part.text == ""
+                solution = fields.get(f"q{number}.solution")
+                assert part.worked_solution == (solution["value"] if solution else "")
+                continue
+            assert part.text == fields[f"q{number}.p{index}.text"]["value"]
+            # A part's own solution, or the question's where it has none of its own.
+            solution = fields.get(
+                f"q{number}.p{index}.solution", fields.get(f"q{number}.solution")
+            )
+            assert part.worked_solution == (solution["value"] if solution else "")
+
+    # Every image a field refers to travels with the set under media/, which is the only
+    # place Lambda Feedback looks for one; the set's folder is asked rather than the
+    # loaded questions, since reading an export back attributes an image to a question
+    # by the platform's own naming of the file, which a draft's images do not follow.
+    assert {path.name for path in (tmp_path / "out" / "set" / "media").glob("*")} == {
+        Path(reference).name
+        for field in fields.values()
+        if isinstance(field["value"], str)
+        for reference in _IMAGE.findall(field["value"])
+    }
+
+
+def test_build_refuses_a_field_naming_an_image_that_is_not_there(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The checks read the draft and not the folder, so a clean one can still say this.
+
+    Exporting it anyway would upload a question whose figure is a broken image, since
+    the file the markdown names is what the export carries under media/.
+    """
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(FIGURE, tmp_path)
+    (tmp_path / "figure.png").unlink()
+
+    result = CliRunner().invoke(cli, ["build"])
+
+    assert result.exit_code != 0
+    assert "figure.png" in result.output
+    assert not (tmp_path / "out").exists()
+
+
+@needs_compiler
+def test_render_leaves_out_a_figure_that_is_not_there(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A draft is rendered to look at, and a figure yet to be found is one such fault.
+
+    The compiler drops the reference and typesets the rest, which is what `build`
+    refuses to upload and what a reviewer wants to see.
+    """
+    monkeypatch.chdir(tmp_path)
+    _built(FIGURE, tmp_path)
+    (tmp_path / "figure.png").unlink()
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code == 0, result.output
+    written = sorted((tmp_path / "out").glob("*.pdf"))
+    assert len(written) == 1
+    assert written[0].stat().st_size
+
+
+@needs_compiler
+def test_render_writes_the_questions_beside_one_tex_cannot_finish(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Maths a brace is missing out of makes TeX give up where it stands.
+
+    That is one question of the draft unrendered, and it is said as such: the rest is
+    still written out, since a draft whose faults are being fixed is exactly the one
+    somebody is looking at.
+    """
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+    replaced = CliRunner().invoke(
+        cli,
+        [
+            "draft",
+            "field",
+            "replace",
+            "q1.solution",
+            "$Q = \\pi d^2 v / 4$",
+            "$\\frac{1$",
+        ],
+    )
+    assert replaced.exit_code == 0, replaced.output
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code == 0, result.output
+    # The second question, which has nothing wrong with it.
+    written = sorted((tmp_path / "out").glob("*.pdf"))
+    assert len(written) == 1
+    assert written[0].stat().st_size
+    # Why the first one is not there, rather than only that xelatex wrote no PDF: the
+    # log's own account of it is all there is when it stopped before reaching a field.
+    assert "File ended while scanning use of \\frac" in result.output
+
+
+@needs_compiler
+@pytest.mark.parametrize("folder", DRAFTS, ids=lambda path: path.name)
+def test_render_writes_one_pdf_per_question(
+    folder: Path, tmp_path: Path, monkeypatch
+) -> None:
+    """Rendering is for looking at a draft, so a draft with a report renders too."""
+    monkeypatch.chdir(tmp_path)
+    _built(folder, tmp_path)
+    fields = json.loads((folder / "expected.json").read_text())
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code == 0, result.output
+    written = sorted((tmp_path / "out").glob("*.pdf"))
+    assert len(written) == len([key for key in fields if QUESTION.fullmatch(key)])
+    assert all(pdf.stat().st_size for pdf in written)
+
+
+def test_render_says_what_to_install_without_the_compiler(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The PDF generator's toolchain is optional, as it is everywhere else here."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+    which = shutil.which
+    monkeypatch.setattr(
+        shutil,
+        "which",
+        lambda command: None if command == "xelatex" else which(command),
+    )
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code != 0
+    assert "texlive-xetex" in result.output
+    assert not (tmp_path / "out").exists()
+
+
+def test_render_says_which_tool_never_finished(tmp_path: Path, monkeypatch) -> None:
+    """A set can be written that makes TeX loop, and waiting is not what happens then.
+
+    The toolchain is stood in for rather than run, so that this says what the command
+    does with a timeout wherever it is run, not only where a compiler is installed.
+    """
+
+    def never_finishes(command: list[str], **_: Any) -> None:
+        raise subprocess.TimeoutExpired(command, pdf._TIMEOUT)
+
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+    monkeypatch.setattr(shutil, "which", lambda command: f"/usr/bin/{command}")
+    monkeypatch.setattr(subprocess, "run", never_finishes)
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code != 0
+    # The line a reader can act on, rather than the traceback out of subprocess.
+    assert "pandoc did not finish" in result.output
+    assert not isinstance(result.exception, subprocess.TimeoutExpired)

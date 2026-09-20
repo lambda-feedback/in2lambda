@@ -22,4 +22,12 @@ both fields end up edited while their ranges still name the lines they were quot
 backslash in what the second one writes is written rather than read as a replacement template.
 `part_without_solution` and `empty_field` are the smallest drafts the other two checks have
 anything to say about; an overlap and a gap in the numbering are not here, because no run of
-commands can make one.
+commands can make one. `figure_in_a_question` is a question whose text runs on into an image, so
+the field quotes the reference and `figure.png` beside the source is what the export has to carry
+into `media/` - the only folder here with a file the fields point at.
+`question_solution_beside_part_solutions` is the only one filled in by a spec rather than by
+commands one at a time, and the only one whose question has two parts: both are answered by the
+spec's own solutions, so the `question solution` after it answers nothing, and the export carries
+it as a part of its own rather than dropping the wording. `question_without_parts` is a question
+and nothing else, which the checks have nothing to say about: it is here because a question with
+no parts is what the export has to write out as an empty part rather than as the template's.

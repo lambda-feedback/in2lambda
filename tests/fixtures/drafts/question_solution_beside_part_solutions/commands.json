@@ -1,0 +1,18 @@
+[
+  {
+    "args": {
+      "hash": "sha256:de8814ff58a658669eadd41c48481a5082b2bfd4242d43ad751ec79a66640108",
+      "spec": "spec.yaml"
+    },
+    "by": "tests",
+    "command": "spec run"
+  },
+  {
+    "args": {
+      "question": "q1",
+      "text": "b7"
+    },
+    "by": "tests",
+    "command": "question solution"
+  }
+]

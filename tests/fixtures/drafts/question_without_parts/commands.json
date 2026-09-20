@@ -1,0 +1,9 @@
+[
+  {
+    "args": {
+      "text": "b1"
+    },
+    "by": "tests",
+    "command": "question add"
+  }
+]

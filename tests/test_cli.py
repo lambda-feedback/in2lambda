@@ -86,8 +86,10 @@ def test_completing_the_old_form_offers_the_subcommand() -> None:
     ).get_completions(["./questions.tex"], "")
 
     assert [candidate.value for candidate in completions] == [
+        "build",
         "convert",
         "draft",
+        "render",
         "source",
         "spec",
         "validate",

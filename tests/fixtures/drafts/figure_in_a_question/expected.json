@@ -1,0 +1,50 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": "Find the load the large piston carries when the small one is pressed with force $f$."
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "The pressure is the same in both, so the load is $F = f A / a$."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        3,
+        5
+      ]
+    ],
+    "value": "A hydraulic scale has two pistons joined by oil, the small one of area $a$ and the\nlarge one of area $A$.\n![The two pistons](figure.png)"
+  }
+}
