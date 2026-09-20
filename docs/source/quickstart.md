@@ -77,6 +77,8 @@ Before writing anything, in2lambda prints the problems it can detect that would 
 
 The maths is checked by rendering it with KaTeX itself, the way Lambda Feedback will, which needs [Node.js](https://nodejs.org) installed. Without Node.js everything else is still checked and in2lambda says the maths was not.
 
+With [xelatex](https://tug.org/texlive/) installed alongside pandoc, the set is also compiled the way Lambda Feedback makes a PDF of it, and any LaTeX error names the field it is in. Without it, one warning says which packages to install instead.
+
 Check the [command line tool reference](reference/command-line) for more information.
 
 ## 3. Import into Lambda Feedback

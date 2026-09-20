@@ -1,0 +1,7 @@
+{
+  "name": "LaTeX fault",
+  "description": "A part whose text uses a command LaTeX does not have, so the PDF generator cannot compile it.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

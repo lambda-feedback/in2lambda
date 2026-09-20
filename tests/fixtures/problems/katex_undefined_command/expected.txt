@@ -1,1 +1,2 @@
 Question 1 "Velocity", part (a), text, characters 20-29: KaTeX rejects it: Undefined control sequence: \vect at position 1: \̲v̲e̲c̲t̲{v}
+Question 1 "Velocity", part (a), text: the PDF generator cannot compile this: Undefined control sequence.
