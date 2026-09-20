@@ -68,6 +68,14 @@ class AlreadyFilled(SourceError):
     """A command would write a field that is written, or lines another field took."""
 
 
+class NoSuchField(SourceError):
+    """A command changes the wording of a field the draft has not got as text."""
+
+
+class NotOnce(SourceError):
+    """The wording a command replaces is not in the field exactly once."""
+
+
 class ReplayDiffers(SourceError):
     """Replaying a draft's log does not reproduce the draft."""
 
@@ -120,13 +128,15 @@ def record(
 
     Raises:
         AlreadyFilled: the field is written already, or the lines it was to be copied
-            from are where another field came from. Nothing here changes a field once it
-            is written, so either is a mistake, and worth naming both halves of.
+            from are where another field came from. Nothing here writes a field twice -
+            `field replace` changes the wording of one rather than writing it again -
+            so either is a mistake, and worth naming both halves of.
     """
     if key in draft["fields"]:
         raise AlreadyFilled(
-            f"{key} is already written, and no command here changes a field that is. "
-            "Run in2lambda source add --start-over to begin the draft again."
+            f"{key} is already written, and no command here writes a field twice. Run "
+            "in2lambda draft field replace to change the wording it holds, or "
+            "in2lambda source add --start-over to begin the draft again."
         )
     for filled, field in draft["fields"].items():
         for taken in field["ranges"]:
@@ -177,7 +187,7 @@ def _argument(args: dict[str, Any], name: str, command: str, kind: type = str) -
             f'"{name}" argument.'
         )
     if not isinstance(args[name], kind):
-        wanted = "a line number" if kind is int else "a name"
+        wanted = {int: "a line number", bool: "true or false"}.get(kind, "a name")
         raise MalformedCommand(
             f"{args!r} in the log is not a command {command} can run: its "
             f'"{name}" is {args[name]!r} rather than {wanted}.'
@@ -471,6 +481,67 @@ def _question_solution(
         command="question solution",
         key=f"{question}.solution",
     )
+
+
+@command("field replace")
+def _field_replace(
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
+) -> str:
+    """Replaces one piece of wording inside a field that is written already.
+
+    Some faults can only be fixed by changing the text: a brace the OCR dropped leaves
+    maths KaTeX will not render, and no range of the source says it correctly. The
+    layer and the ranges are left as they were, so the change can still be shown
+    against the lines the field was taken from, and `edited` says what is there now is
+    not what those lines say.
+
+    Raises:
+        MalformedCommand: an argument is missing, or ``old`` is not a regular
+            expression with ``regex``.
+        NoSuchField: the draft has no field of that name holding text.
+        NotOnce: ``old`` is not in the field exactly once, so which of it was meant is
+            not something to guess at.
+    """
+    key = _argument(args, "field", "field replace")
+    old = _argument(args, "old", "field replace")
+    new = _argument(args, "new", "field replace")
+    # Only when it is there, so that a command nobody passed --regex to records no
+    # argument for it, as every other option of a command does.
+    regex = "regex" in args and _argument(args, "regex", "field replace", bool)
+
+    field = draft["fields"].get(key)
+    if field is None or not isinstance(field.get("value"), str):
+        raise NoSuchField(
+            f"There is no field {key} holding text in {DRAFT}: field replace changes "
+            "the wording of a field one of the commands before it has written."
+        )
+    value = field["value"]
+    try:
+        found = len(re.findall(old, value)) if regex else value.count(old)
+        # A function rather than new itself, because re.sub reads a string as a
+        # template, in which \t is a tab and \frac is an error. What is being repaired
+        # here is LaTeX, so NEW is what gets written, backslashes and all.
+        replaced = (
+            re.sub(old, lambda _: new, value, count=1)
+            if regex
+            else value.replace(old, new, 1)
+        )
+    except re.error as error:
+        raise MalformedCommand(
+            f"{args!r} in the log is not a command field replace can run: it is not a "
+            f"regular expression - {error}."
+        ) from None
+    if found != 1:
+        raise NotOnce(
+            f"{old!r} occurs {found} times in {key} rather than once, so there is no "
+            "one place in it to replace. Give more of the wording around it, or pass "
+            "--regex and a pattern that matches it alone."
+        )
+
+    field["value"] = replaced
+    field["edited"] = True
+    field["by"] = by
+    return key
 
 
 @command("split block")
