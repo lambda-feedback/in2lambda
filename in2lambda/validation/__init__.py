@@ -7,11 +7,19 @@ and looking.
 
 Everything here reports, never refuses: :func:`validate` returns what it found and the
 export goes ahead regardless, since a problem may well be deliberate.
+
+Maths is rendered with KaTeX itself, which needs Node.js. That is the one check with a
+dependency outside Python: without Node it is skipped with a warning saying so.
 """
 
+import json
 import re
+import shutil
+import subprocess
+import warnings
 from functools import cache
 from pathlib import Path
+from typing import NamedTuple
 
 from in2lambda.api.problem import Problem
 from in2lambda.api.question import Question
@@ -33,6 +41,20 @@ _COMMAND = re.compile(r"\\[a-zA-Z]+")
 _DEGREES = re.compile(r"\^\s*\{?\s*\\circ")
 """``^\\circ``, with or without braces around it."""
 
+_CHECK = Path(__file__).parent / "katex" / "check.js"
+"""The Node script that renders expressions with the KaTeX packaged beside it."""
+
+
+class _Expression(NamedTuple):
+    """One piece of maths to render, and where in the set it was written."""
+
+    location: str
+    start: int
+    """Where the expression, opening delimiter included, begins in its field, from 1."""
+    end: int
+    tex: str
+    display: bool
+
 
 def validate(question_set: Set) -> list[Problem]:
     r"""Everything in2lambda can tell is wrong with a set, in the order it is written.
@@ -42,8 +64,10 @@ def validate(question_set: Set) -> list[Problem]:
 
     Returns:
         One :class:`~in2lambda.api.problem.Problem` per problem found, each naming the
-        question, part and field to look at. An empty list means nothing was found -
-        not that the set will import, since only some mistakes can be seen from here.
+        question, part and field to look at, in the order they are written - save for
+        what KaTeX refused, which comes last because the whole set is rendered at once.
+        An empty list means nothing was found - not that the set will import, since
+        only some mistakes can be seen from here.
 
     Examples:
         >>> from in2lambda.api.set import Set
@@ -54,11 +78,12 @@ def validate(question_set: Set) -> list[Problem]:
         ['Question 1 "Angles", main text: ^\\circ does not display; write the degree sign ° instead']
     """
     problems: list[Problem] = []
+    expressions: list[_Expression] = []
 
     for number, question in enumerate(question_set.questions, start=1):
         where = f'Question {number} "{question.title}"'
         problems += _markdown_problems(
-            question.main_text, question, f"{where}, main text"
+            question.main_text, question, f"{where}, main text", expressions
         )
 
         for image in question.images:
@@ -73,7 +98,7 @@ def validate(question_set: Set) -> list[Problem]:
                 ("answer", part.answer),
             ):
                 problems += _markdown_problems(
-                    markdown, question, f"{part_where}, {field}"
+                    markdown, question, f"{part_where}, {field}", expressions
                 )
 
             for area_number, area in enumerate(part.response_areas, start=1):
@@ -87,25 +112,34 @@ def validate(question_set: Set) -> list[Problem]:
                     ("content_after", area.content_after),
                 ):
                     problems += _markdown_problems(
-                        markdown, question, f"{area_where}, {field}"
+                        markdown, question, f"{area_where}, {field}", expressions
                     )
                 options = (area.config or {}).get("options")
                 if isinstance(options, list):
                     for option_number, option in enumerate(options, start=1):
                         problems += _markdown_problems(
-                            option, question, f"{area_where}, option {option_number}"
+                            option,
+                            question,
+                            f"{area_where}, option {option_number}",
+                            expressions,
                         )
 
-    return problems
+    return problems + _katex_rejections(expressions)
 
 
 def _markdown_problems(
-    markdown: str, question: Question, location: str
+    markdown: str,
+    question: Question,
+    location: str,
+    expressions: list[_Expression],
 ) -> list[Problem]:
     """Every problem in one markdown field, reported against `location`.
 
     The question is needed because an image reference is only good if that image is
     among the question's, and so will be written into the export's ``media/``.
+
+    The field's maths is appended to `expressions` rather than rendered here, so that
+    the whole set takes one Node process instead of one per field.
     """
     problems: list[Problem] = []
 
@@ -121,30 +155,44 @@ def _markdown_problems(
                 Problem(location, f"the export will not contain the image {reference}")
             )
 
-    problems += _katex_problems(markdown, location)
+    # Where the delimiters are wrong the expressions cannot be picked out reliably, and
+    # the field has its report already, so its maths is left where it is.
+    if delimiters is MathDelimiterError.PASSED:
+        problems += _katex_problems(markdown, location, expressions)
     return problems
 
 
-def _katex_problems(markdown: str, location: str) -> list[Problem]:
-    """Maths that KaTeX, which Lambda Feedback renders with, will not display."""
+def _katex_problems(
+    markdown: str, location: str, expressions: list[_Expression]
+) -> list[Problem]:
+    """Maths that KaTeX, which Lambda Feedback renders with, will not display.
+
+    Expressions the lists have nothing to say about are appended to `expressions` for
+    KaTeX itself to render. The ones they do object to are not: their message says what
+    to write instead, where KaTeX's only says what it choked on, and one fault reads
+    better as one line.
+    """
     problems: list[Problem] = []
     lacks = _katex_lacks()
 
     for span in _MATHS.finditer(markdown):
-        maths = span[1] if span[1] is not None else span[2]
-        for command in _COMMAND.findall(maths):
-            if command in lacks:
-                replacement = lacks[command]
-                problems.append(
-                    Problem(
-                        location,
-                        (
-                            f"KaTeX does not render {command}; write {replacement} instead"
-                            if replacement
-                            else f"KaTeX does not render {command}"
-                        ),
-                    )
+        display = span[1] is not None
+        maths = span[1] if display else span[2]
+        unsupported = [
+            command for command in _COMMAND.findall(maths) if command in lacks
+        ]
+        for command in unsupported:
+            replacement = lacks[command]
+            problems.append(
+                Problem(
+                    location,
+                    (
+                        f"KaTeX does not render {command}; write {replacement} instead"
+                        if replacement
+                        else f"KaTeX does not render {command}"
+                    ),
                 )
+            )
         if _DEGREES.search(maths):
             problems.append(
                 Problem(
@@ -152,8 +200,60 @@ def _katex_problems(markdown: str, location: str) -> list[Problem]:
                     "^\\circ does not display; write the degree sign ° instead",
                 )
             )
+        if not unsupported:
+            expressions.append(
+                _Expression(location, span.start() + 1, span.end(), maths, display)
+            )
 
     return problems
+
+
+def _katex_rejections(expressions: list[_Expression]) -> list[Problem]:
+    """What KaTeX itself refuses to render, the whole set in one Node process.
+
+    Node is optional: someone authoring questions in Python should not have to install
+    it, so without it this one check is skipped and says what to install instead.
+    """
+    if not expressions:
+        return []
+
+    node = _node()
+    if node is None:
+        warnings.warn(
+            "Maths was not checked against KaTeX: install Node.js "
+            "(https://nodejs.org) and run again",
+            stacklevel=3,
+        )
+        return []
+
+    rendered = subprocess.run(
+        [node, str(_CHECK)],
+        input=json.dumps(
+            [
+                {"tex": expression.tex, "display": expression.display}
+                for expression in expressions
+            ]
+        ),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    problems: list[Problem] = []
+    for rejection in json.loads(rendered.stdout):
+        expression = expressions[rejection["index"]]
+        problems.append(
+            Problem(
+                f"{expression.location}, characters {expression.start}-{expression.end}",
+                f"KaTeX rejects it: {rejection['message']}",
+            )
+        )
+    return problems
+
+
+@cache
+def _node() -> str | None:
+    """Where node is, or None if it is not installed."""
+    return shutil.which("node")
 
 
 @cache

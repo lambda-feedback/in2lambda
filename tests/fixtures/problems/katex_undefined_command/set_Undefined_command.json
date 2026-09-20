@@ -1,0 +1,7 @@
+{
+  "name": "Undefined command",
+  "description": "Maths using a command KaTeX has never heard of, which only KaTeX itself can tell us about.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

@@ -7,15 +7,18 @@ whatever the validator reports, it must not report a set the platform itself wro
 
 The markdown cases were ported from ``conversion2025/tools and testing/validator_tests.py``
 on the ``Summer2025`` branch.
+
+The folders whose report says ``KaTeX rejects it`` need Node.js to render with, and skip
+without it; CI always has it.
 """
 
 from pathlib import Path
 
 import pytest
-from conftest import EXPORTS, PROBLEM_SETS
+from conftest import EXPORTS, PROBLEM_SETS, PROBLEMS_DIR
 
 from in2lambda.api.set import Set
-from in2lambda.validation import MathDelimiterError, validate
+from in2lambda.validation import MathDelimiterError, _node, validate
 
 E = MathDelimiterError
 
@@ -90,6 +93,8 @@ def _messages(markdown: str) -> list[str]:
 def test_expected_problems_are_reported(problem_set: Path) -> None:
     """Each hand-written export produces exactly the report written beside it."""
     expected = (problem_set / "expected.txt").read_text().splitlines()
+    if _node() is None and any("KaTeX rejects it" in line for line in expected):
+        pytest.skip("KaTeX needs Node.js to render with")
     found = validate(Set.from_json(str(problem_set)))
 
     assert sorted(str(problem) for problem in found) == sorted(expected)
@@ -111,6 +116,18 @@ def test_invalid_markdown_is_reported(
     content: str, expected: MathDelimiterError
 ) -> None:
     assert _messages(content) == [expected.value]
+
+
+def test_without_node_the_maths_is_not_checked(without_node: None) -> None:
+    """Node.js being optional, its absence is said out loud rather than passed over."""
+    question_set = Set.from_json(
+        str(PROBLEMS_DIR / "katex_undefined_command")
+    )  # $\vect{v}$, which only KaTeX itself objects to.
+
+    with pytest.warns(UserWarning, match="nodejs.org"):
+        problems = validate(question_set)
+
+    assert problems == []
 
 
 def test_image_that_is_not_on_disk_is_reported(tmp_path: Path) -> None:

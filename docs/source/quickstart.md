@@ -75,6 +75,8 @@ By default, this generates an `out` directory in the same place that the command
 
 Before writing anything, in2lambda prints the problems it can detect that would stop the set importing or make it render wrongly — an answer that doesn't fit the box marking it, a figure the export won't contain, maths that KaTeX can't display. Each names the question, part and field to go and look at. They are warnings rather than errors: the `out` directory is written either way, since a problem found here may well be deliberate.
 
+The maths is checked by rendering it with KaTeX itself, the way Lambda Feedback will, which needs [Node.js](https://nodejs.org) installed. Without Node.js everything else is still checked and in2lambda says the maths was not.
+
 Check the [command line tool reference](reference/command-line) for more information.
 
 ## 3. Import into Lambda Feedback
