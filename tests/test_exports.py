@@ -15,7 +15,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from conftest import EXPORTS
+from conftest import EXPORTS, key_paths, unexported_keys
 
 from in2lambda.api.part import Part
 from in2lambda.api.question import Question
@@ -56,34 +56,6 @@ def _modelled(question_set: Set) -> dict:
             for q in question_set.questions
         ],
     }
-
-
-def _key_paths(value, path: str = "") -> set[str]:
-    if isinstance(value, dict):
-        paths = set()
-        for key, item in value.items():
-            paths |= {f"{path}.{key}"} | _key_paths(item, f"{path}.{key}")
-        return paths
-    if isinstance(value, list):
-        return set().union(
-            *(_key_paths(item, f"{path}[{i}]") for i, item in enumerate(value))
-        )
-    return set()
-
-
-def _unexported_keys(written: dict, exported: dict) -> list[str]:
-    # An export may list a part's areas out of order; the writer puts them in order,
-    # so compare each written area with the exported one of the same number.
-    for part in exported.get("parts", []):
-        part["responseAreas"].sort(key=lambda area: area["orderNumber"])
-    missing = _key_paths(written) - _key_paths(exported)
-    # Lambda Feedback leaves a part's workedSolution out of its export when the part
-    # has none, but the writer always emits one, so only then may it be absent.
-    for i, part in enumerate(written.get("parts", [])):
-        if not part["workedSolution"]["content"]:
-            prefix = f".parts[{i}].workedSolution"
-            missing = {key for key in missing if not key.startswith(prefix)}
-    return sorted(missing)
 
 
 @each_export
@@ -129,7 +101,11 @@ def test_written_keys_exist_in_export(export_dir: Path, tmp_path: Path) -> None:
     missing = {}
     for file in written.glob("*.json"):
         exported = json.loads((export_dir / file.name).read_text())
-        keys = _unexported_keys(json.loads(file.read_text()), exported)
+        # An export may list a part's areas out of order; the writer puts them in
+        # order, so compare each written area with the exported one of the same number.
+        for part in exported.get("parts", []):
+            part["responseAreas"].sort(key=lambda area: area["orderNumber"])
+        keys = unexported_keys(json.loads(file.read_text()), key_paths(exported))
         if keys:
             missing[file.name] = keys
     assert not missing, missing
@@ -308,7 +284,7 @@ def test_one_figure_used_by_two_questions_is_copied_once(tmp_path: Path) -> None
 def _area_shape(area: dict) -> frozenset[str]:
     # Without indices, an area's shape is the keys it has, not how many tests, cases
     # or symbols it lists.
-    return frozenset(re.sub(r"\[\d+\]", "[]", path) for path in _key_paths(area))
+    return frozenset(re.sub(r"\[\d+\]", "[]", path) for path in key_paths(area))
 
 
 def test_response_areas_built_in_python_write_as_exported(tmp_path: Path) -> None:

@@ -1,0 +1,51 @@
+[
+  {
+    "args": {
+      "block": "b1"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "text": "b2"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "block": "b3"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "block": "b4"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "block": "b5"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "block": "b6"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "block": "b7"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  }
+]

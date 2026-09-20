@@ -1,0 +1,4 @@
+Question 1 "", part (a), worked solution: the draft says 'This is the final answer. It contains the solutions for all parts without breaking them up. $$ 1+1 = 2 $$ The solution is copied across all parts.' and convert says ''  # t52: the PartsOneSol filter drops every solution
+Question 1 "", part (b), text: the draft says "The filter still works even if there aren't any parts" and convert says 'The filter still works even if there aren’t any parts'  # smart quotes: pandoc's LaTeX reader writes ’ where its commonmark_x writer writes '
+Question 1 "", part (b), worked solution: the draft says 'This is the final answer. It contains the solutions for all parts without breaking them up. $$ 1+1 = 2 $$ The solution is copied across all parts.' and convert says ''  # t52: the PartsOneSol filter drops every solution
+Question 2 "", part (a): the draft wrote this part and convert did not  # t52: the PartsOneSol filter drops every solution
