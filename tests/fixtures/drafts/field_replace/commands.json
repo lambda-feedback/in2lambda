@@ -1,0 +1,36 @@
+[
+  {
+    "args": {
+      "text": "b2"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "question": "q1",
+      "text": "b4"
+    },
+    "by": "tests",
+    "command": "question solution"
+  },
+  {
+    "args": {
+      "field": "q1.text",
+      "new": "\\mathrm{m/s}$",
+      "old": "\\mathrm{m/s$"
+    },
+    "by": "ocr-fixer",
+    "command": "field replace"
+  },
+  {
+    "args": {
+      "field": "q1.solution",
+      "new": " ",
+      "old": "\\s{2,}",
+      "regex": true
+    },
+    "by": "ocr-fixer",
+    "command": "field replace"
+  }
+]

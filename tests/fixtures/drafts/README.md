@@ -12,3 +12,6 @@ rubric, two questions with a part each and a separate solutions section, written
 command there is: the second question runs into its part with no blank line between them, so the
 parser makes one block of the two and `split block` cuts it, and the first question's part is typed
 out rather than quoted, because the source writes it with an `(a)` the field should not carry.
+`field_replace` is a sheet the OCR left a brace out of the maths of: one `field replace` puts the
+brace back and another, with `--regex`, collapses a doubled space in the solution, so both fields
+end up edited while their ranges still name the lines they were quoted from.
