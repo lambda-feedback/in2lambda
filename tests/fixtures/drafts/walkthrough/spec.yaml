@@ -1,0 +1,5 @@
+question: Para text~'^Q\d+\.'
+part:     ListItem
+strip:    ['^Q\d+\. ']
+ignore:   Header
+layout:   PartsSepSol
