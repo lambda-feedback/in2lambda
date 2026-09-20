@@ -11,6 +11,14 @@ Everything here reports, never refuses: what the checks found may well be delibe
 deciding that is whoever is writing the draft's to do. Only what is in the draft is
 looked at - its blocks, its field keys, their ranges and their values - because what the
 text of a question says is `in2lambda.validation`'s, at export.
+
+Each finding carries the level it is found at, which is what `in2lambda.draft.export`
+goes by. An error is the draft contradicting its own source - lines nothing accounts for,
+two fields quoting the same ones, a numbering with a hole in it, a quotation of nothing -
+and there is no sheet those are right about. A warning is something that may well be
+right: half the sheets there are write their solutions in another file, or have none, so
+a question nothing answers is said to whoever is building the set rather than stopping
+them - inventing a solution to quiet it is the one thing nobody wanted.
 """
 
 import re
@@ -20,18 +28,28 @@ from typing import Any
 from in2lambda.source import DRAFT, frozen, save
 
 Finding = dict[str, Any]
-"""One thing a check found: ``{"check", "field", "ranges", "message"}``.
+"""One thing a check found: ``{"check", "level", "field", "ranges", "message"}``.
 
-``check`` is which check found it, ``field`` the block id or field key it is about,
-``ranges`` the lines in question as ``[[start, end], ...]``, and ``message`` a sentence
-naming all of that, so that a line of the report can be acted on by itself.
+``check`` is which check found it, ``level`` :data:`ERROR` or :data:`WARNING`, ``field``
+the block id or field key it is about, ``ranges`` the lines in question as
+``[[start, end], ...]``, and ``message`` a sentence naming all of that, so that a line of
+the report can be acted on by itself.
 """
+
+ERROR = "error"
+"""A finding the draft cannot be exported over: it says something its source does not."""
+
+WARNING = "warning"
+"""A finding the export says and goes on past: it may be what the sheet really is."""
 
 _NUMBERED = re.compile(r"((?:q\d+\.p)|q)(\d+)\.text")
 """A question's or a part's text, split into what numbers it and the number."""
 
 _PART = re.compile(r"(q\d+)\.p\d+\.text")
 """A part's text, and the question it belongs to."""
+
+_QUESTION = re.compile(r"(q\d+)\.text")
+"""A question's text, and the question it is."""
 
 _UNPLACED = float("inf")
 """Where a finding about no particular line sorts: after every finding about one."""
@@ -114,6 +132,7 @@ def uncovered(draft: dict[str, Any]) -> list[Finding]:
             found.append(
                 {
                     "check": "uncovered",
+                    "level": ERROR,
                     "field": block["id"],
                     "ranges": free,
                     "message": f"{block['id']}{_where(free)} is in no field and not "
@@ -134,6 +153,7 @@ def _overlaps(draft: dict[str, Any]) -> list[Finding]:
     return [
         {
             "check": "overlap",
+            "level": ERROR,
             "field": key,
             "ranges": fields[key]["ranges"],
             "message": f"{key}{_where(fields[key]['ranges'])} and {other}"
@@ -158,6 +178,7 @@ def _gaps(draft: dict[str, Any]) -> list[Finding]:
     return [
         {
             "check": "gap",
+            "level": ERROR,
             "field": f"{prefix}{missing}.text",
             "ranges": [],
             "message": f"There is no {prefix}{missing}.text, though "
@@ -170,28 +191,47 @@ def _gaps(draft: dict[str, Any]) -> list[Finding]:
 
 
 def _without_solutions(draft: dict[str, Any]) -> list[Finding]:
-    """Parts that nothing in the draft answers.
+    """Parts, and questions written without any, that nothing in the draft answers.
 
     A part is answered by its own solution or by the solution of the question it belongs
-    to, since a sheet often writes one worked solution covering every part at once.
+    to, since a sheet often writes one worked solution covering every part at once. A
+    question with parts is answered through them and is not reported itself; one with
+    none is a question in its own right, and is reported where nothing answers it.
     """
     fields = draft["fields"]
     found = []
     for key in sorted(fields):
-        if (named := _PART.fullmatch(key)) is None:
-            continue
-        part = key.removesuffix(".text")
-        if f"{part}.solution" in fields or f"{named[1]}.solution" in fields:
-            continue
-        found.append(
-            {
-                "check": "no-solution",
-                "field": part,
-                "ranges": fields[key]["ranges"],
-                "message": f"{part}{_where(fields[key]['ranges'])} has no solution: "
-                f"neither {part}.solution nor {named[1]}.solution is written.",
-            }
-        )
+        if named := _PART.fullmatch(key):
+            part = key.removesuffix(".text")
+            if f"{part}.solution" in fields or f"{named[1]}.solution" in fields:
+                continue
+            found.append(
+                {
+                    "check": "no-solution",
+                    "level": WARNING,
+                    "field": part,
+                    "ranges": fields[key]["ranges"],
+                    "message": f"{part}{_where(fields[key]['ranges'])} has no solution: "
+                    f"neither {part}.solution nor {named[1]}.solution is written.",
+                }
+            )
+        elif named := _QUESTION.fullmatch(key):
+            question = named[1]
+            if f"{question}.solution" in fields or any(
+                (belongs := _PART.fullmatch(other)) and belongs[1] == question
+                for other in fields
+            ):
+                continue
+            found.append(
+                {
+                    "check": "no-solution",
+                    "level": WARNING,
+                    "field": question,
+                    "ranges": fields[key]["ranges"],
+                    "message": f"{question}{_where(fields[key]['ranges'])} has no "
+                    f"solution: {question}.solution is not written, and it has no parts.",
+                }
+            )
     return found
 
 
@@ -200,6 +240,7 @@ def _empty(draft: dict[str, Any]) -> list[Finding]:
     return [
         {
             "check": "empty",
+            "level": ERROR,
             "field": key,
             "ranges": field["ranges"],
             "message": f"{key}{_where(field['ranges'])} is empty.",
@@ -218,7 +259,9 @@ def checks(draft: dict[str, Any]) -> list[Finding]:
     Returns:
         One :data:`Finding` per thing found, earliest line first and then by what it is
         about, with the findings about no particular line last. An empty list means the
-        draft covers its source once each, with nothing missing from its numbering.
+        draft covers its source once each, with nothing missing from its numbering; a
+        list holding only warnings is one `in2lambda.draft.export.build` says and
+        exports over.
 
     Examples:
         >>> from in2lambda.draft.report import checks
@@ -243,6 +286,25 @@ def checks(draft: dict[str, Any]) -> list[Finding]:
             finding["field"],
         ),
     )
+
+
+def errors(findings: list[Finding]) -> list[Finding]:
+    """The findings of a report that a draft cannot be exported over.
+
+    Args:
+        findings: A report, as :func:`checks` or :func:`validate` writes one.
+
+    Returns:
+        Those at level :data:`ERROR`, in the order they were reported. The rest are
+        warnings, which `in2lambda.draft.export.build` says and exports anyway.
+
+    Examples:
+        >>> from in2lambda.draft.report import errors
+        >>> report = [{"level": "warning"}, {"level": "error", "check": "gap"}]
+        >>> errors(report)
+        [{'level': 'error', 'check': 'gap'}]
+    """
+    return [finding for finding in findings if finding["level"] == ERROR]
 
 
 def validate(directory: str = ".") -> list[Finding]:

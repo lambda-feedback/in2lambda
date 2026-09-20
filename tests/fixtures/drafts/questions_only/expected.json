@@ -1,0 +1,62 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "Find the time of flight."
+  },
+  "q1.p2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": "Find the horizontal range."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "A ball is thrown at speed $u$ at an angle $\\theta$ to the horizontal."
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "A train brakes uniformly from $30$ m/s to rest in $20$ s. Find the deceleration."
+  }
+}

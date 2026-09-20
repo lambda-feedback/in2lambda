@@ -5,8 +5,10 @@ export is a :class:`~in2lambda.api.set.Set` of questions holding parts. :func:`a
 is the one place that reads the one as the other, so both what is written out and what
 is rendered for review come from the same reading of the draft.
 
-:func:`build` refuses a draft the checks have not looked at, or have something to say
-about. There is no timestamp in that: every command that changes a draft takes its
+:func:`build` refuses a draft the checks have not looked at, or have found an error in;
+what they found at level warning - a question or part nothing answers - it says and
+exports anyway, since a sheet whose solutions are in another file or nowhere is still a
+sheet. There is no timestamp in that: every command that changes a draft takes its
 report with it, so a draft holding one has been checked since it last changed, and
 `in2lambda.source.frozen` refuses one whose source has moved on underneath it.
 :func:`render` is gated on nothing, since looking at a draft is how what the checks
@@ -21,6 +23,7 @@ from typing import Any
 from in2lambda.api.part import Part
 from in2lambda.api.question import Question
 from in2lambda.api.set import Set
+from in2lambda.draft.report import errors
 from in2lambda.json_convert.json_convert import _question_stem, _question_title
 from in2lambda.source import DRAFT, ConversionToolsMissing, SourceError, frozen
 from in2lambda.validation import _IMAGE, pdf
@@ -131,11 +134,15 @@ def build(directory: str = ".", output_dir: str = "out") -> Path:
 
     Raises:
         NotValidated: the draft has not been checked since it last changed, or the
-            checks found something. Either way what would be uploaded is not what
+            checks found an error in it. Either way what would be uploaded is not what
             anybody has looked at.
         MissingImage: a field refers to an image file that is not beside the draft.
         SourceError: the draft is missing, is not one of ours, or was written from
             markdown that has changed since.
+
+    Warns:
+        UserWarning: once per finding the checks made at level warning, which is a
+            question or part the draft has no solution for. The set is written with it.
     """
     draft, _ = frozen(directory)
     if "report" not in draft:
@@ -143,13 +150,18 @@ def build(directory: str = ".", output_dir: str = "out") -> Path:
             f"{DRAFT} has not been validated since it last changed, so what it would "
             "export is what nothing has checked. Run in2lambda validate."
         )
-    if draft["report"]:
+    if refusing := errors(draft["report"]):
         raise NotValidated(
-            "\n".join(finding["message"] for finding in draft["report"])
+            "\n".join(finding["message"] for finding in refusing)
             + f"\n{DRAFT} is not exported while its report says this. Fix what it "
             "names, or mark the blocks it is about as ignored, and run in2lambda "
             "validate again."
         )
+    for finding in draft["report"]:
+        # Said rather than refused: a sheet whose solutions are elsewhere or absent is
+        # one to export as it stands, and writing one in to quiet this would put wording
+        # into the set that no source of it says.
+        warnings.warn(finding["message"], stacklevel=2)
     exported = as_set(draft, directory)
     # The export carries every image a field refers to into media/, which is the only
     # place Lambda Feedback looks for one, so a file that is not there is not something

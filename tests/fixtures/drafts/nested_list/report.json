@@ -2,6 +2,7 @@
   {
     "check": "uncovered",
     "field": "b2",
+    "level": "error",
     "message": "b2 (lines 5-5, 8-8) is in no field and not marked ignore.",
     "ranges": [
       [
@@ -17,6 +18,7 @@
   {
     "check": "no-solution",
     "field": "q1.p1",
+    "level": "warning",
     "message": "q1.p1 (lines 6-7) has no solution: neither q1.p1.solution nor q1.solution is written.",
     "ranges": [
       [
@@ -28,6 +30,7 @@
   {
     "check": "no-solution",
     "field": "q1.p2",
+    "level": "warning",
     "message": "q1.p2 (lines 9-9) has no solution: neither q1.p2.solution nor q1.solution is written.",
     "ranges": [
       [
