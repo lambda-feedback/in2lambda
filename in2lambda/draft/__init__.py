@@ -38,6 +38,10 @@ _HANDLERS: dict[str, Handler] = {}
 """Every command there is, by the name a log entry names it with."""
 
 
+class MalformedCommand(SourceError):
+    """A log holds something that is not a command, so nothing can be made of it."""
+
+
 class UnknownCommand(SourceError):
     """A log names a command that nothing registered, so the draft cannot be rebuilt."""
 
@@ -100,17 +104,36 @@ def record(
     }
 
 
-def apply(draft: dict[str, Any], markdown: str, entry: Command) -> None:
+def _fault(entry: Any) -> str:
+    """What is wrong with the shape of a log entry, or "" if nothing is."""
+    if not isinstance(entry, dict):
+        return "is not an object"
+    if missing := sorted({"command", "args", "by"} - entry.keys()):
+        return f"has no {' or '.join(missing)}"
+    if not isinstance(entry["command"], str):
+        return f"gives {entry['command']!r} as its command, which is not a name"
+    return ""
+
+
+def apply(draft: dict[str, Any], markdown: str, entry: Any) -> None:
     """Runs one command against a draft and records it in the draft's log.
 
     Args:
         draft: The draft to change, in place.
         markdown: The frozen markdown the draft was written from.
-        entry: The command, as it is written in the log.
+        entry: The command, as it is written in the log. Anything at all, rather than a
+            `Command`, because a log is read from a file anyone can edit: what shape it
+            has is something to tell the reader about, not something to assume.
 
     Raises:
+        MalformedCommand: the entry is not a command.
         UnknownCommand: nothing is registered under that name.
     """
+    if fault := _fault(entry):
+        raise MalformedCommand(
+            f"{entry!r} in the log is not a command: it {fault}. A command is an "
+            'object with a "command" naming it, its "args", and who it was run "by".'
+        )
     if (handler := _HANDLERS.get(entry["command"])) is None:
         raise UnknownCommand(
             f"{entry['command']} is not a command this version of in2lambda has, so "
@@ -150,6 +173,7 @@ def replay(directory: str = ".") -> None:
     Raises:
         DraftExists: the markdown has changed since the draft was written from it, so
             the commands would be replayed against lines they were not run against.
+        MalformedCommand: the log holds something that is not a command.
         UnknownCommand: the log names a command nothing here registered.
         ReplayDiffers: the rebuilt draft is not the one on disk, byte for byte.
     """

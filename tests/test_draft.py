@@ -10,6 +10,7 @@ by hand - which is not something a fixture can say.
 import json
 import shutil
 from pathlib import Path
+from typing import Any
 
 import pytest
 from click.testing import CliRunner
@@ -106,6 +107,33 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
 
     assert result.exit_code != 0
     assert "frobnicate" in result.output
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        "mark ignore b2",
+        {"command": "mark ignore", "args": {"block": "b2"}},
+        {"command": 7, "args": {}, "by": "tests"},
+    ],
+    ids=["not an object", "no by", "command is not a name"],
+)
+def test_a_log_entry_that_is_not_a_command_is_refused(
+    entry: Any, tmp_path: Path, monkeypatch
+) -> None:
+    """A log anyone can edit is not a shape to assume, and a bad one is not a crash."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(MARK_IGNORE, tmp_path)
+    draft = json.loads(draft_path.read_text())
+    draft["log"].append(entry)
+    draft_path.write_text(json.dumps(draft))
+
+    result = CliRunner().invoke(cli, ["draft", "replay"])
+
+    assert result.exit_code != 0
+    assert "is not a command" in result.output
+    assert result.exception is None or isinstance(result.exception, SystemExit)
 
 
 def test_a_field_changed_by_hand_is_refused(tmp_path: Path, monkeypatch) -> None:
