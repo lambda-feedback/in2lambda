@@ -7,7 +7,6 @@ from pathlib import Path
 
 import panflute as pf
 from beartype.typing import Callable, Optional
-from rich_click import echo
 
 from in2lambda.api.set import Set
 from in2lambda.katex_convert.katex_convert import latex_to_katex
@@ -171,10 +170,10 @@ def filter(
 
             case pf.Image:
                 # TODO: Handle "pdf images" and svg files.
-                path = image_path(elem.url, tex_file)
-                if path is None:
-                    echo(f"Warning: Couldn't find {elem.url}")
-                else:
+                # An image that can't be found is left out of the question's images,
+                # which in2lambda.validation then reports against the question and
+                # part it is referenced from.
+                if (path := image_path(elem.url, tex_file)) is not None:
                     set.current_question.images.append(path)
                 return pf.Str(f"![pictureTag]({elem.url})")
 

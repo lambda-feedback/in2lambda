@@ -1,0 +1,1 @@
+Question 1 "Continuity", part (a), worked solution: unclosed inline $ ... $

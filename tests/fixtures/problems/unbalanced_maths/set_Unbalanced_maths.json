@@ -1,0 +1,7 @@
+{
+  "name": "Unbalanced maths",
+  "description": "A worked solution opening an inline maths expression that it never closes.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

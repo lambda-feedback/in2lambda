@@ -1,0 +1,1 @@
+Question 1 "Launch angle", part (a), answer: ^\circ does not display; write the degree sign ° instead

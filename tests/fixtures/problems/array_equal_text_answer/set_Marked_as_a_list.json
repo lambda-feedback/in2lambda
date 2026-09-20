@@ -1,0 +1,7 @@
+{
+  "name": "Marked as a list",
+  "description": "An answer written out as text, but marked by arrayEqual, which compares lists.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "Unsupported command",
+  "description": "Maths using a LaTeX command that KaTeX, which the platform renders with, has no equivalent for.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS",
+  "structuredTutorialVisibility": "OPEN"
+}
