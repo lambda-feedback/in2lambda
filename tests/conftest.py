@@ -25,6 +25,12 @@ SOURCES_DIR = Path(__file__).parent / "fixtures" / "sources"
 SOURCES = sorted(path for path in SOURCES_DIR.iterdir() if path.is_dir())
 """Every source folder, so that covering another construct is a folder and no code."""
 
+DRAFTS_DIR = Path(__file__).parent / "fixtures" / "drafts"
+"""One document per folder, beside the commands to run against its draft and the result."""
+
+DRAFTS = sorted(path for path in DRAFTS_DIR.iterdir() if path.is_dir())
+"""Every draft folder, so that covering another command is a folder and no code."""
+
 
 @pytest.fixture(scope="session")
 def filters_dir() -> str:

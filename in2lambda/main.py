@@ -6,18 +6,23 @@
 # import os
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import getpass
 import importlib
 import shlex
+from collections.abc import Iterator  # Rather than typing's, which beartype warns on.
+from contextlib import contextmanager
 from typing import Optional
 
 import rich_click as click
 
+import in2lambda.draft
 import in2lambda.filters
 import in2lambda.source
 from in2lambda.api.set import Set
 
-# Both were defined here before there was an in2lambda.source, and are in other
-# people's scripts as in2lambda.main names.
+# All four are in other people's scripts as in2lambda.main names, whether or not they
+# are used here: `_pandoc` and `file_type` were defined here before there was an
+# in2lambda.source, and `ConversionToolsMissing` is what `runner` documents raising.
 from in2lambda.source import (
     ConversionToolsMissing,
     SourceError,
@@ -25,6 +30,20 @@ from in2lambda.source import (
     _require_conversion_tools,
     file_type,
 )
+
+
+@contextmanager
+def _message_not_traceback() -> Iterator[None]:
+    """Turns anything raised for a reader into what to do about it and a non-zero exit.
+
+    Every command wraps whatever it calls in this: a missing pandoc, a draft from
+    somewhere else, a source that has moved on are all things the person running it can
+    act on, and none of them are worth a traceback.
+    """
+    try:
+        yield
+    except SourceError as error:
+        raise click.ClickException(str(error)) from None
 
 
 def docx_to_md(docx_file: str) -> str:
@@ -188,11 +207,8 @@ def convert(
 ) -> None:
     """Takes in a QUESTION_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
     # main() is made separate from click() so that it can be easily imported as part of a library.
-    try:
+    with _message_not_traceback():
         runner(question_file, chosen_filter, output_dir, answer_file)
-    except ConversionToolsMissing as error:
-        # Exit with the install instructions rather than a traceback.
-        raise click.ClickException(str(error)) from None
 
 
 @cli.group("source")
@@ -209,21 +225,49 @@ def source_group() -> None:
 )
 def source_add(file: str, start_over: bool) -> None:
     """Converts FILE to markdown and records its blocks in draft.json beside it."""
-    try:
+    with _message_not_traceback():
         draft = in2lambda.source.add(file, start_over)
-    except SourceError as error:
-        # Exit with what to do about it rather than a traceback.
-        raise click.ClickException(str(error)) from None
     click.echo(f"Wrote {draft}")
 
 
 @source_group.command("show")
 def source_show() -> None:
     """Prints the frozen markdown of the draft in this directory, numbered."""
-    try:
+    with _message_not_traceback():
         click.echo(in2lambda.source.show())
-    except SourceError as error:
-        raise click.ClickException(str(error)) from None
+
+
+@cli.group("draft")
+def draft_group() -> None:
+    """Builds up the draft in this directory, recording every command in it."""
+
+
+@draft_group.group("mark")
+def draft_mark() -> None:
+    """Says what to make of a block of the frozen source."""
+
+
+@draft_mark.command("ignore")
+@click.argument("block")
+@click.option(
+    "--by",
+    default=getpass.getuser,
+    help="Who to record the command as having been run by.  [default: your username]",
+)
+def draft_mark_ignore(block: str, by: str) -> None:
+    """Marks BLOCK as nothing to take a question from."""
+    with _message_not_traceback():
+        in2lambda.draft.execute(
+            {"command": "mark ignore", "args": {"block": block}, "by": by}
+        )
+
+
+@draft_group.command("replay")
+def draft_replay() -> None:
+    """Rebuilds the draft in this directory from its log and checks it is the same."""
+    with _message_not_traceback():
+        in2lambda.draft.replay()
+    click.echo("Replays as it stands.")
 
 
 if __name__ == "__main__":

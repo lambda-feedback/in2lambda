@@ -85,4 +85,8 @@ def test_completing_the_old_form_offers_the_subcommand() -> None:
         cli, {}, "in2lambda", "_IN2LAMBDA_COMPLETE"
     ).get_completions(["./questions.tex"], "")
 
-    assert [candidate.value for candidate in completions] == ["convert", "source"]
+    assert [candidate.value for candidate in completions] == [
+        "convert",
+        "draft",
+        "source",
+    ]
