@@ -71,6 +71,33 @@ def test_freezing_again_is_refused_once_the_source_has_changed(
     assert (tmp_path / "draft.json").read_text() != frozen
 
 
+def test_a_markdown_file_no_draft_claims_is_not_overwritten(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Freezing a .tex writes a .md beside it, which may be someone else's work."""
+    monkeypatch.setenv("COLUMNS", "200")
+    shutil.copy(_frozen(SOURCES_DIR / "tex"), tmp_path / "source.tex")
+    theirs = "# Notes I wrote by hand\n"
+    (tmp_path / "source.md").write_text(theirs)
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["source", "add", str(tmp_path / "source.tex")])
+
+    assert result.exit_code != 0
+    assert "--start-over" in result.output
+    assert (tmp_path / "source.md").read_text() == theirs
+    assert not (tmp_path / "draft.json").exists()
+
+    # Saying to start over is saying to overwrite it.
+    result = runner.invoke(
+        cli, ["source", "add", str(tmp_path / "source.tex"), "--start-over"]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "source.md").read_text() != theirs
+    assert json.loads((tmp_path / "draft.json").read_text())["source"] == "source.md"
+
+
 def test_source_show_numbers_the_lines_and_names_the_blocks(
     tmp_path: Path, monkeypatch
 ) -> None:

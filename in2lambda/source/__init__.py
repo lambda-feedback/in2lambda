@@ -126,30 +126,42 @@ def file_type(file: str) -> str:
     raise RuntimeError(f"Unsupported file extension: .{extension}")
 
 
-def _pandoc(file: str, to: str) -> str:
-    """The given file, as pandoc writes it in the `to` format."""
-    output = subprocess.check_output(["pandoc", file, "-f", file_type(file), "-t", to])
-    return output.decode("utf-8")
+def _pandoc(file: str, to: str) -> bytes:
+    """The given file, as pandoc writes it in the `to` format.
+
+    Undecoded, because what is written to disk and what is hashed have to be the same
+    bytes; whoever wants the text of it decodes it themselves.
+    """
+    return subprocess.check_output(["pandoc", file, "-f", file_type(file), "-t", to])
 
 
-def _digest(markdown: str) -> str:
-    """How a frozen markdown is named in its draft, so that a change to it shows up."""
-    return f"sha256:{hashlib.sha256(markdown.encode('utf-8')).hexdigest()}"
+def _digest(data: bytes) -> str:
+    """How a frozen markdown is named in its draft, so that a change to it shows up.
+
+    The bytes of the file, not the text they decode to: the draft is checked by whoever
+    is quoting the markdown, who has nothing but the file, and `sha256sum` on it has to
+    give the same answer whatever the line endings in it are.
+    """
+    return f"sha256:{hashlib.sha256(data).hexdigest()}"
 
 
-def _text(path: Path) -> str:
-    """A markdown file, given it is still where it was and is still text.
+def _source(path: Path) -> tuple[bytes, str]:
+    """A markdown file as bytes and as text, given it is still there and still text.
 
     Both freezing and showing read one, and someone who has moved the file or saved it
-    in some other encoding wants telling which it was, not a traceback.
+    in some other encoding wants telling which it was, not a traceback. The bytes are
+    what gets hashed, and `bytes.decode` rewrites no line endings, so the text still
+    has whatever the file has.
     """
     try:
-        return path.read_text(encoding="utf-8")
+        raw = path.read_bytes()
     except FileNotFoundError:
         raise SourceUnreadable(
             f"There is no {path}. Put it back, or freeze the document it came from "
             "again with in2lambda source add --start-over."
         ) from None
+    try:
+        return raw, raw.decode("utf-8")
     except UnicodeDecodeError:
         raise SourceUnreadable(
             f"{path} is not UTF-8 text, so it cannot be read as markdown. Save it as "
@@ -334,12 +346,15 @@ def add(file: str, start_over: bool = False) -> Path:
     """
     _require_conversion_tools()
     source = Path(file)
-    markdown = (
-        _text(source) if file_type(file) == "markdown" else _pandoc(file, _MARKDOWN)
-    )
-    frozen = source if file_type(file) == "markdown" else source.with_suffix(".md")
+    if file_type(file) == "markdown":
+        raw, markdown = _source(source)
+        frozen = source
+    else:
+        raw = _pandoc(file, _MARKDOWN)
+        markdown = raw.decode("utf-8")
+        frozen = source.with_suffix(".md")
     draft = source.parent / DRAFT
-    digest = _digest(markdown)
+    digest = _digest(raw)
 
     if not start_over:
         if draft.is_file():
@@ -362,7 +377,9 @@ def add(file: str, start_over: bool = False) -> Path:
     found = [block.to_dict() for block in blocks(markdown)]
 
     if frozen != source:
-        frozen.write_text(markdown, encoding="utf-8")
+        # The bytes pandoc wrote, so that the file on disk is what `digest` is of;
+        # writing text would rewrite the line endings on Windows and it would not be.
+        frozen.write_bytes(raw)
     draft.write_text(
         json.dumps(
             {"source": frozen.name, "hash": digest, "blocks": found},
@@ -393,11 +410,11 @@ def show(directory: str = ".") -> str:
     """
     draft_path = Path(directory) / DRAFT
     draft = _draft(draft_path)
-    markdown = _text(draft_path.parent / draft["source"])
+    raw, markdown = _source(draft_path.parent / draft["source"])
     # A line range is only an address while the lines have not moved: printing ids
     # against markdown the draft was not written from would be worse than printing
     # nothing, because it would look right.
-    if _digest(markdown) != draft["hash"]:
+    if _digest(raw) != draft["hash"]:
         raise DraftExists(
             f"{draft['source']} has changed since {DRAFT} was written from it, so its "
             "block ids no longer name the lines they were written against. Run "

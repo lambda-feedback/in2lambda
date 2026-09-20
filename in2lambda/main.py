@@ -36,7 +36,7 @@ def docx_to_md(docx_file: str) -> str:
     Returns:
         the contents of the .docx file in markdown formatting
     """
-    return _pandoc(docx_file, "markdown")
+    return _pandoc(docx_file, "markdown").decode("utf-8")
 
 
 def runner(

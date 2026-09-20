@@ -6,7 +6,10 @@ formats the command takes, so that what a heading or a list item comes out as do
 which format an author brought it in; `empty_list_item` is a bullet with nothing in it, which has
 no position of its own and so no block; `unseparated_list` is a list with no blank line before it,
 which pandoc reports as part of the paragraph above, so that paragraph's block has to stop where
-the list starts rather than where pandoc says it ends.
+the list starts rather than where pandoc says it ends; `crlf` is the `markdown` case saved with
+Windows line endings, which is what a document off a teacher's machine usually has, and it has to
+freeze to the same blocks and to a hash that `sha256sum source.md` reproduces. The `.gitattributes`
+at the top of the repository is what stops a checkout rewriting those endings away.
 
 To cover another construct, add a folder: one `source.md`, `source.tex` or `source.docx`, and
 the `expected.json` the test compares the draft's `blocks` against.
