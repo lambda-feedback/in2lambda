@@ -42,11 +42,6 @@ A folder with no such file is a document the two routes say the same thing about
 Finding a difference the file does not list fails the test, and so does agreeing where it
 lists one: closing a ticket below means deleting the lines it names.
 
-- **t52** - the `PartsOneSol` filter matches a solution environment only when the Div's
-  first element stringifies to `Solution`, which pandoc writes for no solution environment,
-  so convert drops every worked solution in that layout. The draft writes both solutions
-  of `PartsOneSol/example.tex`, and the second question's solution is a part of its own
-  that convert has nothing to match.
 - **t53** - no draft command writes a `qN.pM.solution`, and no selector reaches inside the
   top-level `\item` that `PartPartSolSol/example.tex` and `PartSolPartSol/example.tex`
   nest each part's solution in, so those lines are marked ignore and the draft answers
