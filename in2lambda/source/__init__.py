@@ -344,6 +344,48 @@ def blocks(markdown: str) -> list[Block]:
     return [block for block, _ in _elements(markdown)]
 
 
+_MARKER = re.compile(r" *(?:[-+*]|\(?(?:\d+|[ivxlcdm]+|[IVXLCDM]+|[A-Za-z])[.)]) {1,4}")
+"""A list item's marker on its first line, as `commonmark_x` reads one."""
+
+
+def dedented(text: str) -> str:
+    r"""Some lines of a list item, with the item's own indentation off every one.
+
+    A field quoted out of a list item would otherwise carry the marker and the
+    continuation indent the markdown needed to hold it together, and four leading
+    spaces after a blank line are a code block wherever the field is rendered.
+
+    Args:
+        text: The lines as the source writes them, the first of them holding the
+            item's marker.
+
+    Returns:
+        The same lines with the marker off the first and as much of the same width
+        off each of the rest as it has to give, so that a list nested inside the item
+        keeps its own relative indent. Text whose first line has no marker on it comes
+        back unchanged, but a paragraph reading like one - ``A. Smith says`` - would be
+        dedented, so what this is called on is decided by the block's type rather than
+        by its text.
+
+    Examples:
+        >>> from in2lambda.source import dedented
+        >>> dedented("1.  A person walks\n    to the edge.")
+        'A person walks\nto the edge.'
+        >>> dedented("    (a) Find the speed\n        afterwards.")
+        'Find the speed\nafterwards.'
+        >>> dedented("Some words\n  wrapped.")
+        'Some words\n  wrapped.'
+    """
+    if (marker := _MARKER.match(text)) is None:
+        return text
+    width = marker.end()
+    first, *rest = text.split("\n")
+    return "\n".join(
+        [first[width:]]
+        + [line[min(width, len(line) - len(line.lstrip(" "))) :] for line in rest]
+    )
+
+
 def _elements(markdown: str) -> list[tuple[Block, Any]]:
     """Every block of some markdown, each beside the panflute element it was taken from.
 

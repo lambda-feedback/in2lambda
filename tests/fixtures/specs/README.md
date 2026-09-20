@@ -24,5 +24,8 @@ bold each of them starts with, which is markup rather than text. Its log entry n
 and hashes it as it does the spec, which is what makes a changed predicate refuse to replay.
 
 A selector matches what pandoc parses, and a field holds the markdown of the lines it was taken
-from. That is why a part written `(a) Find the load.` is a `ListItem` - pandoc reads `(a)` as a
-list marker - while `strip` still has to take the `(a) ` off the front of the value.
+from, dedented where those lines are a list item's: `numbered_questions` is the sheet whose
+questions are written `1.  ` and run on over several lines, and its spec strips nothing but the
+`Solution: `, so it pins that the marker and the indent under it come off by themselves. That
+is why no spec here strips a `(a) ` - pandoc reads `(a)` as a list marker - while the `Q1. `
+and the `Solution: `, which it does not, are still `strip`'s to take off.

@@ -287,7 +287,7 @@ def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
         warnings.warn(
             "The set the draft describes was not compiled as the PDF generator would: "
             "install " + " and ".join(missing),
-            stacklevel=3,
+            stacklevel=2,
         )
 
     fields = draft["fields"]
@@ -326,23 +326,6 @@ def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
     return found
 
 
-def findings(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
-    """Everything wrong with a draft: the checks over it and the set it describes.
-
-    This is what a draft's ``report`` is, wherever one is worked out - :func:`validate`
-    writing it, or `in2lambda.draft.replay` rebuilding it to compare - so that the two
-    cannot arrive at different reports for the same draft.
-
-    Args:
-        draft: A draft, as `in2lambda.source.frozen` reads one.
-        directory: Where the draft is, and so what the images it names are beside.
-
-    Returns:
-        One :data:`Finding` per thing found, in the order :func:`checks` reports in.
-    """
-    return sorted(checks(draft) + problems(draft, directory), key=_order)
-
-
 def validate(directory: str = ".") -> list[Finding]:
     """Checks the draft in a directory over and writes the report into it.
 
@@ -368,6 +351,6 @@ def validate(directory: str = ".") -> list[Finding]:
         UserWarning: a check could not be run here - see :func:`problems`.
     """
     draft, _ = frozen(directory)
-    draft["report"] = findings(draft, directory)
+    draft["report"] = sorted(checks(draft) + problems(draft, directory), key=_order)
     save(Path(directory) / DRAFT, draft)
     return draft["report"]

@@ -17,11 +17,23 @@
     "layer": 3,
     "ranges": [
       [
-        5,
-        5
+        6,
+        7
       ]
     ],
-    "value": "Give the drag coefficient you used."
+    "value": "Find the angular speed\nafterwards."
+  },
+  "q1.p2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "Find the energy lost."
   },
   "q1.text": {
     "by": "tests",
@@ -30,9 +42,9 @@
     "ranges": [
       [
         3,
-        3
+        4
       ]
     ],
-    "value": "A submarine is towed at speed $U$ through still water. Find the drag force on it."
+    "value": "A person walks from the centre\nto the edge of a horizontal turntable."
   }
 }

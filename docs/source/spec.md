@@ -28,7 +28,7 @@ $ in2lambda spec run spec.yaml
 question: Header level=2 text~'^Question'
 part:     ListItem
 solution: after Header text=Solutions, label~'^\d+(\([a-z]\))?$'
-strip:    ['^#+ ', '^\([a-z]\) ', '^\d+(\([a-z]\))? ']
+strip:    ['^#+ ', '^\d+(\([a-z]\))? ']
 ignore:   Header level=1
 layout:   PartsSepSol
 ```
@@ -40,8 +40,9 @@ layout:   PartsSepSol
 - **`ignore`** selects the blocks that are none of them - a running header, a page of
   instructions - and marks them as `in2lambda draft mark ignore` would, so they are not reported
   as left out.
-- **`strip`** is a list of patterns taken off the front of every value: the `(a) ` or `1. ` that
-  labels a part in the document, but not in the question.
+- **`strip`** is a list of patterns taken off the front of every value: the `Q1. ` or
+  `Solution: ` that labels a block in the document, but not in the question. A list marker is
+  not one of them, since a value quoted out of a list item arrives dedented.
 - **`predicates`** names a Python file beside the spec, for the selectors that cannot say what
   they mean in constraints alone. See below.
 - **`layout`** is one of the [filters](filters/index), and says which solution answers which
@@ -76,9 +77,11 @@ A regular expression goes in single quotes. YAML reads `\(` inside double quotes
 and complains, and `'^\([a-z]\)'` is the same string without the argument.
 
 A selector matches what **pandoc** makes of the document, while a field holds the **markdown** of
-the lines it came from. That is worth knowing in two places: a part written `(a) Find the load.`
-is a `ListItem`, because pandoc reads `(a)` as a list marker, and `strip` still has to take the
-`(a) ` off the front of the value, because the line it was copied from still has it.
+the lines it came from. That is worth knowing where a part is written `(a) Find the load.`: it is
+a `ListItem`, because pandoc reads `(a)` as a list marker, and the value comes dedented the way
+pandoc reads the item - the marker off the first line and as much of the same width off every
+line under it - so `strip` is only for what pandoc does not read as a marker, the `Q1. ` and the
+`Solution: `.
 
 ## Predicates
 

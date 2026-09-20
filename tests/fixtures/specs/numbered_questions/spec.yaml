@@ -1,0 +1,5 @@
+question: ListItem
+solution: Para text~'^Solution:'
+strip:    ['^Solution: ']
+ignore:   Header
+layout:   PartsOneSol

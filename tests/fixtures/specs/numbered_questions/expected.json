@@ -1,0 +1,62 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        8,
+        8
+      ]
+    ],
+    "value": "angular momentum is conserved, so $\\omega$ falls."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        6
+      ]
+    ],
+    "value": "A person walks from the centre\nto the edge of a horizontal turntable.\n\n$$I = \\frac{1}{2} M R^2$$"
+  },
+  "q2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        12,
+        12
+      ]
+    ],
+    "value": "$\\Delta E = \\frac{1}{2} (I_1 \\omega_1^2 - I_2 \\omega_2^2)$."
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        10,
+        10
+      ]
+    ],
+    "value": "Find the energy lost as the person walks out."
+  }
+}

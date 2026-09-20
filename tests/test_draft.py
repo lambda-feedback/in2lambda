@@ -532,6 +532,41 @@ def test_validate_reports_what_the_pdf_generator_cannot_compile(
     assert refused[0]["message"].startswith("q1.solution (lines 16-16): ")
 
 
+@needs_compiler
+def test_a_replay_without_the_toolchain_keeps_what_validate_found_with_it(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A draft is replayed where it is read, which need not be where it was checked.
+
+    Our own Docker image installs pandoc and no xelatex, so a report written here and
+    replayed there would come back a finding short if the replay ran the set checks
+    again - and the draft, untouched, would be called hand-edited.
+    """
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+    replaced = CliRunner().invoke(
+        cli,
+        [
+            "draft",
+            "field",
+            "replace",
+            "q1.solution",
+            "$Q = \\pi d^2 v / 4$",
+            "$x = \\nosuchcommand$",
+        ],
+    )
+    assert replaced.exit_code == 0, replaced.output
+    assert any(
+        "the PDF generator cannot compile this" in finding["message"]
+        for finding in in2lambda.draft.report.validate()
+    )
+
+    monkeypatch.setattr(pdf, "missing_tools", lambda: ["xelatex (how to install it)"])
+    result = CliRunner().invoke(cli, ["draft", "replay"])
+
+    assert result.exit_code == 0, result.output
+
+
 def test_validate_says_what_to_install_rather_than_reporting_the_compile(
     tmp_path: Path, monkeypatch
 ) -> None:

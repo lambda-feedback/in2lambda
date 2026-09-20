@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import in2lambda.spec
-from in2lambda.draft.report import findings, overlapping, uncovered
+from in2lambda.draft.report import _order, checks, overlapping, uncovered
 from in2lambda.source import (
     DRAFT,
     SourceError,
@@ -24,6 +24,7 @@ from in2lambda.source import (
     _elements,
     _require_conversion_tools,
     blocks,
+    dedented,
     frozen,
     save,
     serialise,
@@ -317,9 +318,16 @@ def replay(directory: str = ".") -> None:
     for entry in draft["log"]:
         apply(rebuilt, markdown, entry, directory)
     # The one thing in a draft that no command wrote: the checks did, over the draft the
-    # commands left, so rebuilding it is running them again rather than copying it.
+    # commands left, so rebuilding it is running them again rather than copying it. What
+    # `in2lambda.validation` found over the set is carried across instead, since it
+    # depends on whether xelatex and Node are installed and the draft does not: rebuilt
+    # here it would come out shorter on a machine whose toolchain is not the one that
+    # validated, and an untouched draft would be accused of having been edited.
     if "report" in draft:
-        rebuilt["report"] = findings(rebuilt, directory)
+        carried = [
+            finding for finding in draft["report"] if finding["check"] == "problem"
+        ]
+        rebuilt["report"] = sorted(checks(rebuilt) + carried, key=_order)
 
     path = Path(directory) / DRAFT
     if serialise(rebuilt) != path.read_bytes():
@@ -425,11 +433,27 @@ def _fill(
     return record(
         draft,
         key,
-        "\n".join(markdown.splitlines()[start - 1 : end]),
+        _quoted(draft, markdown, start, end),
         layer=3,
         ranges=[[start, end]],
         by=by,
     )
+
+
+def _quoted(draft: dict[str, Any], markdown: str, start: int, end: int) -> str:
+    """Lines of the frozen source as a field takes them.
+
+    Lines quoted out of a list item are dedented by the item's own indentation, which
+    is the markdown's rather than the author's; the range is still the source lines.
+    The block the lines fall in says whether they are, rather than the text itself, so
+    that a paragraph reading like a list item is quoted as it is written.
+    """
+    text = "\n".join(markdown.splitlines()[start - 1 : end])
+    # Blocks do not overlap, so the one the first line falls in is the one the lines are
+    # part of - a nested item among them included, since only a top-level item is a
+    # block of its own and a range is how one of those is quoted.
+    block = next((b for b in draft["blocks"] if b["start"] <= start <= b["end"]), None)
+    return dedented(text) if block and block["type"] == "list item" else text
 
 
 def _next(draft: dict[str, Any], prefix: str) -> str:
