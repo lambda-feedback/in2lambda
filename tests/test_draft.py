@@ -116,6 +116,8 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
         ({"command": "mark ignore", "args": {"block": "b2"}}, "by"),
         ({"command": 7, "args": {}, "by": "tests"}, "7"),
         ({"command": "mark ignore", "args": "b2", "by": "tests"}, "b2"),
+        ({"command": "mark ignore", "args": None, "by": "tests"}, "None"),
+        ({"command": "mark ignore", "args": [], "by": "tests"}, "[]"),
         ({"command": "mark ignore", "args": {}, "by": "tests"}, "block"),
     ],
     ids=[
@@ -123,6 +125,8 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
         "no by",
         "command is not a name",
         "args is not an object",
+        "args is null",
+        "args is a list",
         "no block argument",
     ],
 )
