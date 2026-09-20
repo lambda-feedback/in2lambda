@@ -47,17 +47,21 @@ FIGURE = DRAFTS_DIR / "figure_in_a_question"
 DEGREES = DRAFTS_DIR / "degrees"
 """The one whose report comes from the set the draft describes rather than the draft."""
 
+QUESTIONS_ONLY = DRAFTS_DIR / "questions_only"
+"""A second sheet to put beside another, for the folder holding more than one."""
+
 
 def _built(folder: Path, tmp_path: Path) -> Path:
     """A folder's document, frozen in `tmp_path` with its commands applied and checked."""
     shutil.copytree(folder, tmp_path, dirs_exist_ok=True)
     assert CliRunner().invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+    draft_path = tmp_path / "source.draft.json"
     for entry in json.loads((folder / "commands.json").read_text()):
-        in2lambda.draft.execute(entry)
+        in2lambda.draft.execute(entry, draft_path)
     # Checked as well as built, so that what a folder's commands leave for the checks to
     # find is fixture data like the fields they write are.
-    in2lambda.draft.report.validate()
-    return tmp_path / "draft.json"
+    in2lambda.draft.report.validate(draft_path)
+    return draft_path
 
 
 def _expected_parts(fields: dict[str, Any], number: int) -> int:
@@ -523,7 +527,7 @@ def test_validate_reports_what_the_pdf_generator_cannot_compile(
     and nothing there would tell a run with the toolchain installed from one without.
     """
     monkeypatch.chdir(tmp_path)
-    _built(TWO_QUESTIONS, tmp_path)
+    draft_path = _built(TWO_QUESTIONS, tmp_path)
     replaced = CliRunner().invoke(
         cli,
         [
@@ -537,7 +541,7 @@ def test_validate_reports_what_the_pdf_generator_cannot_compile(
     )
     assert replaced.exit_code == 0, replaced.output
 
-    report = in2lambda.draft.report.validate()
+    report = in2lambda.draft.report.validate(draft_path)
 
     refused = [
         finding
@@ -561,7 +565,7 @@ def test_a_replay_without_the_toolchain_keeps_what_validate_found_with_it(
     again - and the draft, untouched, would be called hand-edited.
     """
     monkeypatch.chdir(tmp_path)
-    _built(TWO_QUESTIONS, tmp_path)
+    draft_path = _built(TWO_QUESTIONS, tmp_path)
     replaced = CliRunner().invoke(
         cli,
         [
@@ -576,7 +580,7 @@ def test_a_replay_without_the_toolchain_keeps_what_validate_found_with_it(
     assert replaced.exit_code == 0, replaced.output
     assert any(
         "the PDF generator cannot compile this" in finding["message"]
-        for finding in in2lambda.draft.report.validate()
+        for finding in in2lambda.draft.report.validate(draft_path)
     )
 
     monkeypatch.setattr(pdf, "missing_tools", lambda: ["xelatex (how to install it)"])
@@ -590,11 +594,11 @@ def test_validate_says_what_to_install_rather_than_reporting_the_compile(
 ) -> None:
     """The toolchain is optional here as it is everywhere else: the rest still runs."""
     monkeypatch.chdir(tmp_path)
-    _built(DEGREES, tmp_path)
+    draft_path = _built(DEGREES, tmp_path)
     monkeypatch.setattr(pdf, "missing_tools", lambda: ["pandoc (how to install it)"])
 
     with pytest.warns(UserWarning, match="pandoc"):
-        report = in2lambda.draft.report.validate()
+        report = in2lambda.draft.report.validate(draft_path)
 
     # What reading the markdown found, and nothing about the compile that was not run:
     # the set is not compiled at all, so it has nothing to say about it either way.
@@ -640,7 +644,7 @@ def test_build_refuses_a_draft_that_has_not_been_validated(
     shutil.copytree(TWO_QUESTIONS, tmp_path, dirs_exist_ok=True)
     assert CliRunner().invoke(cli, ["source", "add", "source.md"]).exit_code == 0
     for entry in json.loads((TWO_QUESTIONS / "commands.json").read_text()):
-        in2lambda.draft.execute(entry)
+        in2lambda.draft.execute(entry, tmp_path / "source.draft.json")
 
     result = CliRunner().invoke(cli, ["build"])
 
@@ -732,6 +736,57 @@ def test_build_follows_the_report(folder: Path, tmp_path: Path, monkeypatch) -> 
             for reference in _IMAGE.findall(field["value"])
         }
     )
+
+
+def test_two_sources_in_one_folder_each_have_a_draft_of_their_own(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A folder is a course's worth of sheets, and each is worked on without the others.
+
+    Neither a fixture folder nor `_built` can say this: both are one source per folder,
+    and what is being checked is that the second sheet does not land on the first.
+    """
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    # Named by its source for one sheet and by its draft for the other, since --draft
+    # takes either and both are what a folder of sheets gets worked on with.
+    sheets = {"a": (QUESTIONS_ONLY, "a.md"), "b": (TWO_QUESTIONS, "b.draft.json")}
+    for name, (folder, _) in sheets.items():
+        shutil.copy(folder / "source.md", tmp_path / f"{name}.md")
+        assert runner.invoke(cli, ["source", "add", f"{name}.md"]).exit_code == 0
+
+    drafts = {name: tmp_path / f"{name}.draft.json" for name in sheets}
+    assert all(path.is_file() for path in drafts.values())
+
+    for name, (folder, named) in sheets.items():
+        untouched = {
+            path: path.read_bytes() for other, path in drafts.items() if other != name
+        }
+        for entry in json.loads((folder / "commands.json").read_text()):
+            in2lambda.draft.execute(entry, drafts[name])
+        validated = runner.invoke(cli, ["validate", "--draft", named])
+        assert validated.exit_code == 0, validated.output
+        built = runner.invoke(cli, ["build", "--draft", named, "--out", name])
+        assert built.exit_code == 0, built.output
+
+        # Every other draft in the folder is the file it was, byte for byte, and the
+        # set written is the one this draft describes rather than whichever was last.
+        assert {path: path.read_bytes() for path in untouched} == untouched
+        fields = json.loads((folder / "expected.json").read_text())
+        questions = Set.from_json(str(tmp_path / name / "set.zip")).questions
+        assert len(questions) == len([key for key in fields if QUESTION.fullmatch(key)])
+        for number, question in enumerate(questions, start=1):
+            assert question.main_text == fields[f"q{number}.text"]["value"]
+
+    # And with two of them there, a command that was not told which is refused rather
+    # than acting on whichever sorts first.
+    result = runner.invoke(cli, ["validate"])
+
+    assert result.exit_code != 0
+    assert "a.draft.json" in result.output
+    assert "b.draft.json" in result.output
+    assert "--draft" in result.output
 
 
 def test_build_refuses_a_field_naming_an_image_that_is_not_there(

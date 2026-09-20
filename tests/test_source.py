@@ -36,7 +36,7 @@ def test_source_add_finds_the_expected_blocks(folder: Path, tmp_path: Path) -> N
     result = CliRunner().invoke(cli, ["source", "add", str(_frozen(tmp_path))])
 
     assert result.exit_code == 0, result.output
-    draft = json.loads((tmp_path / "draft.json").read_text())
+    draft = json.loads((tmp_path / "source.draft.json").read_text())
     assert draft["blocks"] == json.loads((folder / "expected.json").read_text())
     markdown = (tmp_path / draft["source"]).read_bytes()
     assert draft["hash"] == f"sha256:{hashlib.sha256(markdown).hexdigest()}"
@@ -51,24 +51,24 @@ def test_freezing_again_is_refused_once_the_source_has_changed(
     shutil.copy(_frozen(MARKDOWN), source)
     runner = CliRunner()
     assert runner.invoke(cli, ["source", "add", str(source)]).exit_code == 0
-    frozen = (tmp_path / "draft.json").read_text()
+    frozen = (tmp_path / "source.draft.json").read_text()
 
     # Freezing the same file again changes nothing, so it is allowed.
     assert runner.invoke(cli, ["source", "add", str(source)]).exit_code == 0
-    assert (tmp_path / "draft.json").read_text() == frozen
+    assert (tmp_path / "source.draft.json").read_text() == frozen
 
     source.write_text(f"{source.read_text()}\nAn afterthought.\n")
     result = runner.invoke(cli, ["source", "add", str(source)])
 
     assert result.exit_code != 0
     assert "--start-over" in result.output
-    assert (tmp_path / "draft.json").read_text() == frozen
+    assert (tmp_path / "source.draft.json").read_text() == frozen
 
     assert (
         runner.invoke(cli, ["source", "add", str(source), "--start-over"]).exit_code
         == 0
     )
-    assert (tmp_path / "draft.json").read_text() != frozen
+    assert (tmp_path / "source.draft.json").read_text() != frozen
 
 
 def test_a_markdown_file_no_draft_claims_is_not_overwritten(
@@ -86,7 +86,7 @@ def test_a_markdown_file_no_draft_claims_is_not_overwritten(
     assert result.exit_code != 0
     assert "--start-over" in result.output
     assert (tmp_path / "source.md").read_text() == theirs
-    assert not (tmp_path / "draft.json").exists()
+    assert not (tmp_path / "source.draft.json").exists()
 
     # Saying to start over is saying to overwrite it.
     result = runner.invoke(
@@ -95,7 +95,8 @@ def test_a_markdown_file_no_draft_claims_is_not_overwritten(
 
     assert result.exit_code == 0, result.output
     assert (tmp_path / "source.md").read_text() != theirs
-    assert json.loads((tmp_path / "draft.json").read_text())["source"] == "source.md"
+    draft = json.loads((tmp_path / "source.draft.json").read_text())
+    assert draft["source"] == "source.md"
 
 
 def test_source_show_numbers_the_lines_and_names_the_blocks(
@@ -117,7 +118,7 @@ def test_source_show_numbers_the_lines_and_names_the_blocks(
     assert len(lines) == len(markdown)
 
     # Every block's id sits on the line it starts at, and nothing else carries one.
-    blocks = json.loads((tmp_path / "draft.json").read_text())["blocks"]
+    blocks = json.loads((tmp_path / "source.draft.json").read_text())["blocks"]
     for block in blocks:
         assert lines[block["start"] - 1].split()[0] == block["id"]
     assert sum(bool(re.match(r" *b\d+ ", line)) for line in lines) == len(blocks)
@@ -169,10 +170,10 @@ def test_source_show_refuses_once_the_source_has_changed(
 def test_a_draft_from_somewhere_else_is_refused(
     content: str, arguments: list[str], tmp_path: Path, monkeypatch
 ) -> None:
-    """A draft.json nothing here wrote is neither read from nor written over."""
+    """A draft nothing here wrote is neither read from nor written over."""
     monkeypatch.setenv("COLUMNS", "200")
     shutil.copy(_frozen(MARKDOWN), tmp_path / "source.md")
-    (tmp_path / "draft.json").write_text(content)
+    (tmp_path / "source.draft.json").write_text(content)
     monkeypatch.chdir(tmp_path)
 
     result = CliRunner().invoke(cli, arguments)
@@ -180,7 +181,7 @@ def test_a_draft_from_somewhere_else_is_refused(
     assert result.exit_code != 0
     assert "--start-over" in result.output
     assert isinstance(result.exception, SystemExit)
-    assert (tmp_path / "draft.json").read_text() == content
+    assert (tmp_path / "source.draft.json").read_text() == content
 
 
 def test_a_frozen_file_that_has_gone_is_a_message(tmp_path: Path, monkeypatch) -> None:
@@ -210,4 +211,4 @@ def test_a_source_that_is_not_text_is_a_message(tmp_path: Path, monkeypatch) -> 
     assert result.exit_code != 0
     assert "UTF-8" in result.output
     assert isinstance(result.exception, SystemExit)
-    assert not (tmp_path / "draft.json").exists()
+    assert not (tmp_path / "source.draft.json").exists()
