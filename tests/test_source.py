@@ -8,6 +8,7 @@ and printing one - which is not something a fixture can say.
 
 import hashlib
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -87,6 +88,12 @@ def test_source_show_numbers_the_lines_and_names_the_blocks(
     assert lines[0] == f"b1   1  {markdown[0]}"
     assert lines[1] == "     2"  # A blank line still gets its number, with no id.
     assert len(lines) == len(markdown)
+
+    # Every block's id sits on the line it starts at, and nothing else carries one.
+    blocks = json.loads((tmp_path / "draft.json").read_text())["blocks"]
+    for block in blocks:
+        assert lines[block["start"] - 1].split()[0] == block["id"]
+    assert sum(bool(re.match(r" *b\d+ ", line)) for line in lines) == len(blocks)
 
 
 def test_source_show_without_a_draft_says_so(tmp_path: Path, monkeypatch) -> None:

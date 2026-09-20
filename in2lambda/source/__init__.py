@@ -165,9 +165,13 @@ def _spans(element, pf):  # type: ignore[no-untyped-def]
     """
     inner = _unwrapped(element, pf)
     if isinstance(inner, (pf.BulletList, pf.OrderedList)):
+        # An item with nothing in it - a lone bullet, which a .docx often has - holds
+        # no element to take a position from, so there is no range to give it and it
+        # is left out rather than guessed at.
         return [
             ("list item", _range(item.content[0])[0], _range(item.content[-1])[1])
             for item in inner.content
+            if len(item.content)
         ]
     return [(_kind(inner, pf), *_range(element))]
 
@@ -266,17 +270,16 @@ def add(file: str, start_over: bool = False) -> Path:
                 "--start-over."
             )
 
+    # Before either file is written: a parse that fails half way through would
+    # otherwise leave the markdown there with no draft claiming it, and the next run
+    # would refuse to touch a file this one wrote.
+    found = [block.to_dict() for block in blocks(markdown.decode("utf-8"))]
+
     if frozen != source:
         frozen.write_bytes(markdown)
     draft.write_text(
         json.dumps(
-            {
-                "source": frozen.name,
-                "hash": digest,
-                "blocks": [
-                    block.to_dict() for block in blocks(markdown.decode("utf-8"))
-                ],
-            },
+            {"source": frozen.name, "hash": digest, "blocks": found},
             indent=2,
         )
         + "\n",
