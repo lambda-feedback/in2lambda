@@ -17,8 +17,10 @@ from datetime import datetime
 sys.path.insert(0, os.path.abspath("."))
 
 from filters import generate_filters_docs
+from question_format import generate_question_format_tables
 
 generate_filters_docs()
+generate_question_format_tables()
 
 sys.path.insert(0, os.path.abspath("../.."))
 
@@ -60,7 +62,13 @@ ogp_social_cards = {
 graphviz_output_format = "svg"
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    # Tables that question-format.md includes: pages of their own otherwise.
+    "_autosummary/question-format/*.md",
+]
 source_suffix = [".rst", ".md"]
 
 copybutton_prompt_text = "$ "
