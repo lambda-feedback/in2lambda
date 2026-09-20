@@ -404,6 +404,10 @@ def test_the_refusal_names_the_lines_that_are_in_the_way(
         (["draft", "field", "replace", "q1.text", "steam", "water"], "occurs 0 times"),
         (["draft", "field", "replace", "q9.text", "a", "b"], "q9.text"),
         (["draft", "field", "replace", "b1.ignore", "a", "b"], "b1.ignore"),
+        (["draft", "field", "set", "q9.text", "--text", "s3"], "q9.text"),
+        (["draft", "field", "set", "b1.ignore", "--text", "s3"], "b1.ignore"),
+        # Line 16 is where q1's solution came from, so it is not also q2's text.
+        (["draft", "field", "set", "q2.text", "--text", "s16"], "q1.solution"),
         (
             ["draft", "field", "replace", "q1.text", "(", "X", "--regex"],
             "not a regular expression",
@@ -424,6 +428,9 @@ def test_the_refusal_names_the_lines_that_are_in_the_way(
         "wording the field does not say",
         "a field nothing has written",
         "a field that is not text",
+        "a field set naming a field nothing has written",
+        "a field set naming a field that is not text",
+        "a field set quoting lines another field was taken from",
         "a regex that is not one",
     ],
 )
@@ -482,6 +489,22 @@ def test_a_command_says_what_it_wrote(tmp_path: Path, monkeypatch) -> None:
     }
     # --regex is an option, so a command nobody passed it to logs no argument for it.
     assert "regex" not in draft["log"][-1]["args"]
+
+    # And a field set names the field it quoted into, which holds the lines it names and
+    # nothing of the range it named before: q1.text was lines 5-6 and is now line 5.
+    result = runner.invoke(
+        cli, ["draft", "field", "set", "q1.text", "--text", "s5", "--by", "ocr"]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert result.output == "Wrote q1.text.\n"
+    assert json.loads(draft_path.read_text())["fields"]["q1.text"] == {
+        "value": "Water flows through a horizontal pipe of diameter $d$ at speed $v$.",
+        "layer": 3,
+        "ranges": [[5, 5]],
+        "edited": False,
+        "by": "ocr",
+    }
 
 
 def test_a_field_is_quoted_from_a_later_source_by_its_number(

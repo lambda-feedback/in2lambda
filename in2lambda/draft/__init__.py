@@ -155,15 +155,16 @@ def record(
 
     Raises:
         AlreadyFilled: the field is written already, or the lines it was to be copied
-            from are where another field of the same source came from. Nothing here
-            writes a field twice - `field replace` changes the wording of one rather
-            than writing it again - so either is a mistake, and worth naming both
-            halves of.
+            from are where another field of the same source came from. A command that
+            fills a field writes it once - `field replace` changes the wording of one
+            and `field set` quotes other lines into one - so either is a mistake, and
+            worth naming both halves of.
     """
     if key in draft["fields"]:
         raise AlreadyFilled(
-            f"{key} is already written, and no command here writes a field twice. Run "
-            "in2lambda draft field replace to change the wording it holds, or "
+            f"{key} is already written, and no command fills a field twice. Run "
+            "in2lambda draft field replace to change the wording it holds, "
+            "in2lambda draft field set to quote other lines into it, or "
             "in2lambda source add --start-over to begin the draft again."
         )
     for filled, field in draft["fields"].items():
@@ -496,9 +497,27 @@ def _fill(
             by=by,
             edited=True,
         )
-    source, start, end = _lines(
-        draft, sources, _argument(args, "text", command), command
+    return _quote(
+        draft, sources, _argument(args, "text", command), by, command=command, key=key
     )
+
+
+def _quote(
+    draft: dict[str, Any],
+    sources: list[str],
+    where: str,
+    by: str,
+    *,
+    command: str,
+    key: str,
+) -> str:
+    """Writes a field from the lines of a frozen source that `where` names.
+
+    Raises:
+        NoSuchBlock, NoSuchLines: `where` is not somewhere in a source.
+        AlreadyFilled: the field, or the lines it names, are taken.
+    """
+    source, start, end = _lines(draft, sources, where, command)
     return record(
         draft,
         key,
@@ -559,6 +578,22 @@ def _require_question(draft: dict[str, Any], question: str, command: str) -> Non
             f"There is no question {question} in the draft: {command} adds to a "
             "question that in2lambda draft question add has already written."
         )
+
+
+def _text_field(draft: dict[str, Any], key: str, command: str) -> dict[str, Any]:
+    """The field of that name, which a command writing into one has to find.
+
+    Raises:
+        NoSuchField: the draft has no field of that name, or the one it has holds
+            something other than text - `b3.ignore` holds true.
+    """
+    field = draft["fields"].get(key)
+    if field is None or not isinstance(field.get("value"), str):
+        raise NoSuchField(
+            f"There is no field {key} holding text in the draft: {command} writes into "
+            "a field one of the commands before it has written."
+        )
+    return field
 
 
 @command("mark ignore")
@@ -679,12 +714,7 @@ def _field_replace(
     # argument for it, as every other option of a command does.
     regex = "regex" in args and _argument(args, "regex", "field replace", bool)
 
-    field = draft["fields"].get(key)
-    if field is None or not isinstance(field.get("value"), str):
-        raise NoSuchField(
-            f"There is no field {key} holding text in the draft: field replace changes "
-            "the wording of a field one of the commands before it has written."
-        )
+    field = _text_field(draft, key, "field replace")
     value = field["value"]
     try:
         found = len(re.findall(old, value)) if regex else value.count(old)
@@ -712,6 +742,44 @@ def _field_replace(
     field["edited"] = True
     field["by"] = by
     return key
+
+
+@command("field set")
+def _field_set(
+    draft: dict[str, Any],
+    sources: list[str],
+    args: dict[str, Any],
+    by: str,
+    directory: str,
+) -> str:
+    """Quotes lines of a frozen source into a field that is written already.
+
+    A spec matching the label line `Q4` alone writes an empty `q4.text`, which
+    `in2lambda validate` reports; the wording the field should hold is somewhere else in
+    the source. So the field is written again from the lines that do say it, at layer 3
+    with their ranges and `edited` false, the way `question add --text` writes one.
+    `field replace` is the command for text nothing in the source says.
+
+    The ranges the field named before are dropped, because its value is no longer
+    copied from those lines. `in2lambda validate` then reports them as in no field, and
+    `in2lambda draft mark ignore` says a block is nothing to take a question from.
+
+    Raises:
+        MalformedCommand: the command has no ``field`` or no ``text``.
+        NoSuchField: the draft has no field of that name holding text.
+        NoSuchBlock, NoSuchLines: its ``text`` is not somewhere in a source.
+        AlreadyFilled: the lines it names are where another field of the same source
+            came from.
+    """
+    key = _argument(args, "field", "field set")
+    where = _argument(args, "text", "field set")
+    _text_field(draft, key, "field set")
+    # Out of the fields before it is written again, so that `record` checks the lines
+    # against the other fields of the source rather than refusing the key it is to
+    # write. Nothing reaches the file until the command has run, since `execute` saves
+    # the draft only once `apply` has returned.
+    del draft["fields"][key]
+    return _quote(draft, sources, where, by, command="field set", key=key)
 
 
 @command("split block")

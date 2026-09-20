@@ -1,0 +1,24 @@
+[
+  {
+    "args": {
+      "block": "b1"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "text": "s2"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "field": "q1.text",
+      "text": "b2"
+    },
+    "by": "tests",
+    "command": "field set"
+  }
+]

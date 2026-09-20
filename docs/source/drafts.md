@@ -361,6 +361,15 @@ The layer and the ranges are left as they were, so the field still names the lin
 from, and `edited` says the field no longer holds what those lines say. The wording replaced has
 to occur in the field exactly once, and `--regex` reads it as a regular expression.
 
+Where the source does say the wording and the field was quoted from the wrong lines - a spec
+matching the label line `Q4` alone writes an empty `q4.text`, which `in2lambda validate` reports -
+`in2lambda draft field set q4.text --text b3` quotes block `b3` into the field instead. The field
+is written again at layer 3, with the range of the lines quoted and `edited` false, as
+`in2lambda draft question add --text` writes one. The lines the field named before are dropped,
+and `in2lambda validate` reports them as in no field until `in2lambda draft mark ignore` says they
+are nothing to take a question from. `in2lambda draft field set` takes no `--literal`:
+`in2lambda draft field replace` is the command for text no line of the source says.
+
 ## Replay and check again
 
 ```bash
