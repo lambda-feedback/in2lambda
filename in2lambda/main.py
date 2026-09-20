@@ -196,7 +196,8 @@ class _Cli(click.RichGroup):
         group's help and exiting successfully, so `in2lambda /path/to/questions.tex
         PartsSepSol` would look like it had worked while converting nothing.
         """
-        if self.get_command(ctx, args[0]) is None:
+        # Shell completion resolves partial command lines, and must not raise.
+        if not ctx.resilient_parsing and self.get_command(ctx, args[0]) is None:
             raise click.UsageError(
                 f"in2lambda no longer takes a file directly. Run: in2lambda convert {shlex.join(args)}"
             )

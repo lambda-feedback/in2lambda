@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 import pytest
+from click.shell_completion import ShellComplete
 from click.testing import CliRunner
 
 from in2lambda.main import cli
@@ -51,8 +52,9 @@ def test_old_form_fails_when_run_as_the_installed_command(
 ) -> None:
     """The same holds for ``cli()``, which is what the installed command runs.
 
-    CliRunner calls ``cli.main`` instead, so it cannot see this path: beartype's
-    import hook broke it below 0.18 by sending ``cli()`` to the first subcommand.
+    CliRunner calls ``cli.main`` instead, so it cannot see this path: on beartype
+    0.18.5 the import hook left ``cli`` a plain function, and ``cli()`` ran
+    ``convert``'s body whatever the arguments.
     """
     result = subprocess.run(
         [
@@ -71,3 +73,16 @@ def test_old_form_fails_when_run_as_the_installed_command(
     assert result.returncode != 0
     assert "in2lambda convert" in result.stdout + result.stderr
     assert not (tmp_path / "out").exists()
+
+
+def test_completing_the_old_form_offers_the_subcommand() -> None:
+    """Completion resolves half-typed command lines, so the guard must not fire there.
+
+    Without that exemption, `in2lambda ./questions.tex <TAB>` printed a traceback
+    where the shell expected candidates.
+    """
+    completions = ShellComplete(
+        cli, {}, "in2lambda", "_IN2LAMBDA_COMPLETE"
+    ).get_completions(["./questions.tex"], "")
+
+    assert [candidate.value for candidate in completions] == ["convert"]
