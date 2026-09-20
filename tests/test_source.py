@@ -158,8 +158,13 @@ def test_source_show_refuses_once_the_source_has_changed(
 )
 @pytest.mark.parametrize(
     "arguments",
-    [["source", "add", "source.md"], ["source", "show"]],
-    ids=["add", "show"],
+    [
+        ["source", "add", "source.md"],
+        ["source", "show"],
+        ["draft", "mark", "ignore", "b1"],
+        ["draft", "replay"],
+    ],
+    ids=["add", "show", "mark", "replay"],
 )
 def test_a_draft_from_somewhere_else_is_refused(
     content: str, arguments: list[str], tmp_path: Path, monkeypatch

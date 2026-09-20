@@ -23,8 +23,14 @@ from typing import Any
 DRAFT = "draft.json"
 """What a frozen source is written to, beside the source itself."""
 
-_FIELDS = ("source", "hash", "blocks")
-"""What a draft has in it, and so what one has to have for anything here to read it."""
+_FIELDS = ("source", "hash", "blocks", "log", "fields")
+"""What a draft has in it, and so what one has to have for anything here to read it.
+
+A draft written before ``log`` and ``fields`` existed has neither, and is refused as one
+nothing here wrote: there is no command log to replay it from, and inventing an empty one
+would claim the fields in it came from nowhere. Freezing the source again is the way
+through, which is what the refusal says.
+"""
 
 _MARKDOWN = "commonmark_x"
 """The dialect the frozen markdown is written in, and read back as.
@@ -202,6 +208,50 @@ def _draft(path: Path) -> dict[str, Any]:
     return draft
 
 
+def serialise(draft: dict[str, Any]) -> bytes:
+    """The bytes a draft is written as, which is the only form it is ever written in.
+
+    Sorted, and bytes rather than text, so that the same draft is the same file:
+    replaying a command log has to reproduce ``draft.json`` exactly, which it cannot do
+    if the key order depends on what order something happened to write the keys in, or
+    if the newlines depend on which machine wrote them.
+    """
+    return (json.dumps(draft, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def save(path: Path, draft: dict[str, Any]) -> None:
+    """Writes a draft to the given path."""
+    path.write_bytes(serialise(draft))
+
+
+def frozen(directory: str = ".") -> tuple[dict[str, Any], str]:
+    """The draft in a directory and the markdown it was written from, still unmoved.
+
+    Args:
+        directory: Where the ``draft.json`` is.
+
+    Returns:
+        The draft, and the text of the markdown it names.
+
+    Raises:
+        DraftMissing: there is no draft in that directory.
+        DraftUnreadable: what is there is not a draft anything here wrote.
+        SourceUnreadable: the markdown the draft names has moved, or is not text.
+        DraftExists: the markdown has changed since the draft was written from it, so
+            the line ranges in the draft no longer name the lines they were taken from.
+    """
+    path = Path(directory) / DRAFT
+    draft = _draft(path)
+    raw, markdown = _source(path.parent / draft["source"])
+    if _digest(raw) != draft["hash"]:
+        raise DraftExists(
+            f"{draft['source']} has changed since {DRAFT} was written from it, so its "
+            "block ids no longer name the lines they were written against. Run "
+            "in2lambda source add --start-over to freeze the file as it now is."
+        )
+    return draft, markdown
+
+
 @dataclass
 class Block:
     """One top-level block of a frozen source, and the lines it spans.
@@ -348,11 +398,11 @@ def add(file: str, start_over: bool = False) -> Path:
     source = Path(file)
     if file_type(file) == "markdown":
         raw, markdown = _source(source)
-        frozen = source
+        frozen_path = source
     else:
         raw = _pandoc(file, _MARKDOWN)
         markdown = raw.decode("utf-8")
-        frozen = source.with_suffix(".md")
+        frozen_path = source.with_suffix(".md")
     draft = source.parent / DRAFT
     digest = _digest(raw)
 
@@ -364,10 +414,10 @@ def add(file: str, start_over: bool = False) -> Path:
                     "Run in2lambda source add --start-over to freeze it again, which "
                     "invalidates every line range taken from the old draft."
                 )
-        elif frozen != source and frozen.exists():
+        elif frozen_path != source and frozen_path.exists():
             raise DraftExists(
-                f"{frozen.name} is already there and no {DRAFT} claims it, so it is "
-                "not ours to overwrite. Move it aside, or run in2lambda source add "
+                f"{frozen_path.name} is already there and no {DRAFT} claims it, so it "
+                "is not ours to overwrite. Move it aside, or run in2lambda source add "
                 "--start-over."
             )
 
@@ -376,17 +426,21 @@ def add(file: str, start_over: bool = False) -> Path:
     # would refuse to touch a file this one wrote.
     found = [block.to_dict() for block in blocks(markdown)]
 
-    if frozen != source:
+    if frozen_path != source:
         # The bytes pandoc wrote, so that the file on disk is what `digest` is of;
         # writing text would rewrite the line endings on Windows and it would not be.
-        frozen.write_bytes(raw)
-    draft.write_text(
-        json.dumps(
-            {"source": frozen.name, "hash": digest, "blocks": found},
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+        frozen_path.write_bytes(raw)
+    # Freezing is where a draft starts, not something it records: a replay is the log
+    # applied to this, so `add` is the only thing that writes a draft with nothing in it.
+    save(
+        draft,
+        {
+            "source": frozen_path.name,
+            "hash": digest,
+            "blocks": found,
+            "log": [],
+            "fields": {},
+        },
     )
     return draft
 
@@ -408,18 +462,10 @@ def show(directory: str = ".") -> str:
         DraftExists: the markdown has changed since the draft was written from it, so
             the ids would be printed against lines they are not the ids of.
     """
-    draft_path = Path(directory) / DRAFT
-    draft = _draft(draft_path)
-    raw, markdown = _source(draft_path.parent / draft["source"])
     # A line range is only an address while the lines have not moved: printing ids
     # against markdown the draft was not written from would be worse than printing
     # nothing, because it would look right.
-    if _digest(raw) != draft["hash"]:
-        raise DraftExists(
-            f"{draft['source']} has changed since {DRAFT} was written from it, so its "
-            "block ids no longer name the lines they were written against. Run "
-            "in2lambda source add --start-over to freeze the file as it now is."
-        )
+    draft, markdown = frozen(directory)
 
     ids = {block["start"]: block["id"] for block in draft["blocks"]}
     lines = markdown.splitlines()

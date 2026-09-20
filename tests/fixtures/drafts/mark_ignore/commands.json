@@ -1,0 +1,16 @@
+[
+  {
+    "args": {
+      "block": "b1"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "block": "b7"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  }
+]

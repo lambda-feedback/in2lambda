@@ -1,0 +1,26 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "b7.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        14,
+        16
+      ]
+    ],
+    "value": true
+  }
+}
