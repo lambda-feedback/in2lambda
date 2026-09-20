@@ -27,6 +27,14 @@
       "text": "b4"
     },
     "by": "tests",
+    "command": "part add"
+  },
+  {
+    "args": {
+      "question": "q1",
+      "text": "b5"
+    },
+    "by": "tests",
     "command": "question solution"
   }
 ]

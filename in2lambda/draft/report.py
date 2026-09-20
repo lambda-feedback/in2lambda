@@ -298,24 +298,31 @@ def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
             key=len,
             default="",
         )
-        if not location:
-            found.append(
-                {"check": "problem", "field": "", "ranges": [], "message": str(problem)}
-            )
-            continue
-        key = where[location]
-        ranges = fields[key]["ranges"]
-        # Whatever the location says past the field: KaTeX names the characters of it
-        # that it stopped at, and those are the field's characters here as well.
-        rest = problem.location[len(location) :]
-        found.append(
-            {
+        if location:
+            key = where[location]
+            ranges = fields[key]["ranges"]
+            # Whatever the location says past the field: KaTeX names the characters of
+            # it that it stopped at, and those are the field's characters here as well.
+            rest = problem.location[len(location) :]
+            finding = {
                 "check": "problem",
                 "field": key,
                 "ranges": ranges,
                 "message": f"{key}{_where(ranges)}{rest}: {problem.message}",
             }
-        )
+        else:
+            finding = {
+                "check": "problem",
+                "field": "",
+                "ranges": [],
+                "message": str(problem),
+            }
+        if finding not in found:
+            # A question's solution answers every part of it that has no solution of its
+            # own, so one fault in it is found once per part. They are the same field,
+            # the same lines and the same wording: a second line of the report saying so
+            # is a `field replace` that would be refused for finding nothing to replace.
+            found.append(finding)
     return found
 
 

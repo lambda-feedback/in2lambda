@@ -143,6 +143,10 @@ def located(draft: dict[str, Any]) -> dict[str, str]:
         >>> fields = {"q1.text": {"value": "State it."}, "q1.solution": {"value": "$x$"}}
         >>> located({"fields": fields})
         {'Question 1 ""': 'q1.text', 'Question 1 "", main text': 'q1.text', 'Question 1 "", part (a), worked solution': 'q1.solution'}
+        >>> fields["q1.p1.text"] = {"value": "Do it."}
+        >>> fields["q1.p1.solution"] = {"value": ""}
+        >>> located({"fields": fields})['Question 1 "", part (a), worked solution']
+        'q1.solution'
     """
     fields = draft["fields"]
     where = {}
@@ -160,12 +164,14 @@ def located(draft: dict[str, Any]) -> dict[str, str]:
         for index, part in enumerate(parts):
             where[_location(number, "", index, "text")] = f"q{number}.p{part}.text"
             written = f"q{number}.p{part}.solution"
-            if written in fields:
+            # On the value and not the key, as `as_set` decides it: a solution field
+            # written empty leaves the part for its question's solution to answer.
+            if fields.get(written, {}).get("value"):
                 where[_location(number, "", index, "worked solution")] = written
             elif solution in fields:
                 where[_location(number, "", index, "worked solution")] = solution
         if solution in fields and all(
-            f"q{number}.p{part}.solution" in fields for part in parts
+            fields.get(f"q{number}.p{part}.solution", {}).get("value") for part in parts
         ):
             # The part `as_set` appends for a question's solution with no part left for
             # it to answer, which is the last one and holds nothing else.

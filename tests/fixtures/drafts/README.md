@@ -31,8 +31,8 @@ spec's own solutions, so the `question solution` after it answers nothing, and t
 it as a part of its own rather than dropping the wording. `question_without_parts` is a question
 and nothing else, which the checks have nothing to say about: it is here because a question with
 no parts is what the export has to write out as an empty part rather than as the template's.
-`degrees` writes `^\circ` into the maths of both a question and the worked solution answering
-its part, and is the one folder whose report comes from `in2lambda.validation` over the set the
-draft describes rather than from the checks over the draft itself: the solution is reported
-against `q1.solution` rather than the part it answers, since that is the field a `field replace`
-would have to change.
+`degrees` writes `^\circ` into the maths of both a question and the one worked solution answering
+its two parts, and is the one folder whose report comes from `in2lambda.validation` over the set
+the draft describes rather than from the checks over the draft itself: the solution is reported
+against `q1.solution` rather than the parts it answers, since that is the field a `field replace`
+would have to change, and reported once rather than once per part it was copied into.

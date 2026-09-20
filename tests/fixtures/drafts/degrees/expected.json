@@ -23,7 +23,7 @@
     ],
     "value": "Find the range."
   },
-  "q1.solution": {
+  "q1.p2.text": {
     "by": "tests",
     "edited": false,
     "layer": 3,
@@ -33,7 +33,19 @@
         7
       ]
     ],
-    "value": "The range is $v^2 \\sin(2 \\times 52^{\\circ}) / g$."
+    "value": "Find the time of flight."
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "The range is $v^2 \\sin(2 \\times 52^{\\circ}) / g$, and the flight lasts twice that over the range times the launch speed."
   },
   "q1.text": {
     "by": "tests",
