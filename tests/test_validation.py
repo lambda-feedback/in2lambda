@@ -9,15 +9,25 @@ The markdown cases were ported from ``conversion2025/tools and testing/validator
 on the ``Summer2025`` branch.
 """
 
+import os
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 from conftest import EXPORTS, PROBLEM_SETS
 
 from in2lambda.api.set import Set
-from in2lambda.validation import MathDelimiterError, validate
+from in2lambda.validation import MathDelimiterError, pdf, validate
 
 E = MathDelimiterError
+
+needs_compiler = pytest.mark.skipif(
+    bool(pdf.missing_tools()),
+    reason="compiling the set as the PDF generator does needs pandoc and xelatex",
+)
+"""The fixtures are reported with the PDF generator's toolchain installed; CI has it."""
 
 VALID = [
     "This is an inline math expression: $x = y$.",
@@ -83,9 +93,10 @@ def _messages(markdown: str) -> list[str]:
     """What the validator says about a single piece of markdown."""
     question_set = Set()
     question_set.add_question("Markdown", markdown)
-    return [problem.message for problem in validate(question_set)]
+    return [problem.message for problem in validate(question_set, compile=False)]
 
 
+@needs_compiler
 @pytest.mark.parametrize("problem_set", PROBLEM_SETS, ids=lambda path: path.name)
 def test_expected_problems_are_reported(problem_set: Path) -> None:
     """Each hand-written export produces exactly the report written beside it."""
@@ -95,6 +106,7 @@ def test_expected_problems_are_reported(problem_set: Path) -> None:
     assert sorted(str(problem) for problem in found) == sorted(expected)
 
 
+@needs_compiler
 @pytest.mark.parametrize("export", EXPORTS, ids=lambda path: path.name)
 def test_real_exports_have_no_problems(export: Path) -> None:
     """A set the platform wrote and accepted back must never be reported."""
@@ -119,6 +131,52 @@ def test_image_that_is_not_on_disk_is_reported(tmp_path: Path) -> None:
     question_set.add_question("Rocket", "![pictureTag](rocket.png)")
     question_set.current_question.images.append(str(tmp_path / "rocket.png"))
 
-    assert [problem.message for problem in question_set.problems()] == [
+    assert [problem.message for problem in question_set.problems(compile=False)] == [
         f"there is no image file at {tmp_path / 'rocket.png'}"
     ]
+
+
+@needs_compiler
+def test_non_ascii_is_compiled_whatever_the_locale() -> None:
+    """Exports are full of curly quotes, and containers are often not UTF-8 locales.
+
+    Run in a process of its own because the locale is read when Python starts.
+    """
+    script = (
+        "from in2lambda.api.set import Set\n"
+        "from in2lambda.validation import validate\n"
+        "question_set = Set()\n"
+        "question_set.add_question('Quotes', 'The rocket\\u2019s mass.')\n"
+        "print(len(validate(question_set)))\n"
+    )
+    run = subprocess.run(
+        [sys.executable, "-c", script],
+        env=os.environ
+        | {
+            "LC_ALL": "C",
+            "LANG": "C",
+            "PYTHONUTF8": "0",
+            "PYTHONCOERCECLOCALE": "0",
+            "PYTHONIOENCODING": "utf-8",
+        },
+        capture_output=True,
+        text=True,
+    )
+
+    assert run.returncode == 0, run.stderr
+    assert run.stdout.strip() == "0"
+
+
+def test_missing_compiler_says_what_to_install(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without the PDF generator's toolchain, the set is not compiled but is reported."""
+    monkeypatch.setattr(shutil, "which", lambda tool: None)
+    question_set = Set()
+    question_set.add_question("Angles", "Turn through 90°.")
+
+    problems = validate(question_set)
+
+    assert len(problems) == 1
+    assert "xelatex" in problems[0].message
+    assert "texlive-xetex" in problems[0].message
