@@ -100,8 +100,9 @@ A few things the example shows in passing:
 - **Unset question settings are left out of the JSON** rather than guessed at, so `skill`,
   `guidance` and the two durations only appear when set. `publish` and the four `display_*`
   settings always do, defaulting to `True`.
-- **Images** go in `Question.images` as paths on disk; they are copied into `media/` keeping the
-  file name they already had, and referred to from the markdown by that name.
+- **Images** go in `Question.images` as paths on disk; they are copied into `media/` under the file
+  name they already had, and every reference to one in the question's markdown is rewritten to that
+  name, which is all Lambda Feedback looks an image up by.
 - **{meth}`Set.from_json <in2lambda.api.set.Set.from_json>`** reads an existing export, as a folder
   or a zip, so an edit to a real set can start from what Lambda Feedback produced.
 
@@ -111,14 +112,16 @@ A few things the example shows in passing:
 <set name>/set_<Name>.json
 <set name>/question_000_<Title>.json          # 000 is the question's orderNumber
 <set name>/question_001_...
-<set name>/media/rocket-momentum.png              # one per Question.images path
+<set name>/media/rocket-momentum.png              # one per file Question.images names
 <set name>.zip                                 # the folder, zipped, to upload
 ```
 
 A question's filename is its title with spaces and the characters Windows and path separators
 forbid (`/ \ < > : " | ?  *`) each replaced by an underscore. An image keeps the file name it
-already had, so `images=["figures/rocket-momentum.png"]` gives `media/rocket-momentum.png`.
-Files are written on a single line.
+already had, so `images=["figures/rocket-momentum.png"]` gives `media/rocket-momentum.png`, and the
+references to it are rewritten to that name. `media/` is one flat folder for the whole set, so a
+file two questions use is copied once, and a second file of a name already taken is named as Lambda
+Feedback names one, `question_001_<Title>_0001.png`. Files are written on a single line.
 
 ### Set
 
@@ -170,9 +173,11 @@ An `id` left unset is a fresh UUID, which is what import needs.
 Maths is `$...$` inline and `$$` on its own lines for display, rendered by
 [KaTeX](https://katex.org/): commands KaTeX lacks do not display — degrees, for example, are
 written `^\circ`. An image is written `![pictureTag](rocket-momentum.png)`, naming the file as it
-sits in `media/`. A filter instead passes through whatever path the source document used, so
+sits in `media/`. A filter passes through whatever path the source document used, so
 `\includegraphics{figures/rocket-momentum.png}` becomes `![pictureTag](figures/rocket-momentum.png)`
-beside `media/rocket-momentum.png`.
+in the set; writing the set out rewrites it to `![pictureTag](rocket-momentum.png)`, which is the
+image as `media/` holds it. A reference naming no image of the question is left as written, and
+{func}`~in2lambda.validation.validate` reports it.
 
 :::{note}
 Lambda Feedback's own exports carry a few keys in2lambda neither reads nor writes, among them

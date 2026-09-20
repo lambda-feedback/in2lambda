@@ -14,6 +14,7 @@ from click.testing import CliRunner
 
 from in2lambda.api.set import Set
 from in2lambda.filters import builtin_filters
+from in2lambda.json_convert.json_convert import _IMAGE
 from in2lambda.main import cli, runner
 
 
@@ -53,10 +54,16 @@ def test_runner_writes_importable_json(
     question_files = sorted(set_dir.glob("question_*.json"))
     assert len(question_files) == len(result.questions)
     for question_file in question_files:
-        question_json = json.loads(question_file.read_text())
+        written = question_file.read_text()
+        question_json = json.loads(written)
         assert question_json["title"]
         assert "masterContent" in question_json
         assert "parts" in question_json
+
+        # Whatever path the document wrote, the JSON has to name the image as it sits in
+        # media/, which is the only place Lambda Feedback looks for one.
+        for reference in _IMAGE.findall(written):
+            assert (set_dir / "media" / reference).is_file(), reference
 
 
 def test_cli_reports_problems_and_exports_anyway(tmp_path) -> None:

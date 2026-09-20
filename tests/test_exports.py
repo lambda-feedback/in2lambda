@@ -214,6 +214,97 @@ def test_repeated_image_zipped_once(tmp_path: Path) -> None:
         ]
 
 
+def test_two_figures_of_one_name_are_both_carried(tmp_path: Path) -> None:
+    """media/ is flat, so the second of two files called the same is named as an export names one."""
+    for folder, content in (("a", b"first diagram"), ("b", b"second diagram")):
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "diagram.png").write_bytes(content)
+    question_set = Set(
+        questions=[
+            Question(
+                title=title,
+                main_text=f"As shown in ![diagram.png]({folder}/diagram.png).",
+                images=[str(tmp_path / folder / "diagram.png")],
+            )
+            for title, folder in (("First", "a"), ("Second", "b"))
+        ]
+    )
+
+    written = _write_back(question_set, tmp_path)
+
+    assert _relative_files(written / "media") == [
+        "diagram.png",
+        "question_001_Second_0001.png",
+    ]
+    assert (written / "media" / "diagram.png").read_bytes() == b"first diagram"
+    assert [
+        json.loads((written / file).read_text())["masterContent"]
+        for file in ("question_000_First.json", "question_001_Second.json")
+    ] == [
+        "As shown in ![diagram.png](diagram.png).",
+        "As shown in ![diagram.png](question_001_Second_0001.png).",
+    ]
+
+
+def test_one_question_telling_two_figures_of_a_name_apart(tmp_path: Path) -> None:
+    """The only case where which image a reference names is a question, answered by the path."""
+    for folder, content in (("a", b"first diagram"), ("b", b"second diagram")):
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "diagram.png").write_bytes(content)
+    question_set = Set(
+        questions=[
+            Question(
+                title="Q",
+                # A document writes a reference as it sits beside the document, so a
+                # sheet in a folder of its own climbs out of it to reach the figures,
+                # and the resolved path listed below has no trace of the climb.
+                main_text="Before, ![](../a/diagram.png).",
+                parts=[Part(text="After, ![](../b/diagram.png).")],
+                images=[
+                    str(tmp_path / "a" / "diagram.png"),
+                    str(tmp_path / "b" / "diagram.png"),
+                ],
+            )
+        ]
+    )
+
+    written = _write_back(question_set, tmp_path)
+
+    assert _relative_files(written / "media") == [
+        "diagram.png",
+        "question_000_Q_0001.png",
+    ]
+    assert (written / "media" / "diagram.png").read_bytes() == b"first diagram"
+    question = json.loads((written / "question_000_Q.json").read_text())
+    assert question["masterContent"] == "Before, ![](diagram.png)."
+    assert question["parts"][0]["content"] == "After, ![](question_000_Q_0001.png)."
+
+
+def test_one_figure_used_by_two_questions_is_copied_once(tmp_path: Path) -> None:
+    """Both questions refer to the one file, under the one name it is carried as."""
+    image = tmp_path / "figures" / "diagram.png"
+    image.parent.mkdir()
+    image.write_bytes(b"not really a png")
+    question_set = Set(
+        questions=[
+            Question(
+                title=title,
+                main_text="As shown in ![diagram.png](figures/diagram.png).",
+                images=[str(image)],
+            )
+            for title in ("First", "Second")
+        ]
+    )
+
+    written = _write_back(question_set, tmp_path)
+
+    assert _relative_files(written / "media") == ["diagram.png"]
+    assert [
+        json.loads(file.read_text())["masterContent"]
+        for file in sorted(written.glob("question_*.json"))
+    ] == ["As shown in ![diagram.png](diagram.png)."] * 2
+
+
 def _area_shape(area: dict) -> frozenset[str]:
     # Without indices, an area's shape is the keys it has, not how many tests, cases
     # or symbols it lists.

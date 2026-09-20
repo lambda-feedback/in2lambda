@@ -27,14 +27,12 @@ from in2lambda.api.problem import Problem
 from in2lambda.api.question import Question
 from in2lambda.api.response_area import ResponseArea
 from in2lambda.api.set import Set
+from in2lambda.json_convert.json_convert import _IMAGE, _image_for
 from in2lambda.katex_convert.katex_convert import unsupported_commands
 from in2lambda.validation import pdf
 from in2lambda.validation.delimiters import MathDelimiterError, math_delimiter_checker
 
 __all__ = ["MathDelimiterError", "Problem", "math_delimiter_checker", "validate"]
-
-_IMAGE = re.compile(r"!\[[^\]]*\]\(([^)]*)\)")
-"""A markdown image, e.g. ``![pictureTag](question_000_Title_0001.png)``."""
 
 _MATHS = re.compile(r"(?<!\\)\$\$(.*?)(?<!\\)\$\$|(?<!\\)\$(.*?)(?<!\\)\$", re.DOTALL)
 """Display maths first, so that ``$$ ... $$`` is not read as two empty ``$ ... $``."""
@@ -198,10 +196,11 @@ def _markdown_problems(
     if delimiters is not MathDelimiterError.PASSED:
         problems.append(Problem(location, delimiters.value))
 
-    # Lambda Feedback finds an image in media/ by its file name alone.
-    media = {Path(image).name for image in question.images}
+    # The writer rewrites a reference to the name of the image it matches, and carries
+    # that image into media/; one it matches nothing for is left as written, which is
+    # exactly the reference Lambda Feedback will not find.
     for reference in _IMAGE.findall(markdown):
-        if Path(reference).name not in media:
+        if _image_for(reference, question.images) is None:
             problems.append(
                 Problem(location, f"the export will not contain the image {reference}")
             )
