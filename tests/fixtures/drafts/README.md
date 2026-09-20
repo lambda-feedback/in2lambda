@@ -52,6 +52,12 @@ field is quoted from source 2 while the questions are quoted from source 1 - lin
 each, which is why the fields say which source they came from. The note at the end of the
 solutions is what the spec makes nothing of, and `mark ignore 2/b7` is a block of the second
 source named as one.
+`walkthrough` is the sheet the [draft workflow page](../../../docs/source/drafts.md) walks
+through, and holds every command that page shows: the questions keep the `Q1.` the sheet numbers
+them with, the first question's part is typed out because the source writes the marks it is worth
+beside it, the two solutions are one block that `split block` cuts in two, and one `field replace`
+writes a command KaTeX defines over one it does not. The `spec.yaml` beside it is the spec that
+page runs before starting the draft again, and no command here runs it.
 `degrees` writes `^\circ` into the maths of both a question and the one worked solution answering
 its two parts, and is the one folder whose report comes from `in2lambda.validation` over the set
 the draft describes rather than from the checks over the draft itself: the solution is reported

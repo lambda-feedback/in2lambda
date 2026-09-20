@@ -1,0 +1,93 @@
+[
+  {
+    "args": {
+      "block": "b1"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "text": "b3"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "block": "b4"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "literal": "Find the volume flow rate.",
+      "question": "q1"
+    },
+    "by": "tests",
+    "command": "part add"
+  },
+  {
+    "args": {
+      "text": "b5"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "question": "q2",
+      "text": "b6"
+    },
+    "by": "tests",
+    "command": "part add"
+  },
+  {
+    "args": {
+      "block": "b2"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "block": "b7"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "at": 16,
+      "block": "b8"
+    },
+    "by": "tests",
+    "command": "split block"
+  },
+  {
+    "args": {
+      "question": "q1",
+      "text": "b8a"
+    },
+    "by": "tests",
+    "command": "question solution"
+  },
+  {
+    "args": {
+      "question": "q2",
+      "text": "b8b"
+    },
+    "by": "tests",
+    "command": "question solution"
+  },
+  {
+    "args": {
+      "field": "q2.solution",
+      "new": "\\tfrac12",
+      "old": "\\half"
+    },
+    "by": "tests",
+    "command": "field replace"
+  }
+]
