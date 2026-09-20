@@ -79,11 +79,21 @@ def _runs(lines: list[int]) -> list[list[int]]:
     return runs
 
 
-def _uncovered(draft: dict[str, Any]) -> list[Finding]:
+def uncovered(draft: dict[str, Any]) -> list[Finding]:
     """Blocks of the source that no field, and no `mark ignore`, accounts for.
 
     A block partly quoted is reported for the rest of it: a question taken from the first
     line of a block leaves the other lines as much unaccounted for as a whole block would.
+    Blocks are accounted for by the lines the fields were taken from rather than by name,
+    so that a block `split block` has cut in two is covered by an ignore of the whole.
+
+    Args:
+        draft: A draft, as `in2lambda.source.frozen` reads one.
+
+    Returns:
+        One :data:`Finding` per block with lines nothing has made anything of, in
+        document order. `in2lambda.spec` reports through this as well as the checks do:
+        what a spec run left out is the same question asked the moment it finishes.
     """
     claimed = {
         line
@@ -220,7 +230,7 @@ def checks(draft: dict[str, Any]) -> list[Finding]:
         ['b1 (lines 1-2) is in no field and not marked ignore.']
     """
     found = (
-        _uncovered(draft)
+        uncovered(draft)
         + _overlaps(draft)
         + _gaps(draft)
         + _without_solutions(draft)

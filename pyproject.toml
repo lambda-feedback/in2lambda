@@ -24,6 +24,8 @@ documentation = "https://lambda-feedback.github.io/in2lambda"
 [tool.poetry.dependencies]
 python = "^3.10"
 panflute = { version = "^2.3.1", optional = true }
+# Only for reading a spec, which is only ever run against a converted document.
+pyyaml = { version = "^6.0", optional = true }
 rich-click = "^1.7.4"
 # At 0.20.0 and below, the import hook in in2lambda/__init__.py leaves `cli` a plain
 # function: `@cli.command()` then raises AttributeError at import (0.19.0, 0.20.0), or
@@ -33,7 +35,7 @@ beartype = "^0.22"
 
 [tool.poetry.extras]
 # Only needed to convert documents; the Python API works without it.
-convert = ["panflute"]
+convert = ["panflute", "pyyaml"]
 
 [tool.poetry.scripts]
 in2lambda = "in2lambda.main:cli"

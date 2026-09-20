@@ -1952,9 +1952,9 @@ files = [
 packaging = ">=24.0"
 
 [extras]
-convert = ["panflute"]
+convert = ["panflute", "pyyaml"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "c66ed1332073cc43e889ad3646544b370b7bad03c41beb4952daf4a2623f62f5"
+content-hash = "855ed560d278e045b39a71ede79f1c9058fab08b59e272a65abec9e4e34c47d8"

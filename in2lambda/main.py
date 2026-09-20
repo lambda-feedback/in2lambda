@@ -15,6 +15,7 @@ from collections.abc import (  # Rather than typing's, which beartype warns on.
     Iterator,
 )
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any, Optional
 
 import rich_click as click
@@ -31,6 +32,7 @@ from in2lambda.api.set import Set
 from in2lambda.source import (  # noqa: F401  # Re-exported, so not unused.
     ConversionToolsMissing,
     SourceError,
+    _digest,
     _pandoc,
     _require_conversion_tools,
     file_type,
@@ -400,6 +402,29 @@ def draft_replay() -> None:
     with _message_not_traceback():
         in2lambda.draft.replay()
     click.echo("Replays as it stands.")
+
+
+@cli.group("spec")
+def spec_group() -> None:
+    """Runs a YAML spec of selectors over the frozen source in this directory."""
+
+
+@spec_group.command("run")
+@click.argument("spec", type=click.Path(exists=True, dir_okay=False))
+@_by
+def spec_run(spec: str, by: str) -> None:
+    """Fills the draft's fields in from SPEC, and says which blocks it left out."""
+    with _message_not_traceback():
+        # The hash goes in the log beside the file's name, so that a replay can tell
+        # whether it is running the spec that wrote the fields it is checking.
+        report = in2lambda.draft.execute(
+            {
+                "command": "spec run",
+                "args": {"spec": spec, "hash": _digest(Path(spec).read_bytes())},
+                "by": by,
+            }
+        )
+    click.echo(report)
 
 
 @cli.command("validate")

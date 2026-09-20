@@ -89,5 +89,6 @@ def test_completing_the_old_form_offers_the_subcommand() -> None:
         "convert",
         "draft",
         "source",
+        "spec",
         "validate",
     ]
