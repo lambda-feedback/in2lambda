@@ -110,10 +110,10 @@ lines it spans and an id to quote it by. `fields` holds the questions, parts and
 written from the sheet, and `log` holds the commands that wrote them. Both are empty until a spec
 or a command fills them in.
 
-A line range identifies text only while that text does not change, which is what the hash
-records. Every command that reads the draft hashes the markdown on disk and compares it with the
-hash the draft holds, and refuses where the two differ, because line 5 of an edited document is
-not the line the earlier commands were run against. `in2lambda source add --start-over` freezes
+A line range requires that the text it refers to does not change. `in2lambda source add` records
+the hash of the markdown in the draft. Every command that reads the draft hashes the markdown on
+disk and compares it with the hash the draft holds, and refuses where the two differ, because
+line 5 of an edited document is not the line the earlier commands were run against. `in2lambda source add --start-over` freezes
 the document again and discards the draft written from it.
 
 A draft records every command in its log as the command runs. `in2lambda draft replay` builds the
@@ -143,8 +143,8 @@ b8  15  The flow rate is $Q = \pi d^2 v / 4$.
 ```
 
 `in2lambda source show` prints the frozen markdown numbered, with the id of each block against
-the line it starts on. The commands below name those ids and those line numbers: `b3` is a block,
-`s5` is one line of the source, and `s15:16` is a range of it.
+the line it starts on. A command names a block by its id, `b3`, a line of the source, `s5`, or a
+range of lines, `s15:16`.
 
 ## Fill the draft in from a spec
 
@@ -201,7 +201,8 @@ $ in2lambda source add --start-over sheet.md
 Wrote /home/you/sheet/sheet.draft.json
 ```
 
-The title is nothing to take a question from, and block `b3` is the first question:
+The title holds no question, so `in2lambda draft mark ignore` marks the title. Block `b3` is the
+first question:
 
 ```bash
 $ in2lambda draft mark ignore b1
@@ -239,8 +240,8 @@ records the command in the log as it applies it:
 }
 ```
 
-`by` is your username, or what `--by` gives it. That name is how a field a model wrote is told
-from one a person wrote.
+`by` is your username, or what `--by` gives it. A reader reads `by` to see whether a model or a
+person wrote the field.
 
 Line 7 gives the marks the first part is worth, which the field should not hold. So the part is
 typed out rather than quoted, and `b4` is marked ignore, because no field accounts for it now:
@@ -298,8 +299,8 @@ maths Lambda Feedback will not render. A finding at level warning may be right a
 A question with no solution is reported at level warning, because many sheets write their
 solutions in another file, and some sheets have none.
 
-The findings are printed in the order of the source, and the findings about no particular line
-last. `q1.p1` was typed out, so it names no lines.
+`in2lambda validate` prints the findings in the order of the source, and prints the findings
+about no particular line last. `q1.p1` was typed out, so it names no lines.
 
 ## Mark the rubric and the Solutions heading ignored
 
@@ -400,8 +401,9 @@ Wrote /home/you/sheet/out/question_001_Question_2.pdf
 ```
 
 `in2lambda render` writes one PDF per question, compiled the way Lambda Feedback's PDF generator
-compiles it, which needs pandoc and [xelatex](https://tug.org/texlive/). It does not read the
-report: a draft is rendered to look at, including a draft there is something to fix in.
+compiles it, which needs pandoc and [xelatex](https://tug.org/texlive/). `in2lambda render`
+writes the PDFs whatever the draft's report holds. A reader reads the PDFs to check a draft
+before fixing it.
 
 `out/set.zip` is imported as [the quickstart](quickstart) describes, under "Import into Lambda
 Feedback".
