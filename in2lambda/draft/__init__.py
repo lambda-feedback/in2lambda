@@ -538,7 +538,7 @@ def _question_solution(
 
 @command("field replace")
 def _field_replace(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str
+    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
 ) -> str:
     """Replaces one piece of wording inside a field that is written already.
 
