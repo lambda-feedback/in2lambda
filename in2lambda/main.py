@@ -410,7 +410,7 @@ def draft_question_solution(
 
 @draft_group.group("part")
 def draft_part() -> None:
-    """Adds a part to a question of the draft."""
+    """Adds a part to a question of the draft, or says where its solution is written."""
 
 
 @draft_part.command("add")
@@ -428,6 +428,27 @@ def draft_part_add(
     """Adds a part of QUESTION, numbered after the parts it already has."""
     _run(
         "part add", {"question": question, "text": text, "literal": literal}, by, draft
+    )
+
+
+@draft_part.command("solution")
+@click.argument("part")
+@_text_or_literal
+@_by
+@_draft
+def draft_part_solution(
+    part: str,
+    text: Optional[str],
+    literal: Optional[str],
+    by: str,
+    draft: Optional[str],
+) -> None:
+    """Gives PART - q1.p2 - the worked solution written at --text or --literal."""
+    _run(
+        "part solution",
+        {"part": part, "text": text, "literal": literal},
+        by,
+        draft,
     )
 
 
