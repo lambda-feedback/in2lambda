@@ -159,19 +159,28 @@ def _fault(entry: Any) -> str:
     return ""
 
 
-def _argument(args: dict[str, Any], name: str, command: str) -> Any:
-    """One argument of a command, given that the log entry gave it.
+def _argument(args: dict[str, Any], name: str, command: str, kind: type = str) -> Any:
+    """One argument of a command, given that the log entry gave it as `kind`.
 
     Handlers take their arguments through this rather than indexing, so that a log
-    entry missing one says which one rather than raising a KeyError at whoever ran it.
+    entry missing one, or holding a number where a name belongs, says which argument it
+    is rather than raising at whoever ran it. Every argument is a name but the line a
+    block is split at.
 
     Raises:
-        MalformedCommand: the entry has no argument of that name.
+        MalformedCommand: the entry has no argument of that name, or has one that is
+            not of that kind.
     """
     if name not in args:
         raise MalformedCommand(
             f"{args!r} in the log is not a command {command} can run: it has no "
             f'"{name}" argument.'
+        )
+    if not isinstance(args[name], kind):
+        wanted = "a line number" if kind is int else "a name"
+        raise MalformedCommand(
+            f"{args!r} in the log is not a command {command} can run: its "
+            f'"{name}" is {args[name]!r} rather than {wanted}.'
         )
     return args[name]
 
@@ -332,7 +341,8 @@ def _fill(
     behind it, and it arrives edited, because what it holds is not what the source says.
 
     Raises:
-        MalformedCommand: the command gives both of them, or neither.
+        MalformedCommand: the command gives both of them, or neither, or gives one of
+            them as something other than text.
         NoSuchBlock, NoSuchLines: its ``text`` is not somewhere in the source.
         AlreadyFilled: the field, or the lines it names, are taken.
     """
@@ -348,9 +358,19 @@ def _fill(
             f"{args!r} in the log is not a command {command} can run: it gives neither "
             'a "text" nor a "literal", so there is nothing for it to write.'
         )
+    # Back through `_argument` now that which of them was given is settled, so that one
+    # given as a number is a message about the argument rather than a failure inside.
     if literal is not None:
-        return record(draft, key, literal, layer=4, ranges=[], by=by, edited=True)
-    start, end = _lines(draft, markdown, text, command)
+        return record(
+            draft,
+            key,
+            _argument(args, "literal", command),
+            layer=4,
+            ranges=[],
+            by=by,
+            edited=True,
+        )
+    start, end = _lines(draft, markdown, _argument(args, "text", command), command)
     return record(
         draft,
         key,
@@ -465,12 +485,7 @@ def _split_block(
     blocks from the markdown and then runs the log over them, arrives at the same ids.
     """
     block = _argument(args, "block", "split block")
-    at = _argument(args, "at", "split block")
-    if not isinstance(at, int):
-        raise MalformedCommand(
-            f'{args!r} in the log is not a command split block can run: its "at" is '
-            f"{at!r} rather than a line number."
-        )
+    at = _argument(args, "at", "split block", int)
     found = _block(draft, block)
     if not found["start"] < at <= found["end"]:
         raise NoSuchLines(

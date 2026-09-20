@@ -136,6 +136,8 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
             "literal",
         ),
         ({"command": "split block", "args": {"block": "b2"}, "by": "tests"}, "at"),
+        ({"command": "mark ignore", "args": {"block": 12}, "by": "tests"}, "12"),
+        ({"command": "question add", "args": {"text": 12}, "by": "tests"}, "12"),
     ],
     ids=[
         "not an object",
@@ -147,6 +149,8 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
         "no block argument",
         "both a text and a literal",
         "no at argument",
+        "a block that is a number",
+        "a text that is a number",
     ],
 )
 def test_a_log_entry_that_is_not_a_command_is_refused(
