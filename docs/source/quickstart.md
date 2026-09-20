@@ -48,7 +48,7 @@ This can also be done through [pipx](https://pypa.github.io/pipx/).
 
 ## 2. Choose a Document
 
-in2lambda takes in two arguments:
+`in2lambda convert` takes in two arguments:
 
 - The path to a document.
 - A filter describing how to parse it.
@@ -58,7 +58,7 @@ A list of available filters can be found [here](filters/index).
 For instance, the following takes in `questions.tex` and uses a filter that expects [each part to be directly followed by the solution](filters/_autosummary/PartSolPartSol):
 
 ```bash
-$ in2lambda questions.tex PartSolPartSol
+$ in2lambda convert questions.tex PartSolPartSol
 ```
 
 :::{note}
@@ -68,7 +68,7 @@ The filter name is case-insensitive. Don't worry about the capital letters.
 Another filter might be used if [the answers are in a separate file](filters/_autosummary/PartsSepSol):
 
 ```bash
-$ in2lambda questions.tex -a solutions.tex PartsSepSol
+$ in2lambda convert questions.tex -a solutions.tex PartsSepSol
 ```
 
 By default, this generates an `out` directory in the same place that the command was run in. It contains the zipped question files.

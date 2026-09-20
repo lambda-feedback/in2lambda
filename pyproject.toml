@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "in2lambda"
-version = "1.0.0"
+version = "2.0.0"
 description = "Converts content ready for import into Lambda Feedback"
 authors = []
 license = "MIT"
@@ -25,7 +25,11 @@ documentation = "https://lambda-feedback.github.io/in2lambda"
 python = "^3.10"
 panflute = { version = "^2.3.1", optional = true }
 rich-click = "^1.7.4"
-beartype = "^0.17.2"
+# At 0.20.0 and below, the import hook in in2lambda/__init__.py leaves `cli` a plain
+# function: `@cli.command()` then raises AttributeError at import (0.19.0, 0.20.0), or
+# `in2lambda ...` runs convert's body whatever the arguments (0.18.5). 0.20.1 is the
+# first version that works; 0.22 is the series this is locked to and tested against.
+beartype = "^0.22"
 
 [tool.poetry.extras]
 # Only needed to convert documents; the Python API works without it.
