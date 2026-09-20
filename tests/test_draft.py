@@ -23,8 +23,9 @@ from conftest import DRAFTS, DRAFTS_DIR, needs_compiler
 import in2lambda.draft
 import in2lambda.draft.report
 from in2lambda.api.set import Set
+from in2lambda.json_convert.json_convert import _IMAGE
 from in2lambda.main import cli
-from in2lambda.validation import _IMAGE, pdf
+from in2lambda.validation import pdf
 
 QUESTION = re.compile(r"q(\d+)\.text")
 """A question's text among a folder's fields, which is one question of the export."""
@@ -71,6 +72,19 @@ def _expected_parts(fields: dict[str, Any], number: int) -> int:
     answered = all(f"q{number}.p{part}.solution" in fields for part in written)
     parts = len(written) + (answered and f"q{number}.solution" in fields)
     return parts or 1
+
+
+def _as_exported(value: str) -> str:
+    """A field's markdown as the export writes it out.
+
+    The same wording, save that an image reference names the file as it sits in the
+    export's ``media/``, which is by its own name where no two figures beside the draft
+    share one.
+    """
+    return _IMAGE.sub(
+        lambda ref: ref[0][: ref.start(1) - ref.start()] + Path(ref[1]).name + ")",
+        value,
+    )
 
 
 def _reported(folder: Path) -> list[dict[str, Any]]:
@@ -564,7 +578,7 @@ def test_build_follows_the_report(folder: Path, tmp_path: Path, monkeypatch) -> 
     questions = Set.from_json(str(exported)).questions
     assert len(questions) == len([key for key in fields if QUESTION.fullmatch(key)])
     for number, question in enumerate(questions, start=1):
-        assert question.main_text == fields[f"q{number}.text"]["value"]
+        assert question.main_text == _as_exported(fields[f"q{number}.text"]["value"])
         # Counted from the fields rather than read off the question, since a loop over
         # parts that were dropped runs no assertions and passes saying nothing.
         assert len(question.parts) == _expected_parts(fields, number)
@@ -576,25 +590,44 @@ def test_build_follows_the_report(folder: Path, tmp_path: Path, monkeypatch) -> 
                 # parts written for it exports as.
                 assert part.text == ""
                 solution = fields.get(f"q{number}.solution")
-                assert part.worked_solution == (solution["value"] if solution else "")
+                assert part.worked_solution == (
+                    _as_exported(solution["value"]) if solution else ""
+                )
                 continue
-            assert part.text == fields[f"q{number}.p{index}.text"]["value"]
+            assert part.text == _as_exported(
+                fields[f"q{number}.p{index}.text"]["value"]
+            )
             # A part's own solution, or the question's where it has none of its own.
             solution = fields.get(
                 f"q{number}.p{index}.solution", fields.get(f"q{number}.solution")
             )
-            assert part.worked_solution == (solution["value"] if solution else "")
+            assert part.worked_solution == (
+                _as_exported(solution["value"]) if solution else ""
+            )
 
-    # Every image a field refers to travels with the set under media/, which is the only
-    # place Lambda Feedback looks for one; the set's folder is asked rather than the
-    # loaded questions, since reading an export back attributes an image to a question
-    # by the platform's own naming of the file, which a draft's images do not follow.
-    assert {path.name for path in (tmp_path / "out" / "set" / "media").glob("*")} == {
-        Path(reference).name
-        for field in fields.values()
-        if isinstance(field["value"], str)
-        for reference in _IMAGE.findall(field["value"])
+    # Every image a field refers to travels with the set under media/, named as the
+    # written JSON refers to it, since that name is the only way Lambda Feedback finds
+    # one; the set's folder is asked rather than the loaded questions, because reading an
+    # export back attributes an image to a question by the platform's own naming of the
+    # file, which a draft's images do not follow.
+    written = tmp_path / "out" / "set"
+    references = {
+        reference
+        for file in written.glob("question_*.json")
+        for reference in _IMAGE.findall(file.read_text())
     }
+    assert all(
+        (written / "media" / reference).is_file() for reference in references
+    ), references
+    # One file per file the fields point at, whatever path each was written as.
+    assert len(list((written / "media").glob("*"))) == len(
+        {
+            (tmp_path / reference).resolve()
+            for field in fields.values()
+            if isinstance(field["value"], str)
+            for reference in _IMAGE.findall(field["value"])
+        }
+    )
 
 
 def test_build_refuses_a_field_naming_an_image_that_is_not_there(

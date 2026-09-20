@@ -37,14 +37,18 @@ def generate_filters_docs():
         pdf_file = f"../../{'../' if os.getenv('GITHUB_ACTIONS') == 'true' else './'}{static_pdf_directory}/{filter_name}.pdf"
 
         if shutil.which("pdflatex"):
+            example = Path(filter_module.__file__).parent / "example.tex"
             subprocess.run(
                 [
                     "pdflatex",
-                    f"-output-directory={static_pdf_directory}",
+                    f"-output-directory={static_pdf_directory.resolve()}",
                     f"-jobname={filter_name}",
                     "-interaction=nonstopmode",
-                    tex_file,
+                    example.name,
                 ],
+                # An example naming a figure names it as it sits beside the document,
+                # so the document is compiled from its own directory.
+                cwd=example.parent,
                 check=True,
             )
 

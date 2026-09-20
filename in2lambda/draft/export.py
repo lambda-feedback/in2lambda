@@ -21,9 +21,9 @@ from typing import Any
 from in2lambda.api.part import Part
 from in2lambda.api.question import Question
 from in2lambda.api.set import Set
-from in2lambda.json_convert.json_convert import _question_stem, _question_title
+from in2lambda.json_convert.json_convert import _IMAGE, _question_stem, _question_title
 from in2lambda.source import DRAFT, ConversionToolsMissing, SourceError, frozen
-from in2lambda.validation import _IMAGE, pdf
+from in2lambda.validation import pdf
 
 _QUESTION = re.compile(r"q(\d+)\.text")
 """A question's text, and the number that orders it."""

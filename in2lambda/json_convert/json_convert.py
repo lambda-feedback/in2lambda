@@ -8,7 +8,7 @@ import tempfile
 import zipfile
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from in2lambda.api.part import Part
 from in2lambda.api.question import Question
@@ -18,6 +18,30 @@ from in2lambda.api.visibility_status import VisibilityController, VisibilityStat
 
 MINIMAL_QUESTION_TEMPLATE = "minimal_template_question.json"
 MINIMAL_SET_TEMPLATE = "minimal_template_set.json"
+
+_IMAGE = re.compile(r"!\[[^\]]*\]\(([^)]*)\)")
+"""A markdown image, e.g. ``![pictureTag](question_000_Title_0001.png)``."""
+
+
+def _image_for(reference: str, images: list[str]) -> Optional[str]:
+    """Which of a question's images a markdown reference names, if any.
+
+    Matched by file name, because that is the link between the two: a filter resolves
+    the very path it leaves in the markdown, and Lambda Feedback finds an image in
+    ``media/`` by its file name alone. Only where a question lists two files of the same
+    name does the rest of the reference decide, by naming the end of one of their paths.
+
+    Returns:
+        The image, or None if the question lists none of that name - in which case the
+        reference is left as written, which :mod:`in2lambda.validation` reports.
+    """
+    named = [image for image in images if Path(image).name == Path(reference).name]
+    if len(named) > 1:
+        parts = Path(reference).parts
+        named = [
+            image for image in named if Path(image).parts[-len(parts) :] == parts
+        ] or named
+    return named[0] if named else None
 
 
 def _templates() -> tuple[dict[str, Any], dict[str, Any]]:
@@ -47,9 +71,8 @@ def _zip(files: list[Path], root: Path, zip_path: str) -> None:
         root: The folder the archive names are relative to.
         zip_path: The path where the zip file will be created.
     """
-    # Sort by archive name for deterministic, alphabetical order. A file can be
-    # written more than once — an image used by both a question and its worked
-    # solution — and is still one file on disk, so name it once here too.
+    # Sort by archive name for deterministic, alphabetical order, and name each file
+    # once: a file written twice is still one file on disk.
     names = sorted({str(file.relative_to(root)): file for file in files}.items())
     with zipfile.ZipFile(zip_path, "w") as zf:
         for name, file in names:
@@ -226,8 +249,55 @@ def _question_json(
     return output
 
 
+def _media_name(image: str, stem: str, taken: set[str]) -> str:
+    """What an image is called in ``media/``, which is flat and so has one of each name.
+
+    Its own file name, or, where that name is another file's already, the name Lambda
+    Feedback's own exports give an image: the question's, numbered.
+    """
+    name = Path(image).name
+    if name not in taken:
+        return name
+    number = 1
+    while (numbered := f"{stem}_{number:04}{Path(image).suffix}") in taken:
+        number += 1
+    return numbered
+
+
+def _with_media_names(value: Any, question: Question, media: dict[str, str]) -> Any:
+    """A question's JSON with every image reference in it rewritten to its media name.
+
+    Walked rather than taken field by field because a reference can be written in any
+    markdown the question holds - its text, a part's, a worked solution, a final answer,
+    an answer box's wording or one of its options - and a second list of those here would
+    drift from the one :mod:`in2lambda.validation` already checks.
+    """
+    if isinstance(value, dict):
+        return {
+            key: _with_media_names(item, question, media) for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_with_media_names(item, question, media) for item in value]
+    if not isinstance(value, str):
+        return value
+
+    def rewrite(reference: re.Match[str]) -> str:
+        image = _image_for(reference[1], question.images)
+        if image is None:
+            return reference[0]
+        # Only the path is replaced; the alt text beside it may well read the same.
+        name = media[os.path.abspath(image)]
+        return reference[0][: reference.start(1) - reference.start()] + name + ")"
+
+    return _IMAGE.sub(rewrite, value)
+
+
 def _write_question(
-    question: Question, i: int, template: dict[str, Any], folder: Path
+    question: Question,
+    i: int,
+    template: dict[str, Any],
+    folder: Path,
+    media: dict[str, str],
 ) -> list[Path]:
     """Writes one question's JSON, and any images it uses, into an existing folder.
 
@@ -236,25 +306,32 @@ def _write_question(
         i: Its order number, which also prefixes the file name.
         template: The loaded JSON from the minimal question template.
         folder: The folder to write into.
+        media: What the export has carried into ``media/`` so far, each image's path on
+            disk against the name it was written under. Added to as this question's
+            images are copied, so that a file two questions use is one file under one
+            name.
 
     Returns:
         The files written.
     """
     output = _question_json(question, i, template)
+    stem = _question_stem(i, output["title"])
 
-    json_file = folder / f"{_question_stem(i, output['title'])}.json"
-    with open(json_file, "w") as file:
-        json.dump(output, file)
-    written = [json_file]
-
+    written = []
     for image in question.images:
-        # If images exist, create a media directory
-        media = folder / "media"
-        media.mkdir(exist_ok=True)
-        # The JSON refers to an image by its file name, so copying keeps that name.
-        written.append(Path(shutil.copy(os.path.abspath(image), media)))
+        path = os.path.abspath(image)
+        if path in media:
+            continue
+        media[path] = _media_name(path, stem, set(media.values()))
+        # Only a question with an image gets a media folder at all.
+        (folder / "media").mkdir(exist_ok=True)
+        written.append(Path(shutil.copy(path, folder / "media" / media[path])))
 
-    return written
+    json_file = folder / f"{stem}.json"
+    with open(json_file, "w") as file:
+        json.dump(_with_media_names(output, question, media), file)
+
+    return [json_file] + written
 
 
 def write_question(question: Question, output_dir: str, number: int = 0) -> None:
@@ -275,7 +352,7 @@ def write_question(question: Question, output_dir: str, number: int = 0) -> None
         number, _question_title(question, number)
     )
     folder.mkdir(parents=True, exist_ok=True)
-    written = _write_question(question, number, question_template, folder)
+    written = _write_question(question, number, question_template, folder, {})
     _zip(written, folder, f"{folder}.zip")
 
 
@@ -320,8 +397,10 @@ def converter(
         json.dump(set_template, file)
 
     written = [set_file]
+    # Named across the whole set, since media/ is one folder for all of its questions.
+    media: dict[str, str] = {}
     for i, question in enumerate(ListQuestions):
-        written += _write_question(question, i, question_template, folder)
+        written += _write_question(question, i, question_template, folder, media)
 
     # output zip file in destination folder
     _zip(written, folder, output_question + ".zip")

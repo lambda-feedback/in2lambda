@@ -24,7 +24,11 @@ backslash in what the second one writes is written rather than read as a replace
 anything to say about; an overlap and a gap in the numbering are not here, because no run of
 commands can make one. `figure_in_a_question` is a question whose text runs on into an image, so
 the field quotes the reference and `figure.png` beside the source is what the export has to carry
-into `media/` - the only folder here with a file the fields point at.
+into `media/`. `figure_in_a_folder` is the same question with the figure kept in a `figures/`
+folder, as a sheet usually keeps its figures: the field quotes `figures/figure.png`, and the export
+carries the file into `media/` and rewrites the reference to the name it is called there, since
+that name is all Lambda Feedback looks one up by. Those two are the only folders here with a file
+the fields point at.
 `question_solution_beside_part_solutions` is the only one filled in by a spec rather than by
 commands one at a time, and the only one whose question has two parts: both are answered by the
 spec's own solutions, so the `question solution` after it answers nothing, and the export carries
