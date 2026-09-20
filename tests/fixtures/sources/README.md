@@ -8,10 +8,10 @@ which format an author brought it in; `empty_list_item` is a bullet with nothing
 no position of its own and so no block; `unseparated_list` is a list with no blank line before it,
 which pandoc reports as part of the paragraph above, so that paragraph's block has to stop where
 the list starts rather than where pandoc says it ends; `display_maths` is a `.tex` with display
-maths standing alone, mid-sentence and inside a list item, each of which the `$$` rewrite below
-puts on three lines, and a paragraph well over 72 columns, whose block is the one line the
-unwrapped freeze leaves it as rather than the two pandoc's own wrapping made of it; `crlf` is
-the `markdown` case saved with
+maths standing alone, mid-sentence, on a list item's first line and as an item's own second
+paragraph, each of which the `$$` rewrite below puts on three lines, and a paragraph well over
+72 columns, whose block is the one line the unwrapped freeze leaves it as rather than the two
+pandoc's own wrapping made of it; `crlf` is the `markdown` case saved with
 Windows line endings, which is what a document off a teacher's machine usually has, and it has to
 freeze to the same blocks and to a hash that `sha256sum source.md` reproduces. The `.gitattributes`
 at the top of the repository is what stops a checkout rewriting those endings away.
@@ -25,10 +25,17 @@ produced with **pandoc 3.9.0.2**.
 
 That markdown is written with `--wrap=none`, so a paragraph is one line however long it is and
 an inline `$ ... $` is never broken over two, and each `$$ ... $$` the writer put on one line is
-moved onto lines of its own afterwards - indented to the item's width where it is in a list, so
-the item still holds it. Both are habits of pandoc's writer rather than anything the author did,
-and both are maths that Lambda Feedback will not render, so a field quoted out of a freeze that
-kept them would fail `in2lambda validate`.
+moved onto lines of its own afterwards - indented to the item's content column where it is in a
+list, so the item still holds it. Both are habits of pandoc's writer rather than anything the
+author did, and neither is maths that Lambda Feedback renders, so a field quoted out of a freeze
+that kept them would fail `in2lambda validate`.
+
+A `$$ ... $$` in a pipe table's row, in a block quote's line or in a code block is left as pandoc
+wrote it, and `in2lambda validate` reports each of the three: a table cell cannot hold a block,
+the inserted lines would carry no `> ` and so fall outside the quote, and a code block's `$$` is
+characters the document shows rather than maths it renders. A code block is a line indented four
+past the content column of the list item it stands in, which is how an item's own paragraph -
+indented four itself - is told from code nested inside the item.
 
 `docx/source.docx` was made from `markdown/source.md` with `pandoc source.md -o source.docx`,
 run beside a `figure.png` so that the image is embedded rather than dropped, and with the

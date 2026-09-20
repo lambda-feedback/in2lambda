@@ -263,37 +263,58 @@ def _pandoc(file: str, to: str, *options: str) -> bytes:
 _DISPLAY_MATHS = re.compile(r"(?<!\\)\$\$(.+?)(?<!\\)\$\$", re.DOTALL)
 """Display maths as ``commonmark_x`` writes it: opened and closed on the one line."""
 
+_MARKER = re.compile(r" *(?:[-+*]|\(?(?:\d+|[ivxlcdm]+|[IVXLCDM]+|[A-Za-z])[.)]) {1,4}")
+"""A list item's marker on its first line, as `commonmark_x` reads one."""
+
 
 def _verbatim_lines(markdown: str) -> set[int]:
     r"""The lines of some markdown whose ``$$`` is code rather than maths.
 
-    ``commonmark_x`` writes a code block indented four spaces, or fenced where the block
-    carries a language, and a ``$$ ... $$`` in one is text the document shows rather than
-    maths it renders. A list item's continuation paragraph is indented four as well, so
-    display maths in one is left as pandoc wrote it and ``in2lambda validate`` reports
-    it: leaving that maths costs a finding, rewriting a code block would make the frozen
-    markdown say something the document does not.
+    ``commonmark_x`` fences a code block that carries a language and indents one that
+    carries nothing four spaces, and a ``$$ ... $$`` in either is text the document
+    shows rather than maths it renders. A list item's continuation paragraph is indented
+    four as well, so the indent is measured from the item the line stands in rather than
+    from the margin: a line four past the enclosing item's content column is code, and
+    display maths standing as an item's own paragraph is maths. The column is the one
+    :func:`dedented` takes off again, so a line this leaves alone is a line the field
+    quoting it reads as code too.
 
     Examples:
         >>> from in2lambda.source import _verbatim_lines
         >>> sorted(_verbatim_lines("Text\n\n    $$x = y$$\n"))
+        [3]
+        >>> sorted(_verbatim_lines("1.  Item\n\n    $$x = y$$\n"))
+        []
+        >>> sorted(_verbatim_lines("1.  Item\n\n        $$x = y$$\n"))
         [3]
         >>> sorted(_verbatim_lines("``` python\n$$x = y$$\n```\n"))
         [1, 2, 3]
     """
     verbatim = set()
     fence = ""
+    items: list[int] = []  # The content column of each list item open at this line.
     for number, line in enumerate(markdown.split("\n"), start=1):
         stripped = line.lstrip(" ")
+        indent = len(line) - len(stripped)
         if fence:
             verbatim.add(number)
             if stripped.startswith(fence):
                 fence = ""
-        elif stripped[:3] in ("```", "~~~"):
-            fence = stripped[:3]
-            verbatim.add(number)
-        elif line.startswith("    "):
-            verbatim.add(number)
+        elif not stripped:
+            # Commonmark closes an item at the next non-blank line indented less than
+            # its content column, not at the blank line before that one.
+            continue
+        else:
+            while items and indent < items[-1]:
+                items.pop()
+            base = items[-1] if items else 0
+            if stripped[:3] in ("```", "~~~"):
+                fence = stripped[:3]
+                verbatim.add(number)
+            elif indent >= base + 4:
+                verbatim.add(number)
+            elif marker := _MARKER.match(line):
+                items.append(marker.end())
     return verbatim
 
 
@@ -309,7 +330,7 @@ def _display_maths_blocked(markdown: str) -> str:
     marker width included, so maths in an item stays in the item - and whatever stood
     either side of it on that line becomes a paragraph of its own. A pipe table's row, a
     block quote's line and a code block's line are left as pandoc wrote them, so the
-    maths in one of the first two is still reported by ``in2lambda validate``.
+    maths in any of the three is still reported by ``in2lambda validate``.
 
     Examples:
         >>> from in2lambda.source import _display_maths_blocked
@@ -572,10 +593,6 @@ def blocks(markdown: str, source: int = 1) -> list[Block]:
         ['2/b1']
     """
     return [block for block, _ in _elements(markdown, source)]
-
-
-_MARKER = re.compile(r" *(?:[-+*]|\(?(?:\d+|[ivxlcdm]+|[IVXLCDM]+|[A-Za-z])[.)]) {1,4}")
-"""A list item's marker on its first line, as `commonmark_x` reads one."""
 
 
 def dedented(text: str) -> str:
