@@ -8,7 +8,9 @@ back to the field it came from.
 The trick for tracing is a marker: the document handed to pandoc carries a raw-LaTeX
 comment naming the field before each field's markdown, and pandoc copies raw blocks
 through untouched. ``xelatex -file-line-error`` then reports every error as
-``set.tex:<line>: <message>``, and the last marker above that line names the field.
+``set.tex:<line>: <message>``, and the last marker above that line names the field. Not
+every error, though: a file LaTeX cannot find is announced with no location at all, and
+is traced instead through the ``Emergency stop.`` that follows it, which has one.
 
 pandoc and xelatex are both optional, as they are everywhere else in in2lambda: without
 them this reports what to install rather than raising.
@@ -48,8 +50,17 @@ _ERROR = re.compile(
 )
 """One ``-file-line-error`` line. The file is only ``set.tex`` for the set's own text."""
 
-_ABORTED = re.compile(r"^! (.+)$", re.MULTILINE)
-r"""An error xelatex printed with no file and line to it - see :func:`_aborted`."""
+_BARE = re.compile(r"^! (.+)$", re.MULTILINE)
+r"""An error xelatex printed with no file and line to it.
+
+``-file-line-error`` only rewrites an error raised at a line of a file. A file that
+cannot be found is announced through ``\typeout`` rather than raised, and an error
+raised once the input has run out - ``File ended while scanning use of \frac`` - has no
+line left to name, so both are only ever in the log behind a ``!``.
+"""
+
+_STOP = "Emergency stop."
+"""TeX's last line, which says where it gave up rather than what was wrong."""
 
 _IMAGE = re.compile(r"(!\[[^\]]*\]\()([^)]*)(\))")
 """A markdown image with its path apart, so that the path can be rewritten or dropped."""
@@ -133,14 +144,13 @@ def render(
         latex, log = _compile(fields, images, work)
         problems = _reported(log, _locations(latex))
         if not (compiled := work / "set.pdf").is_file():
-            # Nothing traced back to a field is the emergency-stop case: xelatex gave up
-            # where it could name no line, so the log's own `!` lines are the only
-            # account there is of why nothing was typeset, and saying none would leave
-            # the refusal naming no cause at all.
-            said = [str(problem) for problem in problems] or _aborted(log)
+            # Why nothing was typeset and not merely that nothing was: whatever stopped
+            # xelatex is among the problems like any other error, traced to the field
+            # the stop happened in where there is one.
+            said = "; ".join(str(problem) for problem in problems)
             raise CompileFailed(
                 f"xelatex produced no PDF of {output.name}"
-                + (": " + "; ".join(said) if said else ".")
+                + (f": {said}" if said else ".")
             )
         output.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(compiled, output)
@@ -252,17 +262,6 @@ def _marked_document(fields: list[tuple[str, str]], available: set[str]) -> str:
     return "\n".join(blocks)
 
 
-def _aborted(log: str) -> list[str]:
-    r"""Everything the xelatex log says went wrong without saying where.
-
-    ``-file-line-error`` rewrites an error that happened at a line of a file, which is
-    what :func:`_reported` reads. An error that happened as the input ran out -
-    ``File ended while scanning use of \frac`` - has no such line, and xelatex prints it
-    the old way, so it is only ever in the log behind a ``!``.
-    """
-    return [error.strip() for error in _ABORTED.findall(log)]
-
-
 def _locations(latex: str) -> list[tuple[int, str]]:
     """Each marker in the generated LaTeX as the line it is on and the field it names."""
     return [
@@ -272,20 +271,49 @@ def _locations(latex: str) -> list[tuple[int, str]]:
     ]
 
 
+def _where(file: str, line: int, locations: list[tuple[int, str]]) -> str:
+    """The field this line of this file is in, or `_SET` if it is in none of them.
+
+    Only ``set.tex`` holds the set's own text, so a line of a package or a font is
+    nothing to do with the markers however it numbers.
+    """
+    where = _SET
+    if file == "set.tex":
+        for number, location in locations:
+            if number <= line:
+                where = location
+    return where
+
+
 def _reported(log: str, locations: list[tuple[int, str]]) -> list[Problem]:
     """The xelatex log's errors as problems, each against the field it happened in.
 
     The same error repeated - a command used twice, say - is one problem, since the
-    author has one thing to go and fix.
+    author has one thing to go and fix. An error printed bare is reported where the
+    ``Emergency stop.`` after it says the reading had got to, that being the only line
+    of an abort with a location on it, and the stop itself only when there is nothing
+    else to say.
     """
-    found = []
+    bare = [message.strip() for message in _BARE.findall(log)]
+    stop = _SET if _STOP in bare else None
+
+    errors = []
     for error in _ERROR.finditer(log):
         file, line, message = error[1], int(error[2]), error[3].strip()
-        where = _SET
-        if file == "set.tex":
-            for number, location in locations:
-                if number <= line:
-                    where = location
+        if message == _STOP:
+            stop = _where(file, line, locations)
+        else:
+            errors.append((_where(file, line, locations), message))
+
+    # Only the first bare error: whatever follows it is TeX unwinding from it, and the
+    # author has the one thing to go and fix.
+    if causes := [message for message in bare if message != _STOP]:
+        errors.append((stop or _SET, causes[0]))
+    elif not errors and stop:
+        errors.append((stop, _STOP))
+
+    found: list[Problem] = []
+    for where, message in errors:
         problem = Problem(where, f"the PDF generator cannot compile this: {message}")
         if problem not in found:
             found.append(problem)

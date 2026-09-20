@@ -1,0 +1,7 @@
+{
+  "description": "A part whose text reads in a file that is not there, which LaTeX announces without a line before stopping. \\input rather than \\usepackage, which after \\begin{document} is refused before the file is ever looked up.",
+  "finalAnswerVisibility": "OPEN_WITH_WARNINGS",
+  "name": "Missing file",
+  "structuredTutorialVisibility": "OPEN",
+  "workedSolutionVisibility": "OPEN_WITH_WARNINGS"
+}

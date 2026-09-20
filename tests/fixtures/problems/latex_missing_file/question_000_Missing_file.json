@@ -1,0 +1,22 @@
+{
+  "displayChatbot": true,
+  "displayFinalAnswer": true,
+  "displayStructuredTutorial": true,
+  "displayWorkedSolution": true,
+  "masterContent": "",
+  "orderNumber": 0,
+  "parts": [
+    {
+      "answerContent": "",
+      "content": "The working is in \\input{nosuchfile}.",
+      "orderNumber": 0,
+      "responseAreas": [],
+      "workedSolution": {
+        "children": [],
+        "content": ""
+      }
+    }
+  ],
+  "publish": true,
+  "title": "Missing file"
+}
