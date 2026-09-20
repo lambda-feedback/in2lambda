@@ -34,7 +34,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             texlive-xetex texlive-latex-recommended texlive-latex-extra \
-            texlive-science texlive-lang-chinese fonts-noto-core fonts-noto-cjk
+            texlive-science texlive-lang-chinese fonts-noto-core fonts-noto-cjk \
+            lmodern texlive-plain-generic texlive-bibtex-extra texlive-lang-arabic
       - name: Linting Checks
         run: |
           poetry run black --check .
