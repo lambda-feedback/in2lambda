@@ -1,4 +1,4 @@
-"""What the command line does with the current and the pre-2.0 form."""
+"""What the command line does with the current and the old form."""
 
 import os
 import shutil
@@ -25,10 +25,10 @@ def test_convert_writes_the_set(filters_dir: str, tmp_path) -> None:
 
 
 @pytest.mark.parametrize("path", ["example.tex", "./example.tex", "ABSOLUTE"])
-def test_old_form_fails_and_names_convert(
+def test_old_form_converts_with_a_deprecation_line(
     path: str, filters_dir: str, monkeypatch, tmp_path
 ) -> None:
-    """The pre-2.0 form errors out whatever the file path looks like.
+    """The old form converts the file for every form of path, and prints one line.
 
     A path starting with ``/`` or ``.`` used to make click print the help and exit 0,
     so every script passing a full path appeared to succeed without converting anything.
@@ -42,18 +42,18 @@ def test_old_form_fails_and_names_convert(
 
     result = CliRunner().invoke(cli, [path, "PartsSepSol"])
 
-    assert result.exit_code != 0
-    assert "in2lambda convert" in result.output
-    assert not (tmp_path / "out").exists()
+    assert result.exit_code == 0, result.output
+    assert "in2lambda FILE FILTER is the old form" in result.stderr
+    assert (tmp_path / "out" / "set.zip").exists()
 
 
-def test_old_form_fails_when_run_as_the_installed_command(
+def test_old_form_works_when_run_as_the_installed_command(
     filters_dir: str, tmp_path
 ) -> None:
-    """The same holds for ``cli()``, which is what the installed command runs.
+    """The old form converts through ``cli()``, which the installed command runs.
 
-    CliRunner calls ``cli.main`` instead, so it cannot see this path: on beartype
-    0.18.5 the import hook left ``cli`` a plain function, and ``cli()`` ran
+    CliRunner calls ``cli.main`` instead, so CliRunner does not cover this path. On
+    beartype 0.18.5 the import hook left ``cli`` a plain function, and ``cli()`` ran
     ``convert``'s body whatever the arguments.
     """
     result = subprocess.run(
@@ -70,9 +70,23 @@ def test_old_form_fails_when_run_as_the_installed_command(
         env={**os.environ, "COLUMNS": "200"},
     )
 
-    assert result.returncode != 0
-    assert "in2lambda convert" in result.stdout + result.stderr
-    assert not (tmp_path / "out").exists()
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "in2lambda FILE FILTER is the old form" in result.stderr
+    assert "old form" not in result.stdout
+    assert (tmp_path / "out" / "set.zip").exists()
+
+
+def test_first_argument_that_is_neither_still_names_convert(
+    monkeypatch, tmp_path
+) -> None:
+    """A first argument that is neither a subcommand nor a file is refused."""
+    monkeypatch.setenv("COLUMNS", "200")  # So the message is not wrapped mid-sentence.
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(cli, ["missing.tex", "PartsSepSol"])
+
+    assert result.exit_code != 0
+    assert "in2lambda convert" in result.output
 
 
 def test_convert_leaves_only_what_it_writes(filters_dir: str, tmp_path) -> None:

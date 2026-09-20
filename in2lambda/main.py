@@ -2,6 +2,7 @@
 
 import getpass
 import importlib
+import os
 import shlex
 import warnings
 from collections.abc import Callable  # Rather than typing's, which beartype warns on.
@@ -167,19 +168,30 @@ def runner(
 
 
 class _Cli(click.RichGroup):
-    """The in2lambda group, which refuses the pre-2.0 command line."""
+    """The in2lambda group, which runs `convert` for a first argument that is a file."""
 
     def resolve_command(self, ctx, args):  # type: ignore[no-untyped-def]
-        """Refuses a first argument that names no command, naming the command to run.
+        """Runs `convert` for a file, and refuses a first argument that is neither.
 
-        Click prints the group's help and exits 0 for a first argument starting with
-        ``/`` or ``.``, so `in2lambda /path/to/questions.tex PartsSepSol` would convert
-        nothing and report no error.
+        A first argument naming a file runs `in2lambda convert` on that file, and one
+        line on stderr names the `in2lambda convert` command to run instead, so a script
+        written before that command existed keeps working. A first argument that names
+        neither a command nor a file is refused, and the message names the `in2lambda
+        convert` command. Click prints the group's help and exits 0 for a first argument
+        starting with ``/`` or ``.``, so `in2lambda /path/to/questions.tex PartsSepSol`
+        would convert nothing and report no error.
         """
         # Shell completion resolves partial command lines, and must not raise.
         if not ctx.resilient_parsing and self.get_command(ctx, args[0]) is None:
+            if os.path.isfile(args[0]):
+                click.echo(
+                    f"in2lambda FILE FILTER is the old form. Run: in2lambda convert {shlex.join(args)}",
+                    err=True,
+                )
+                return super().resolve_command(ctx, ["convert", *args])
             raise click.UsageError(
-                f"in2lambda no longer takes a file directly. Run: in2lambda convert {shlex.join(args)}"
+                f"{args[0]} is not an in2lambda command, and no file of that name exists. "
+                f"To convert a file, run: in2lambda convert {shlex.join(args)}"
             )
         return super().resolve_command(ctx, args)
 
