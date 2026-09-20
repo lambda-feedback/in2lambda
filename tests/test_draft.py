@@ -192,6 +192,7 @@ def test_a_log_entry_that_is_not_a_command_is_refused(
         ("fields", {"b1.ignore": 5}),
         ("fields", {"b1.ignore": {"ranges": "s1"}}),
         ("fields", {"b1.ignore": {"ranges": [[1]]}}),
+        ("fields", {"b1.ignore": {"ranges": [[1, 1]], "layer": 3}}),
     ],
     ids=[
         "log",
@@ -199,12 +200,13 @@ def test_a_log_entry_that_is_not_a_command_is_refused(
         "a field that is a number",
         "ranges that are not a list",
         "a range that is not a pair",
+        "a field with no value",
     ],
 )
 @pytest.mark.parametrize(
     "arguments",
-    [["draft", "replay"], ["draft", "mark", "ignore", "b2"]],
-    ids=["replay", "mark"],
+    [["draft", "replay"], ["draft", "mark", "ignore", "b2"], ["validate"]],
+    ids=["replay", "mark", "validate"],
 )
 def test_a_draft_whose_log_or_fields_is_the_wrong_shape_is_refused(
     field: str, value: Any, arguments: list[str], tmp_path: Path, monkeypatch

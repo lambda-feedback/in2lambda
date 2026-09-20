@@ -27,11 +27,13 @@ DRAFT = "draft.json"
 def _field_fault(field: Any) -> str:
     """What is wrong with the shape of one field of a draft, or "" if nothing is.
 
-    Only ``ranges`` is looked inside for, because it is the only part of a field
-    anything here reads: `in2lambda.draft.record` compares the lines a command is
-    quoting against the lines every field was taken from. The value, the layer, whether
-    it was edited and by whom are written and read back whole, and an edit to any of
-    them is what a replay catches byte for byte.
+    ``ranges`` and ``value`` are what is looked for, because they are the parts of a
+    field anything here reads: `in2lambda.draft.record` compares the lines a command is
+    quoting against the lines every field was taken from, and
+    `in2lambda.draft.report.checks` reports a field whose value says nothing. Only
+    whether there is a value is asked, since the checks look at one as a string or not
+    at all. The layer, whether it was edited and by whom are written and read back
+    whole, and an edit to any of them is what a replay catches byte for byte.
     """
     if not isinstance(field, dict):
         return "is not an object"
@@ -44,6 +46,8 @@ def _field_fault(field: Any) -> str:
         for pair in field["ranges"]
     ):
         return f"has ranges {field['ranges']!r} rather than pairs of line numbers"
+    if "value" not in field:
+        return "has no value"
     return ""
 
 
