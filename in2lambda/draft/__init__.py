@@ -15,6 +15,7 @@ from collections.abc import Callable  # Rather than typing's, which beartype war
 from pathlib import Path
 from typing import Any
 
+from in2lambda.draft.report import checks, overlapping
 from in2lambda.source import (
     DRAFT,
     SourceError,
@@ -129,13 +130,14 @@ def record(
             "Run in2lambda source add --start-over to begin the draft again."
         )
     for filled, field in draft["fields"].items():
-        for taken in field["ranges"]:
-            if any(taken[0] <= end and start <= taken[1] for start, end in ranges):
-                raise AlreadyFilled(
-                    f"Lines {taken[0]}-{taken[1]} are where {filled} came from, so "
-                    f"they cannot also be {key}. Run in2lambda source show to see "
-                    "which lines are still free."
-                )
+        if overlapping(ranges, field["ranges"]):
+            # A field is quoted from one range, so that is the range in the way.
+            taken = field["ranges"][0]
+            raise AlreadyFilled(
+                f"Lines {taken[0]}-{taken[1]} are where {filled} came from, so "
+                f"they cannot also be {key}. Run in2lambda source show to see "
+                "which lines are still free."
+            )
     draft["fields"][key] = {
         "value": value,
         "layer": layer,
@@ -215,6 +217,9 @@ def apply(draft: dict[str, Any], markdown: str, entry: Any) -> str:
     written = handler(draft, markdown, entry["args"], entry["by"])
     # After the handler, so a command that was refused is not recorded as having run.
     draft["log"].append(entry)
+    # A report is about the draft as it was, so the command that changes it takes the
+    # report with it rather than leaving one that describes something else.
+    draft.pop("report", None)
     return written
 
 
@@ -269,6 +274,10 @@ def replay(directory: str = ".") -> None:
     }
     for entry in draft["log"]:
         apply(rebuilt, markdown, entry)
+    # The one thing in a draft that no command wrote: the checks did, over the draft the
+    # commands left, so rebuilding it is running them again rather than copying it.
+    if "report" in draft:
+        rebuilt["report"] = checks(rebuilt)
 
     path = Path(directory) / DRAFT
     if serialise(rebuilt) != path.read_bytes():

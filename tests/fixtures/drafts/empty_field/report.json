@@ -1,0 +1,13 @@
+[
+  {
+    "check": "empty",
+    "field": "q2.text",
+    "message": "q2.text (lines 2-2) is empty.",
+    "ranges": [
+      [
+        2,
+        2
+      ]
+    ]
+  }
+]

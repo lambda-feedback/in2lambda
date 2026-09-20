@@ -1,0 +1,38 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "(a) Give the drag coefficient you used."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "A submarine is towed at speed $U$ through still water. Find the drag force on it."
+  }
+}

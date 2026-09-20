@@ -30,6 +30,13 @@
   },
   {
     "args": {
+      "block": "b4"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
       "at": 12,
       "block": "b5"
     },

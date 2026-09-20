@@ -54,6 +54,10 @@ A draft written before ``log`` and ``fields`` existed has neither, and is refuse
 nothing here wrote: there is no command log to replay it from, and inventing an empty one
 would claim the fields in it came from nowhere. Freezing the source again is the way
 through, which is what the refusal says.
+
+A draft `in2lambda validate` has been run on also has a ``report``, which is not required
+and not looked into: nothing here reads one back, and the next run of the checks writes
+whatever is there over.
 """
 
 _MARKDOWN = "commonmark_x"
@@ -452,6 +456,9 @@ def add(file: str, start_over: bool = False) -> Path:
     # --start-over is the way to throw them away, and the only one.
     log: list[Any] = []
     fields: dict[str, Any] = {}
+    # And what the checks found about it, which still holds for the same reason: this
+    # writes the draft back as it was, so a report of it is a report of what is saved.
+    report: Any = None
     # The blocks a draft already here has, which are not always what parsing the
     # markdown gives: `split block` cuts one in two, and parsing again would undo that
     # while keeping the log entry saying it happened, leaving the ids the fields were
@@ -468,6 +475,7 @@ def add(file: str, start_over: bool = False) -> Path:
                     "invalidates every line range taken from the old draft."
                 )
             found, log, fields = existing["blocks"], existing["log"], existing["fields"]
+            report = existing.get("report")
         elif frozen_path != source and frozen_path.exists():
             raise DraftExists(
                 f"{frozen_path.name} is already there and no {DRAFT} claims it, so it "
@@ -495,6 +503,7 @@ def add(file: str, start_over: bool = False) -> Path:
             "blocks": found,
             "log": log,
             "fields": fields,
+            **({"report": report} if report is not None else {}),
         },
     )
     return draft
