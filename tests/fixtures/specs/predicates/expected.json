@@ -1,0 +1,62 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": "the load is $F = pA$, so the large piston carries 100 times the small one."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "A hydraulic scale has pistons of 20 mm and 200 mm diameter."
+  },
+  "q2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        11,
+        11
+      ]
+    ],
+    "value": "$p = \\rho g h$."
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "Find the pressure 3 m below the surface of a lake."
+  }
+}

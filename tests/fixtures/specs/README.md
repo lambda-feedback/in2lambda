@@ -18,6 +18,11 @@ Each document is one the other three layouts read differently - a question with 
 one solution, or with a part nobody answered - since a document every layout agrees about
 would pin no rule, and a layout given the wrong rule would go on passing.
 
+`predicates` is the other thing a folder can pin: its spec names a `predicates.py` beside it and
+calls functions from it, because what tells its questions from the paragraph about marks is the
+bold each of them starts with, which is markup rather than text. Its log entry names that file
+and hashes it as it does the spec, which is what makes a changed predicate refuse to replay.
+
 A selector matches what pandoc parses, and a field holds the markdown of the lines it was taken
 from. That is why a part written `(a) Find the load.` is a `ListItem` - pandoc reads `(a)` as a
 list marker - while `strip` still has to take the `(a) ` off the front of the value.
