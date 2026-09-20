@@ -601,10 +601,16 @@ def _spec_run(
     raw = _spec_as_run(directory, name, digest)
 
     spec = in2lambda.spec.load(raw)
-    fields, ignored = in2lambda.spec.fields(spec, _elements(markdown), markdown)
+    # The blocks the selectors run over are the ones the parser makes of the source, and
+    # a `split block` since has left the draft holding halves the parser never made. So
+    # an ignored block is named and ranged from here rather than from the draft: the
+    # field then spans the whole of what was ignored, and coverage, which goes by lines
+    # as well as by name, counts each half of a split block as covered by it.
+    elements = _elements(markdown)
+    fields, ignored = in2lambda.spec.fields(spec, elements, markdown)
     for found in fields:
         record(draft, found.key, found.value, layer=1, ranges=found.ranges, by=by)
-    lines = {block["id"]: [block["start"], block["end"]] for block in draft["blocks"]}
+    lines = {block.id: [block.start, block.end] for block, _ in elements}
     # The field `mark ignore` writes, so that coverage need not care which said so.
     for block_id in ignored:
         record(

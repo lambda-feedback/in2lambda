@@ -72,6 +72,39 @@ def test_a_spec_fills_in_the_fields_beside_it_and_replays(
     assert draft_path.read_bytes() == written
 
 
+def test_a_spec_ignoring_a_block_the_draft_has_split_covers_both_halves(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """`split block` gives the draft blocks the parser, which a spec runs over, has not."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "source.md").write_text(
+        "Instructions: answer every question.\nThey are not marked.\n\n"
+        "Q1. Find the load the large piston carries.\n\nSolution: $F = pA$.\n"
+    )
+    (tmp_path / "spec.yaml").write_text(
+        "question: Para text~'^Q\\d+\\.'\n"
+        "solution: Para text~'^Solution:'\n"
+        "strip:    ['^Q\\d+\\. ', '^Solution: ']\n"
+        "ignore:   Para text~'^Instructions'\n"
+        "layout:   PartsOneSol\n"
+    )
+    runner = CliRunner()
+    assert runner.invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+    # The two sentences are one paragraph to pandoc, so the draft now has b1a and b1b
+    # where the spec, run over the source again, sees the one block b1.
+    assert runner.invoke(cli, ["draft", "split", "block", "b1", "2"]).exit_code == 0
+
+    result = runner.invoke(cli, ["spec", "run", "spec.yaml", "--by", "tests"])
+
+    assert result.exit_code == 0, result.output
+    fields = json.loads((tmp_path / "draft.json").read_text())["fields"]
+    assert fields["b1.ignore"]["ranges"] == [[1, 2]]
+    # Both halves are within the lines the ignore field was written over, so neither is
+    # reported as left out.
+    assert "is in no field" not in result.output
+
+
 def test_a_replay_is_refused_once_the_spec_has_changed(
     tmp_path: Path, monkeypatch
 ) -> None:
