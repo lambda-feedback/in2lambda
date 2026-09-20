@@ -4,8 +4,9 @@
 freezes the same document, fills a draft's fields in from it, checks the draft over and
 builds the set from the fields. Each folder in ``fixtures/against_convert`` is one
 document put through both, so that a difference between the two is a test failure rather
-than something a first real run finds. The folder's README says which documents are here,
-which are not, and what the comparison leaves out.
+than something a first real run finds. Where the two routes do differ today, the folder
+holds a ``differs.txt`` naming each place and the ticket that would close it; the folder's
+README says what the comparison folds out before looking.
 
 The zip a draft builds is also compared with the real exports in ``fixtures/exports``, and
 each draft is replayed from its log, so that one run covers what the route writes as well
@@ -14,17 +15,15 @@ as what it says.
 
 import json
 import shutil
-import tempfile
 import warnings
-from functools import cache
 from itertools import zip_longest
 from pathlib import Path
+from typing import Any, Optional
 
 import pytest
 from click.testing import CliRunner
 from conftest import (
     AGAINST_CONVERT,
-    AGAINST_CONVERT_DIR,
     EXPORTS,
     SOURCES_DIR,
     key_paths,
@@ -34,14 +33,12 @@ from conftest import (
 
 import in2lambda.draft
 import in2lambda.draft.report
-import in2lambda.source
 from in2lambda.api.question import Question
 from in2lambda.api.set import Set
 from in2lambda.filters import builtin_filters
 from in2lambda.json_convert.json_convert import _IMAGE
 from in2lambda.main import cli, runner
 from in2lambda.validation import _location
-from in2lambda.validation.delimiters import MathDelimiterError
 
 # Both routes compile the set and render its maths, which is what the two are being
 # compared over, so a machine without the toolchain runs none of this.
@@ -51,34 +48,8 @@ each_folder = pytest.mark.parametrize(
     "folder", AGAINST_CONVERT, ids=lambda path: path.name
 )
 
-PARTS_ONE_SOL = AGAINST_CONVERT_DIR / "PartsOneSol"
-"""The one folder whose document writes a worked solution, which its filter drops."""
-
-_INLINE_DISPLAY = MathDelimiterError.MISSING_NEWLINE_AFTER_OPENING_DISPLAY.value
-"""What the checks report over ``$$x$$`` on one line, which is what t44 is about."""
-
-_QUOTES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"'})
-"""Pandoc's LaTeX reader writes typographic quotes; its commonmark_x writer writes ASCII."""
-
-
-@cache
-def _display_maths_frozen_inline() -> bool:
-    """Whether `source add` writes display maths on one line, which `build` refuses.
-
-    Pandoc's commonmark_x writer puts ``$$x = y$$`` on one line, and
-    `in2lambda.validation.delimiters` reports that as an error, so a draft quoting a
-    block of display maths cannot be built until t44 writes it in block form. This is
-    asked of a document here rather than answered by naming the folders it applies to,
-    so that those folders run as they stand once t44 is in.
-    """
-    with tempfile.TemporaryDirectory() as directory:
-        probe = Path(directory) / "probe.tex"
-        probe.write_text(
-            "\\documentclass{article}\n\\begin{document}\n\\[ x = y \\]\n"
-            "\\end{document}\n"
-        )
-        _, sources = in2lambda.source.frozen(in2lambda.source.add([str(probe)]))
-        return "$$x = y$$" in sources[0]
+_TICKET = "  # "
+"""What a line of a folder's ``differs.txt`` names the ticket closing it after."""
 
 
 def _document(folder: Path, tmp_path: Path, filters_dir: str) -> tuple[Path, str]:
@@ -120,11 +91,7 @@ def _built(folder: Path, tmp_path: Path, filters_dir: str) -> tuple[Path, Path, 
 
     with warnings.catch_warnings(record=True) as said:
         warnings.simplefilter("always")
-        report = in2lambda.draft.report.validate(draft_path)
-    if _display_maths_frozen_inline() and any(
-        _INLINE_DISPLAY in finding["message"] for finding in report
-    ):
-        pytest.skip("t44: display maths is frozen inline")
+        in2lambda.draft.report.validate(draft_path)
     # The checks compile the set and render its maths, which is two of the stages this
     # test is about, so a run that reported neither has not been over them.
     missing = [
@@ -138,91 +105,130 @@ def _built(folder: Path, tmp_path: Path, filters_dir: str) -> tuple[Path, Path, 
 
 
 def _text(markdown: str) -> str:
-    """A field as both routes say it, with the three differences in wording taken off.
+    """A field as both routes say it, with the two differences in wording taken off.
 
     An image reference is compared by the file's name: convert writes the alt text
     ``pictureTag`` where the draft keeps the alt text the document wrote, and the
     exported set names the file as it sits in ``media/`` where the set convert returns
     still holds the path the document wrote. The draft also quotes the lines pandoc
-    wrapped where convert writes a paragraph on one line, and the two readers write
-    quotes differently. The folder's README says all of them.
+    wrapped where convert writes a paragraph on one line. The folder's README says both.
     """
     named = _IMAGE.sub(lambda reference: f"![]({Path(reference[1]).name})", markdown)
-    return " ".join(named.translate(_QUOTES).split())
+    return " ".join(named.split())
 
 
-def _parts(question: Question) -> list[str]:
-    """Each part's text, dropping a lone part that has none.
+def _parts(question: Question) -> list[tuple[str, str]]:
+    """Each part's text and worked solution, dropping a lone part holding neither.
 
-    A question the draft writes without parts exports as one part holding nothing,
-    because Lambda Feedback's template fills a question holding no part with placeholder
-    wording. Convert writes no part at all. The empty part says nothing either way.
+    A question the draft writes without parts or solution exports as one part holding
+    nothing, because Lambda Feedback's template fills a question holding no part with
+    placeholder wording. Convert writes no part at all. The empty part says nothing
+    either way.
     """
-    texts = [_text(part.text) for part in question.parts]
-    return [] if texts == [""] else texts
+    parts = [(_text(part.text), _text(part.worked_solution)) for part in question.parts]
+    return [] if parts == [("", "")] else parts
 
 
-def _same(drafted: Set, converted: Set) -> None:
-    """Raises unless both sets say the same thing, naming the first place they differ.
+def _only(drafted: Optional[Any], thing: str) -> str:
+    """Which of the two routes wrote a question or a part the other one did not."""
+    if drafted is None:
+        return f"convert wrote this {thing} and the draft did not"
+    return f"the draft wrote this {thing} and convert did not"
+
+
+def _differing(where: str, drafted: str, converted: str) -> list[str]:
+    """The line naming a field the two routes write differently, or no line at all."""
+    if drafted == converted:
+        return []
+    return [f"{where}: the draft says {drafted!r} and convert says {converted!r}"]
+
+
+def _differences(drafted: Set, converted: Set) -> list[str]:
+    """Every place the two sets say something different, in question and part order.
 
     Args:
         drafted: The set built from a draft, as `Set.from_json` reads its zip.
         converted: The set `in2lambda convert` made of the same document.
 
-    Raises:
-        AssertionError: the two hold a different number of questions or parts, or one
-            question or part says something the other does not. The message names the
-            question, the part and the field as `in2lambda.validation` names them.
+    Returns:
+        One line per difference, naming the question, the part and the field as
+        `in2lambda.validation` names them and quoting what each route says there.
     """
+    found = []
     questions = zip_longest(drafted.questions, converted.questions)
     for number, (draft_question, convert_question) in enumerate(questions, start=1):
-        where = _location(number, "")
-        assert (
-            draft_question is not None
-        ), f"{where}: convert wrote this question and the draft did not"
-        assert (
-            convert_question is not None
-        ), f"{where}: the draft wrote this question and convert did not"
-
-        drafted_text = _text(draft_question.main_text)
-        converted_text = _text(convert_question.main_text)
-        assert drafted_text == converted_text, (
-            f"{_location(number, '', field='main text')}: the draft says "
-            f"{drafted_text!r} and convert says {converted_text!r}"
-        )
-
-        texts = zip_longest(_parts(draft_question), _parts(convert_question))
-        for index, (draft_part, convert_part) in enumerate(texts):
-            part = _location(number, "", index, "text")
-            assert (
-                draft_part is not None
-            ), f"{part}: convert wrote this part and the draft did not"
-            assert (
-                convert_part is not None
-            ), f"{part}: the draft wrote this part and convert did not"
-            assert draft_part == convert_part, (
-                f"{part}: the draft says {draft_part!r} and convert says "
-                f"{convert_part!r}"
+        if draft_question is None or convert_question is None:
+            found.append(
+                f"{_location(number, '')}: {_only(draft_question, 'question')}"
             )
+            continue
+        found += _differing(
+            _location(number, "", field="main text"),
+            _text(draft_question.main_text),
+            _text(convert_question.main_text),
+        )
+        parts = zip_longest(_parts(draft_question), _parts(convert_question))
+        for index, (draft_part, convert_part) in enumerate(parts):
+            if draft_part is None or convert_part is None:
+                found.append(
+                    f"{_location(number, '', index)}: {_only(draft_part, 'part')}"
+                )
+                continue
+            for field, drafted_value, converted_value in zip(
+                ("text", "worked solution"), draft_part, convert_part
+            ):
+                found += _differing(
+                    _location(number, "", index, field), drafted_value, converted_value
+                )
+    return found
+
+
+def _known(folder: Path) -> list[str]:
+    """The differences the two routes have today, as a folder's ``differs.txt`` has them.
+
+    Each line is one difference as :func:`_differences` words it, with the ticket that
+    would close it written after ``  # ``. A folder with no such file is a document the
+    two routes say the same thing about.
+    """
+    path = folder / "differs.txt"
+    if not path.is_file():
+        return []
+    return [
+        line.split(_TICKET)[0] for line in path.read_text().splitlines() if line.strip()
+    ]
+
+
+def _same(drafted: Set, converted: Set, known: list[str]) -> None:
+    """Raises unless the two sets differ in exactly the places `known` names.
+
+    Args:
+        drafted: The set built from a draft, as `Set.from_json` reads its zip.
+        converted: The set `in2lambda convert` made of the same document.
+        known: The differences the two routes are known to have, as :func:`_known`
+            reads a folder's ``differs.txt``.
+
+    Raises:
+        AssertionError: the two differ somewhere `known` does not name, or agree
+            somewhere it does. The message names the question, the part and the field
+            of every difference, so that a line of ``differs.txt`` can be written from
+            it or found and deleted.
+    """
+    assert _differences(drafted, converted) == known
 
 
 @each_folder
 def test_the_draft_route_agrees_with_convert(
     folder: Path, tmp_path: Path, filters_dir: str, monkeypatch
 ) -> None:
-    """Both routes make the same questions and parts of the same document."""
+    """Both routes make the same set of the same document, bar the folder's differs.txt."""
     monkeypatch.chdir(tmp_path)
     _, source, layout = _built(folder, tmp_path, filters_dir)
 
-    try:
-        converted = runner(str(source), layout)
-    except UnicodeDecodeError:
-        # `image_directories` opens the document as UTF-8 text to look for a
-        # \graphicspath, so convert raises this over every .docx holding an image. The
-        # draft route reads the same document, which is how this test found it.
-        pytest.xfail("convert reads the document as text to find \\graphicspath")
-
-    _same(Set.from_json(str(tmp_path / "out" / "set.zip")), converted)
+    _same(
+        Set.from_json(str(tmp_path / "out" / "set.zip")),
+        runner(str(source), layout),
+        _known(folder),
+    )
 
 
 @each_folder
@@ -268,38 +274,14 @@ def test_the_draft_replays(
     assert draft_path.read_bytes() == written
 
 
-def test_the_draft_holds_the_solutions_convert_drops(
-    tmp_path: Path, filters_dir: str, monkeypatch
-) -> None:
-    """The draft writes both solution environments that the PartsOneSol filter drops.
-
-    That filter matches a Div only when its first element stringifies to ``Solution``,
-    which pandoc writes for no solution environment, so convert exports the layout's
-    examples with no worked solution at all. Fixing it is t52; this says what each route
-    does with the same two environments in the meantime.
-    """
-    monkeypatch.chdir(tmp_path)
-    draft_path, source, layout = _built(PARTS_ONE_SOL, tmp_path, filters_dir)
-
-    fields = json.loads(draft_path.read_text())["fields"]
-    assert "The solution is copied across all parts." in fields["q1.solution"]["value"]
-    assert fields["q2.solution"]["value"] == "And here's the solution"
-    assert not [
-        part
-        for question in runner(str(source), layout).questions
-        for part in question.parts
-        if part.worked_solution
-    ]
-
-
 def test_a_spec_that_swaps_part_and_solution_is_caught(
     tmp_path: Path, monkeypatch
 ) -> None:
     """A draft that says something else about a question fails, naming that question.
 
-    The four folders agree, so a comparison that could not tell them from a draft built
-    wrongly would pass them as well. The spec here reads each solution as the part and
-    each part as the solution.
+    Every folder agrees with convert save where its ``differs.txt`` says, so a
+    comparison that could not tell them from a draft built wrongly would pass them as
+    well. The spec here reads each solution as the part and each part as the solution.
     """
     monkeypatch.chdir(tmp_path)
     source = tmp_path / "source.md"
@@ -330,4 +312,5 @@ def test_a_spec_that_swaps_part_and_solution_is_caught(
         _same(
             Set.from_json(str(tmp_path / "out" / "set.zip")),
             runner(str(source), "PartsOneSol"),
+            [],
         )

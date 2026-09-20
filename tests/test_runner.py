@@ -11,6 +11,7 @@ import os
 
 import pytest
 from click.testing import CliRunner
+from conftest import SOURCES_DIR
 
 from in2lambda.api.set import Set
 from in2lambda.filters import builtin_filters
@@ -64,6 +65,18 @@ def test_runner_writes_importable_json(
         # media/, which is the only place Lambda Feedback looks for one.
         for reference in _IMAGE.findall(written):
             assert (set_dir / "media" / reference).is_file(), reference
+
+
+def test_runner_converts_a_docx_holding_an_image() -> None:
+    r"""A .docx is a zip, and looking in it for a `\graphicspath` reads it as text.
+
+    The image is what reaches that code: `image_path` looks for the file beside the
+    document, does not find it, and then reads the document for the directories a
+    `\graphicspath` names. Every .docx with a figure in it went through there.
+    """
+    result = runner(str(SOURCES_DIR / "docx" / "source.docx"), "PartsOneSol")
+
+    assert result.questions
 
 
 def test_cli_reports_problems_and_exports_anyway(tmp_path) -> None:

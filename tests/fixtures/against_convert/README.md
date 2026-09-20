@@ -17,9 +17,9 @@ document itself, as the ranges in `fixtures/sources` are. They were produced wit
 
 ## What the comparison ignores
 
-The comparison is of each question's main text and of each part's text. Four differences
-between the routes are not differences in what a question says, and are taken off both
-sides before comparing:
+Each question's main text is compared, and each part's text and worked solution. Three
+differences between the routes are not differences in what a question says, and are taken
+off both sides before comparing:
 
 - **Line breaks.** The draft quotes the lines pandoc wrapped; convert writes a paragraph
   on one line. Every run of whitespace is compared as one space.
@@ -27,38 +27,32 @@ sides before comparing:
   the alt text the document wrote, which is empty for `\includegraphics`. The set read back
   from the zip names each file as it sits in the export's `media/`, where the set convert
   returns holds the path the document wrote. Both sides are compared by the file's name.
-- **A lone empty part.** A question the draft writes without parts exports as one part with
-  nothing in it, because Lambda Feedback's template fills a question holding no part with
-  placeholder wording. Convert writes no part at all. A single part with no text is
-  dropped from both.
-- **Typographic quotes.** Pandoc's LaTeX reader writes `’` where its `commonmark_x` writer
-  writes `'`, so `aren’t` reaches convert and `aren't` reaches the draft. Both are folded
-  to the ASCII quotes.
+- **A lone empty part.** A question the draft writes without parts or solution exports as
+  one part with nothing in it, because Lambda Feedback's template fills a question holding
+  no part with placeholder wording. Convert writes no part at all. A single part holding
+  neither text nor a worked solution is dropped from both.
 
-Worked solutions are not compared. The `PartsOneSol` filter matches a solution environment
-only when the Div's first element stringifies to `Solution`, which pandoc never writes, so
-convert drops every worked solution in that layout (t52). `PartsSepSol`'s example, and the
-three source documents, write no solution at all. `test_the_draft_holds_the_solutions_convert_drops`
-asserts on the draft side that the two solution environments of `PartsOneSol/example.tex`
-reach `q1.solution` and `q2.solution`.
+## Where the two routes differ today
 
-## Which layouts are here
+A folder holding a `differs.txt` is a document the two routes make different sets of. Each
+line is one difference, worded as the comparison words it - the question, the part, the
+field, and what each route says there - with the ticket that would close it after `  # `.
+A folder with no such file is a document the two routes say the same thing about.
 
-`PartsOneSol` and `PartsSepSol`. The `PartPartSolSol` and `PartSolPartSol` examples nest
-each question's parts and their solutions inside one top-level list item, which is one
-block of the frozen source: no selector reaches inside it (t51), and no draft command
-writes a `qN.pM.solution` (t53). Add a folder for each of those layouts when both land.
+Finding a difference the file does not list fails the test, and so does agreeing where it
+lists one: closing a ticket below means deleting the lines it names.
 
-## What does not run yet
-
-`docx` is not compared. `in2lambda.filters.markdown.image_directories` opens the document
-as UTF-8 text to look for a `\graphicspath`, so `in2lambda convert` raises a
-`UnicodeDecodeError` over any .docx that holds an image. The comparison reports that
-folder as an expected failure naming the cause, and compares the two routes as soon as
-convert reads the document. The folder's draft is still built, exported and replayed.
-
-`PartsOneSol/spec.yaml` quotes the solution environment holding `$$1+1 = 2$$`, which
-`source add` freezes on one line and `in2lambda validate` reports as an error (t44), so
-`build` refuses the draft. The test probes for that rather than naming the folder: it
-freezes a source of display maths, and skips a folder whose report holds the same finding.
-The folder runs unchanged once t44 writes display maths in block form.
+- **t52** - the `PartsOneSol` filter matches a solution environment only when the Div's
+  first element stringifies to `Solution`, which pandoc writes for no solution environment,
+  so convert drops every worked solution in that layout. The draft writes both solutions
+  of `PartsOneSol/example.tex`, and the second question's solution is a part of its own
+  that convert has nothing to match.
+- **t53** - no draft command writes a `qN.pM.solution`, and no selector reaches inside the
+  top-level `\item` that `PartPartSolSol/example.tex` and `PartSolPartSol/example.tex`
+  nest each part's solution in, so those lines are marked ignore and the draft answers
+  neither part. `in2lambda.draft.export` already reads such a field, and
+  `fixtures/specs/part_part_sol_sol` shows a spec writing one where the source is not
+  nested.
+- **Smart quotes** - pandoc's LaTeX reader writes `’` where its `commonmark_x` writer
+  writes `'`, so convert uploads `aren’t` for `PartsOneSol/example.tex` and the draft
+  uploads `aren't`.

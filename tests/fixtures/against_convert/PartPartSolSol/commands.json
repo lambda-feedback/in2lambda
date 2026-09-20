@@ -8,6 +8,14 @@
   },
   {
     "args": {
+      "at": 9,
+      "block": "b2"
+    },
+    "by": "tests",
+    "command": "split block"
+  },
+  {
+    "args": {
       "text": "s3:4"
     },
     "by": "tests",
@@ -16,7 +24,7 @@
   {
     "args": {
       "question": "q1",
-      "text": "s5:8"
+      "text": "s5:6"
     },
     "by": "tests",
     "command": "part add"
@@ -24,14 +32,21 @@
   {
     "args": {
       "question": "q1",
-      "text": "s9:10"
+      "text": "s7:8"
     },
     "by": "tests",
     "command": "part add"
   },
   {
     "args": {
-      "at": 13,
+      "block": "b2b"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "at": 17,
       "block": "b3"
     },
     "by": "tests",
@@ -46,16 +61,40 @@
   },
   {
     "args": {
+      "at": 18,
       "block": "b3b"
+    },
+    "by": "tests",
+    "command": "split block"
+  },
+  {
+    "args": {
+      "block": "b3ba"
     },
     "by": "tests",
     "command": "mark ignore"
   },
   {
     "args": {
-      "text": "b4"
+      "at": 19,
+      "block": "b3bb"
     },
     "by": "tests",
-    "command": "question add"
+    "command": "split block"
+  },
+  {
+    "args": {
+      "question": "q2",
+      "text": "b3bba"
+    },
+    "by": "tests",
+    "command": "question solution"
+  },
+  {
+    "args": {
+      "block": "b3bbb"
+    },
+    "by": "tests",
+    "command": "mark ignore"
   }
 ]
