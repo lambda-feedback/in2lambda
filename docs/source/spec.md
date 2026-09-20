@@ -7,11 +7,11 @@ every question comes out of the source rather than being retyped:
 ```bash
 $ in2lambda source add questions.docx
 $ in2lambda spec run spec.yaml
-b6 is in no field.
+b6 (lines 12-13) is in no field and not marked ignore.
 ```
 
-The last line is the point of it: a spec run reports every block it made nothing of, so what is
-left to account for is in front of you rather than quietly missing.
+The last line is the point of it: a spec run reports every block it made nothing of, naming the
+lines it is, so what is left to account for is in front of you rather than quietly missing.
 
 The fields a draft holds belong to the spec that wrote them, so a spec is run over a draft once.
 Running an edited one again is refused; freeze the document afresh and run it, which is two

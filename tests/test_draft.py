@@ -303,6 +303,26 @@ def test_lines_another_field_was_taken_from_are_refused(
     assert draft_path.read_bytes() == built
 
 
+def test_the_refusal_names_the_lines_that_are_in_the_way(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A field edited by hand can be quoted from several ranges, only one of them clashing."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(MARK_IGNORE, tmp_path)
+    draft = json.loads(draft_path.read_text())
+    # The maths is part of the heading's block as far as this draft is concerned, which
+    # no command would write but an editor might.
+    draft["fields"]["b1.ignore"]["ranges"] = [[1, 1], [9, 10]]
+    draft_path.write_text(json.dumps(draft))
+
+    result = CliRunner().invoke(cli, ["draft", "question", "add", "--text", "s9:10"])
+
+    assert result.exit_code != 0
+    # Lines 1-1 are free, so naming them would send whoever reads this to the wrong end.
+    assert "Lines 9-10" in result.output
+
+
 @pytest.mark.parametrize(
     ("arguments", "named"),
     [

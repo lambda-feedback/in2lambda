@@ -149,14 +149,16 @@ def record(
             "in2lambda source add --start-over to begin the draft again."
         )
     for filled, field in draft["fields"].items():
-        if overlapping(ranges, field["ranges"]):
-            # A field is quoted from one range, so that is the range in the way.
-            taken = field["ranges"][0]
-            raise AlreadyFilled(
-                f"Lines {taken[0]}-{taken[1]} are where {filled} came from, so "
-                f"they cannot also be {key}. Run in2lambda source show to see "
-                "which lines are still free."
-            )
+        # Each of the field's ranges on its own, so that the refusal names the one in
+        # the way: a field edited by hand can be quoted from several, and the rest of
+        # them may be lines nobody wants.
+        for taken in field["ranges"]:
+            if overlapping(ranges, [taken]):
+                raise AlreadyFilled(
+                    f"Lines {taken[0]}-{taken[1]} are where {filled} came from, so "
+                    f"they cannot also be {key}. Run in2lambda source show to see "
+                    "which lines are still free."
+                )
     draft["fields"][key] = {
         "value": value,
         "layer": layer,
