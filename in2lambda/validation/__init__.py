@@ -18,6 +18,7 @@ from in2lambda.api.question import Question
 from in2lambda.api.response_area import ResponseArea
 from in2lambda.api.set import Set
 from in2lambda.katex_convert.katex_convert import unsupported_commands
+from in2lambda.validation import pdf
 from in2lambda.validation.delimiters import MathDelimiterError, math_delimiter_checker
 
 __all__ = ["MathDelimiterError", "Problem", "math_delimiter_checker", "validate"]
@@ -34,11 +35,14 @@ _DEGREES = re.compile(r"\^\s*\{?\s*\\circ")
 """``^\\circ``, with or without braces around it."""
 
 
-def validate(question_set: Set) -> list[Problem]:
+def validate(question_set: Set, compile: bool = True) -> list[Problem]:
     r"""Everything in2lambda can tell is wrong with a set, in the order it is written.
 
     Args:
         question_set: The set about to be exported.
+        compile: Whether to also compile the set as Lambda Feedback's PDF generator
+            will, which needs pandoc and xelatex - see
+            :mod:`in2lambda.validation.pdf`.
 
     Returns:
         One :class:`~in2lambda.api.problem.Problem` per problem found, each naming the
@@ -50,17 +54,27 @@ def validate(question_set: Set) -> list[Problem]:
         >>> from in2lambda.validation import validate
         >>> s = Set()
         >>> s.add_question("Angles", "Turn through $90^\\circ$.")
-        >>> [str(problem) for problem in validate(s)]
+        >>> [str(problem) for problem in validate(s, compile=False)]
         ['Question 1 "Angles", main text: ^\\circ does not display; write the degree sign ° instead']
     """
     problems: list[Problem] = []
+    # Every markdown field with the location to report it against, kept so that the
+    # whole set can then be compiled in one go rather than a field at a time.
+    fields: list[tuple[str, str]] = []
+    images: list[str] = []
+
+    def check(
+        markdown: str, question: Question, location: str, compiled: bool = True
+    ) -> list[Problem]:
+        if compiled:
+            fields.append((location, markdown))
+        return _markdown_problems(markdown, question, location)
 
     for number, question in enumerate(question_set.questions, start=1):
         where = f'Question {number} "{question.title}"'
-        problems += _markdown_problems(
-            question.main_text, question, f"{where}, main text"
-        )
+        problems += check(question.main_text, question, f"{where}, main text")
 
+        images += question.images
         for image in question.images:
             if not Path(image).is_file():
                 problems.append(Problem(where, f"there is no image file at {image}"))
@@ -72,29 +86,38 @@ def validate(question_set: Set) -> list[Problem]:
                 ("worked solution", part.worked_solution),
                 ("answer", part.answer),
             ):
-                problems += _markdown_problems(
-                    markdown, question, f"{part_where}, {field}"
-                )
+                problems += check(markdown, question, f"{part_where}, {field}")
 
             for area_number, area in enumerate(part.response_areas, start=1):
                 area_where = f"{part_where}, answer box {area_number}"
                 problems += [
                     Problem(area_where, message) for message in _area_problems(area)
                 ]
+                # An answer box is only in the PDF if it is marked to be, so LaTeX it
+                # would not compile cannot break one unless it is.
                 for field, markdown in (
                     ("pre_text", area.pre_text),
                     ("post_text", area.post_text),
                     ("content_after", area.content_after),
                 ):
-                    problems += _markdown_problems(
-                        markdown, question, f"{area_where}, {field}"
+                    problems += check(
+                        markdown,
+                        question,
+                        f"{area_where}, {field}",
+                        area.include_in_pdf,
                     )
                 options = (area.config or {}).get("options")
                 if isinstance(options, list):
                     for option_number, option in enumerate(options, start=1):
-                        problems += _markdown_problems(
-                            option, question, f"{area_where}, option {option_number}"
+                        problems += check(
+                            option,
+                            question,
+                            f"{area_where}, option {option_number}",
+                            area.include_in_pdf,
                         )
+
+    if compile:
+        problems += pdf.problems(fields, images)
 
     return problems
 

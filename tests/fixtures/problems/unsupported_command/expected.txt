@@ -1,1 +1,2 @@
 Question 1 "Magnitude", part (a), text: KaTeX does not render \norm; write \mathbf instead
+Question 1 "Magnitude", part (a), text: the PDF generator cannot compile this: Undefined control sequence.

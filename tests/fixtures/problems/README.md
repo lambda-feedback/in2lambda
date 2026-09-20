@@ -4,6 +4,10 @@ Each folder here is a hand-written Lambda Feedback export exhibiting exactly one
 `in2lambda.validation.validate` looks for, beside the `expected.txt` report it should produce:
 one `str(Problem)` line per problem, which the test compares sorted.
 
+The reports are the ones produced with pandoc and xelatex installed, since the validator then
+also compiles the set as Lambda Feedback's PDF generator does. Without them those tests are
+skipped, because the report would be missing whatever the compiler would have said.
+
 They are written by hand rather than exported by the platform, because the platform does not
 produce broken sets. Real exports live in `../exports`, and the same test suite checks that none
 of them is reported as having a problem.
