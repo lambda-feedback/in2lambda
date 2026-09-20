@@ -24,6 +24,7 @@ from in2lambda.source import (
     _elements,
     _require_conversion_tools,
     blocks,
+    dedented,
     frozen,
     save,
     serialise,
@@ -425,11 +426,27 @@ def _fill(
     return record(
         draft,
         key,
-        "\n".join(markdown.splitlines()[start - 1 : end]),
+        _quoted(draft, markdown, start, end),
         layer=3,
         ranges=[[start, end]],
         by=by,
     )
+
+
+def _quoted(draft: dict[str, Any], markdown: str, start: int, end: int) -> str:
+    """Lines of the frozen source as a field takes them.
+
+    Lines quoted out of a list item are dedented by the item's own indentation, which
+    is the markdown's rather than the author's; the range is still the source lines.
+    The block the lines fall in says whether they are, rather than the text itself, so
+    that a paragraph reading like a list item is quoted as it is written.
+    """
+    text = "\n".join(markdown.splitlines()[start - 1 : end])
+    # Blocks do not overlap, so the one the first line falls in is the one the lines are
+    # part of - a nested item among them included, since only a top-level item is a
+    # block of its own and a range is how one of those is quoted.
+    block = next((b for b in draft["blocks"] if b["start"] <= start <= b["end"]), None)
+    return dedented(text) if block and block["type"] == "list item" else text
 
 
 def _next(draft: dict[str, Any], prefix: str) -> str:

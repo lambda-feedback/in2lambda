@@ -34,7 +34,7 @@ from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
 from in2lambda.filters import builtin_filters
-from in2lambda.source import Block, SourceError
+from in2lambda.source import Block, SourceError, dedented
 
 _KEYS = ("question", "part", "solution", "strip", "ignore", "layout", "predicates")
 """Everything a spec may say. Anything else in one is a typo, and is refused as one."""
@@ -547,6 +547,10 @@ def _stripped(spec: Spec, lines: list[str], block: Block) -> str:
     emphasis and the images in a question survive into the field.
     """
     text = "\n".join(lines[block.start - 1 : block.end])
+    # The list marker and the indent under it are the markdown's, not the author's, so
+    # they come off before the spec's patterns, which are for what is left.
+    if block.type == "list item":
+        text = dedented(text)
     for pattern in spec.strip:
         text = pattern.sub("", text)
     return text.strip()

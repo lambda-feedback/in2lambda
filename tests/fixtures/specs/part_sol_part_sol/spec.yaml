@@ -1,6 +1,6 @@
 question: Para text~'^Q\d+\.'
 part:     ListItem
 solution: Para text~'^Solution:'
-strip:    ['^Q\d+\. ', '^\([a-z]\) ', '^Solution: ']
+strip:    ['^Q\d+\. ', '^Solution: ']
 ignore:   Header
 layout:   PartSolPartSol

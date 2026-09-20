@@ -1,0 +1,32 @@
+[
+  {
+    "args": {
+      "block": "b1"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "text": "s3:4"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "question": "q1",
+      "text": "s6:7"
+    },
+    "by": "tests",
+    "command": "part add"
+  },
+  {
+    "args": {
+      "question": "q1",
+      "text": "s9"
+    },
+    "by": "tests",
+    "command": "part add"
+  }
+]
