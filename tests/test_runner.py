@@ -37,6 +37,32 @@ def test_runner_returns_populated_set(filter_name: str, filters_dir: str) -> Non
 
 
 @pytest.mark.parametrize("filter_name", builtin_filters())
+def test_runner_exports_the_examples_solutions(
+    filter_name: str, filters_dir: str
+) -> None:
+    """A solution written in an example is a worked solution in the exported set.
+
+    Each example that writes a ``solution`` environment answers every question in it, so
+    every part carries a worked solution. An example added later that leaves a question
+    unanswered needs a test of its own rather than a looser assertion here.
+    """
+    example = _example(filters_dir, filter_name)
+    with open(example) as source:
+        written_solutions = "\\begin{solution}" in source.read()
+    if not written_solutions:
+        pytest.skip(f"{filter_name}'s example writes no solution environment")
+
+    result = runner(example, filter_name)
+
+    for number, question in enumerate(result.questions, start=1):
+        assert question.parts, f"question {number} has no parts to answer"
+        for index, part in enumerate(question.parts, start=1):
+            assert (
+                part.worked_solution.strip()
+            ), f"question {number} part {index} has no worked solution"
+
+
+@pytest.mark.parametrize("filter_name", builtin_filters())
 def test_runner_writes_importable_json(
     filter_name: str, filters_dir: str, tmp_path
 ) -> None:
