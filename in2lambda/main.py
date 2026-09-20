@@ -8,6 +8,7 @@
 
 import getpass
 import importlib
+import os
 import shlex
 import warnings
 from collections.abc import Callable  # Rather than typing's, which beartype warns on.
@@ -178,10 +179,10 @@ def runner(
 
 
 class _Cli(click.RichGroup):
-    """The in2lambda group, which says what to run when given the pre-2.0 command line."""
+    """The in2lambda group, which says what to run when given the old command line."""
 
     def resolve_command(self, ctx, args):  # type: ignore[no-untyped-def]
-        """Fail with the new command line rather than click's handling of an unknown name.
+        """Run ``convert`` for the old form, and name it for a first argument that is neither.
 
         Click resolves a first argument starting with ``/`` or ``.`` by printing the
         group's help and exiting successfully, so `in2lambda /path/to/questions.tex
@@ -189,6 +190,12 @@ class _Cli(click.RichGroup):
         """
         # Shell completion resolves partial command lines, and must not raise.
         if not ctx.resilient_parsing and self.get_command(ctx, args[0]) is None:
+            if os.path.isfile(args[0]):
+                click.echo(
+                    f"in2lambda FILE FILTER is the old form. Run: in2lambda convert {shlex.join(args)}",
+                    err=True,
+                )
+                return super().resolve_command(ctx, ["convert", *args])
             raise click.UsageError(
                 f"in2lambda no longer takes a file directly. Run: in2lambda convert {shlex.join(args)}"
             )
