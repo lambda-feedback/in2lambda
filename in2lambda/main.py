@@ -441,9 +441,13 @@ def validate() -> None:
 
     Reports source blocks in no field and not marked ignore, two fields taken from the
     same lines, gaps in the numbering of the questions or their parts, and fields holding
-    nothing, all of which in2lambda build refuses; a question or part nothing answers is
-    reported as a warning, which it builds over. Finding something is not a failure: the
-    report is written into draft.json either way, and replaced by the next one.
+    nothing. The set the draft describes is checked over as well - maths delimiters, what
+    KaTeX will not render, images the export would not carry, and the compile Lambda
+    Feedback's PDF generator does where pandoc and xelatex are installed - each against
+    the field it is written in. All of those in2lambda build refuses; a question or part
+    nothing answers is reported as a warning, which it builds over. Finding something is
+    not a failure: the report is written into draft.json either way, and replaced by the
+    next one.
     """
     with _message_not_traceback():
         report = in2lambda.draft.report.validate()

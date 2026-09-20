@@ -59,6 +59,29 @@ class _Expression(NamedTuple):
     display: bool
 
 
+def _location(
+    number: int, title: str, part: int | None = None, field: str | None = None
+) -> str:
+    """Where in a set something is, as every message here names it.
+
+    The one place that naming lives, since `in2lambda.draft.export` reads it backwards
+    to say which field of a draft a problem reported against it came from.
+
+    Args:
+        number: The question's number, from 1.
+        title: The question's title, quoted even where it is empty.
+        part: Which part of the question, from 0, or None for the question itself.
+        field: Which field - ``main text``, ``worked solution`` - or None for the
+            question or the part as a whole.
+    """
+    where = f'Question {number} "{title}"'
+    if part is not None:
+        where += f", part ({chr(ord('a') + part)})"
+    if field is not None:
+        where += f", {field}"
+    return where
+
+
 def validate(question_set: Set, compile: bool = True) -> list[Problem]:
     r"""Everything in2lambda can tell is wrong with a set, in the order it is written.
 
@@ -99,8 +122,11 @@ def validate(question_set: Set, compile: bool = True) -> list[Problem]:
         return _markdown_problems(markdown, question, location, expressions)
 
     for number, question in enumerate(question_set.questions, start=1):
-        where = f'Question {number} "{question.title}"'
-        problems += check(question.main_text, question, f"{where}, main text")
+        title = question.title
+        where = _location(number, title)
+        problems += check(
+            question.main_text, question, _location(number, title, field="main text")
+        )
 
         images += question.images
         for image in question.images:
@@ -108,13 +134,15 @@ def validate(question_set: Set, compile: bool = True) -> list[Problem]:
                 problems.append(Problem(where, f"there is no image file at {image}"))
 
         for index, part in enumerate(question.parts):
-            part_where = f"{where}, part ({chr(ord('a') + index)})"
+            part_where = _location(number, title, index)
             for field, markdown in (
                 ("text", part.text),
                 ("worked solution", part.worked_solution),
                 ("answer", part.answer),
             ):
-                problems += check(markdown, question, f"{part_where}, {field}")
+                problems += check(
+                    markdown, question, _location(number, title, index, field)
+                )
 
             for area_number, area in enumerate(part.response_areas, start=1):
                 area_where = f"{part_where}, answer box {area_number}"

@@ -43,6 +43,9 @@ TWO_QUESTIONS = DRAFTS_DIR / "two_questions"
 FIGURE = DRAFTS_DIR / "figure_in_a_question"
 """The one whose fields refer to an image file, which the export has to carry."""
 
+DEGREES = DRAFTS_DIR / "degrees"
+"""The one whose report comes from the set the draft describes rather than the draft."""
+
 
 def _built(folder: Path, tmp_path: Path) -> Path:
     """A folder's document, frozen in `tmp_path` with its commands applied and checked."""
@@ -494,6 +497,95 @@ def test_a_clean_draft_is_reported_as_having_nothing_wrong_with_it(
     assert result.exit_code == 0, result.output
     assert result.output == "Nothing to report.\n"
     assert json.loads(draft_path.read_text())["report"] == []
+
+
+@needs_compiler
+def test_validate_reports_what_the_pdf_generator_cannot_compile(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The set a draft describes is compiled as well as read, against the field it is in.
+
+    Only a compile says this: the fixtures cover what is found by reading the markdown,
+    and nothing there would tell a run with the toolchain installed from one without.
+    """
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+    replaced = CliRunner().invoke(
+        cli,
+        [
+            "draft",
+            "field",
+            "replace",
+            "q1.solution",
+            "$Q = \\pi d^2 v / 4$",
+            "$x = \\nosuchcommand$",
+        ],
+    )
+    assert replaced.exit_code == 0, replaced.output
+
+    report = in2lambda.draft.report.validate()
+
+    refused = [
+        finding
+        for finding in report
+        if "the PDF generator cannot compile this" in finding["message"]
+    ]
+    assert [finding["field"] for finding in refused] == ["q1.solution"]
+    # Named as a field of the draft, since that is what `field replace` takes, rather
+    # than as the part of the export the solution ended up answering.
+    assert refused[0]["message"].startswith("q1.solution (lines 16-16): ")
+
+
+@needs_compiler
+def test_a_replay_without_the_toolchain_keeps_what_validate_found_with_it(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A draft is replayed where it is read, which need not be where it was checked.
+
+    Our own Docker image installs pandoc and no xelatex, so a report written here and
+    replayed there would come back a finding short if the replay ran the set checks
+    again - and the draft, untouched, would be called hand-edited.
+    """
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+    replaced = CliRunner().invoke(
+        cli,
+        [
+            "draft",
+            "field",
+            "replace",
+            "q1.solution",
+            "$Q = \\pi d^2 v / 4$",
+            "$x = \\nosuchcommand$",
+        ],
+    )
+    assert replaced.exit_code == 0, replaced.output
+    assert any(
+        "the PDF generator cannot compile this" in finding["message"]
+        for finding in in2lambda.draft.report.validate()
+    )
+
+    monkeypatch.setattr(pdf, "missing_tools", lambda: ["xelatex (how to install it)"])
+    result = CliRunner().invoke(cli, ["draft", "replay"])
+
+    assert result.exit_code == 0, result.output
+
+
+def test_validate_says_what_to_install_rather_than_reporting_the_compile(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The toolchain is optional here as it is everywhere else: the rest still runs."""
+    monkeypatch.chdir(tmp_path)
+    _built(DEGREES, tmp_path)
+    monkeypatch.setattr(pdf, "missing_tools", lambda: ["pandoc (how to install it)"])
+
+    with pytest.warns(UserWarning, match="pandoc"):
+        report = in2lambda.draft.report.validate()
+
+    # What reading the markdown found, and nothing about the compile that was not run:
+    # the set is not compiled at all, so it has nothing to say about it either way.
+    assert [finding["field"] for finding in report] == ["q1.text", "q1.solution"]
+    assert not any("compile" in finding["message"] for finding in report)
 
 
 def test_a_command_run_after_a_report_leaves_none_behind(

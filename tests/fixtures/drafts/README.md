@@ -39,3 +39,8 @@ no parts is what the export has to write out as an empty part rather than as the
 `questions_only` is the sheet half the corpus is - a title, two questions, two parts under the
 first of them and no solution written anywhere - so every one of its findings is a warning, and
 it is the folder that says a draft with nothing answering it is still exported.
+`degrees` writes `^\circ` into the maths of both a question and the one worked solution answering
+its two parts, and is the one folder whose report comes from `in2lambda.validation` over the set
+the draft describes rather than from the checks over the draft itself: the solution is reported
+against `q1.solution` rather than the parts it answers, since that is the field a `field replace`
+would have to change, and reported once rather than once per part it was copied into.
