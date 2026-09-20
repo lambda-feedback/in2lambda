@@ -10,6 +10,12 @@ parts and which are solutions, and which layout they are written in::
     ignore:   Header level=1
     layout:   PartsSepSol
 
+Where a selector cannot say it, a spec names a Python file beside it and calls functions
+from it: ``predicates: predicates.py`` and then ``question: Para bold_lead()``, where
+``bold_lead`` takes the panflute element and says whether the block is one. The file is
+run by :func:`predicates` out of the bytes its caller hashed, so what runs is the file
+the draft's log records having run.
+
 Nothing here decides what a question is: the selectors say which blocks are which, and
 the layout says how a solution is paired up with the question or part it answers, which
 is the one thing that differs between the filters in :mod:`in2lambda.filters` and is
@@ -21,13 +27,16 @@ calls this checks for it first, along with pandoc and panflute.
 """
 
 import re
+import types
+from collections.abc import Callable  # Rather than typing's, which beartype warns on.
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
 from in2lambda.filters import builtin_filters
 from in2lambda.source import Block, SourceError
 
-_KEYS = ("question", "part", "solution", "strip", "ignore", "layout")
+_KEYS = ("question", "part", "solution", "strip", "ignore", "layout", "predicates")
 """Everything a spec may say. Anything else in one is a typo, and is refused as one."""
 
 _ATTRIBUTES = ("level", "text", "label")
@@ -44,9 +53,14 @@ of its own parts is still the question.
 
 _TOKEN = re.compile(
     r"""\s*(?:(?P<name>\w+)\s*(?P<operator>[=~])\s*"""
-    r"""(?:"(?P<double>[^"]*)"|'(?P<single>[^']*)'|(?P<bare>[^\s,]+))|(?P<type>\w+))"""
+    r"""(?:"(?P<double>[^"]*)"|'(?P<single>[^']*)'|(?P<bare>[^\s,]+))"""
+    r"""|(?P<predicate>\w+)\(\)|(?P<type>\w+))"""
 )
-"""One word of a selector: a ``name=value`` or ``name~regex`` constraint, or a type."""
+"""One word of a selector: a constraint, a ``predicate()`` call, or a block type.
+
+The call comes before the type, so that ``bold_lead()`` is read as a call rather than as
+a type named ``bold_lead`` with a pair of brackets nothing can make anything of.
+"""
 
 
 class BadSpec(SourceError):
@@ -80,31 +94,46 @@ class Selector:
 
     type: Optional[str] = None
     constraints: list[Constraint] = field(default_factory=list)
+    predicates: list[str] = field(default_factory=list)
     after: Optional["Selector"] = None
 
-    def matches(self, elements: list[Any], index: int, pf: Any) -> bool:
+    def matches(
+        self,
+        elements: list[Any],
+        index: int,
+        pf: Any,
+        functions: Optional[dict[str, Callable[[Any], Any]]] = None,
+    ) -> bool:
         """Whether the block at `index` is one of these.
 
         Args:
             elements: Every block of the document, as the panflute element it is.
             index: Which of them to decide about.
             pf: The panflute module, imported by the caller that has it.
+            functions: The predicates the spec's file holds, as :func:`predicates` bound
+                them, and None where the spec calls none.
 
         Returns:
-            True if the element is of this type, meets every constraint, and comes
-            after something the ``after`` selector matches.
+            True if the element is of this type, meets every constraint, satisfies every
+            predicate it calls, and comes after something the ``after`` selector matches.
         """
         element = elements[index]
         if self.after is not None and not any(
-            self.after.matches(elements, earlier, pf) for earlier in range(index)
+            self.after.matches(elements, earlier, pf, functions)
+            for earlier in range(index)
         ):
             return False
         if self.type is not None and type(element).__name__ != self.type:
             return False
-        return all(
+        if not all(
             constraint.holds(_attribute(constraint.attribute, element, pf))
             for constraint in self.constraints
-        )
+        ):
+            return False
+        # Last, so that someone's own code only sees the blocks the rest of the selector
+        # has already agreed about - a predicate written for a Para is only given one.
+        called = functions or {}
+        return all(called[name](element) for name in self.predicates)
 
 
 @dataclass
@@ -117,6 +146,8 @@ class Spec:
     solution: Optional[Selector] = None
     ignore: Optional[Selector] = None
     strip: "list[re.Pattern[str]]" = field(default_factory=list)
+    predicates: Optional[str] = None
+    """The Python file its selectors call functions from, where any of them do."""
 
 
 class Field(NamedTuple):
@@ -164,7 +195,9 @@ def _clause(text: str, line: int, after: Optional[Selector] = None) -> Selector:
                 "name~'regex' constraints.",
             )
         position = token.end()
-        if (name := token["name"]) is None:
+        if (called := token["predicate"]) is not None:
+            selector.predicates.append(called)
+        elif (name := token["name"]) is None:
             if selector.type is not None or selector.constraints:
                 raise _refuse(
                     line,
@@ -247,8 +280,10 @@ def load(text: "str | bytes") -> Spec:
 
     Raises:
         BadSpec: the text is not YAML, is in an encoding YAML cannot read, is not a
-            mapping, says something a spec does not, or holds a selector, pattern or
-            layout that cannot be read. Every one of them says which line to look at.
+            mapping, says something a spec does not, holds a selector, pattern or layout
+            that cannot be read, names a file of predicates that is not beside it, or
+            calls a function without naming the file its functions are in. Every one of
+            them says which line to look at.
 
     Examples:
         >>> from in2lambda.spec import load
@@ -306,14 +341,83 @@ def load(text: "str | bytes") -> Spec:
         raise _refuse(
             lines["strip"], f"strip is a list of patterns, which {strip!r} is not."
         )
+
+    file = given.get("predicates")
+    # Beside the spec, and so a name with nothing of a path in it. A spec that could
+    # name a file anywhere would run and log one the folder it is in does not hold, and
+    # the draft would then only replay where that file still sat outside the folder.
+    if file is not None and (not isinstance(file, str) or Path(file).name != file):
+        raise _refuse(
+            lines["predicates"],
+            f"predicates names a Python file beside the spec, which {file!r} is not. "
+            "The name has no directory in it: the file is in the spec's own folder.",
+        )
+    question = _selector(given["question"], lines["question"])
+    rest = {
+        role: _optional(given, role, lines) for role in _ROLES if role != "question"
+    }
+    if file is None:
+        for role, selector in {"question": question, **rest}.items():
+            if selector is not None and (called := _called(selector)):
+                raise _refuse(
+                    lines[role],
+                    f"{called[0]}() is a function, and the spec does not say which "
+                    "Python file its functions are in. Put the file beside the spec "
+                    "and name it with a predicates: line.",
+                )
     return Spec(
-        question=_selector(given["question"], lines["question"]),
+        question=question,
         layout=layout,
-        part=_optional(given, "part", lines),
-        solution=_optional(given, "solution", lines),
-        ignore=_optional(given, "ignore", lines),
+        part=rest["part"],
+        solution=rest["solution"],
+        ignore=rest["ignore"],
         strip=[_pattern(pattern, lines["strip"]) for pattern in strip],
+        predicates=file,
     )
+
+
+def _called(selector: Selector) -> list[str]:
+    """Every function a selector calls, its ``after`` clause included."""
+    return selector.predicates + (_called(selector.after) if selector.after else [])
+
+
+def predicates(spec: Spec, code: bytes, name: str) -> dict[str, Callable[[Any], Any]]:
+    """The functions a spec's selectors call, out of the file it names.
+
+    Args:
+        spec: The spec whose selectors call them, as :func:`load` read it.
+        code: What the file holds, as the bytes its caller hashed. The file is run from
+            these rather than imported by its path, so that what runs is what was
+            checked against the hash the draft's log recorded.
+        name: What the file is called, for the traceback of anything it raises and for
+            the refusal of anything it has not got.
+
+    Returns:
+        One callable per function the spec's selectors name, ready for
+        :meth:`Selector.matches`.
+
+    Raises:
+        BadSpec: the file holds no function of a name a selector calls, or holds
+            something of that name that cannot be called.
+    """
+    # Run as a module of its own rather than imported by path, so that nothing about
+    # where the file is - a name already imported, a stale .pyc - decides what runs.
+    module = types.ModuleType("in2lambda_predicates")
+    exec(compile(code, name, "exec"), module.__dict__)
+    found = {}
+    for role in _ROLES:
+        if (selector := getattr(spec, role)) is None:
+            continue
+        for called in _called(selector):
+            function = getattr(module, called, None)
+            if not callable(function):
+                raise BadSpec(
+                    f"{name} has no function {called} in it, and the spec calls "
+                    f"{called}(). A predicate is a function of one argument, the "
+                    "panflute element, that says whether the block is one of those."
+                )
+            found[called] = function
+    return found
 
 
 def _optional(
@@ -390,7 +494,10 @@ def _keys(layout: str, roles: list[Optional[str]]) -> list[Optional[str]]:
 
 
 def fields(
-    spec: Spec, elements: list[tuple[Block, Any]], markdown: str
+    spec: Spec,
+    elements: list[tuple[Block, Any]],
+    markdown: str,
+    functions: Optional[dict[str, Callable[[Any], Any]]] = None,
 ) -> tuple[list[Field], list[str]]:
     """What a spec makes of a document: its fields, and the blocks it says to ignore.
 
@@ -399,6 +506,8 @@ def fields(
         elements: Every block of the frozen markdown beside the element it is, as
             :func:`in2lambda.source._elements` gives them.
         markdown: The frozen markdown itself, which the values are quoted out of.
+        functions: The predicates its selectors call, as :func:`predicates` bound them,
+            and None for a spec that calls none.
 
     Returns:
         One :class:`Field` per question, part and solution the spec found, and the ids
@@ -414,7 +523,7 @@ def fields(
                 role
                 for role in _ROLES
                 if (selector := getattr(spec, role)) is not None
-                and selector.matches(found, index, pf)
+                and selector.matches(found, index, pf, functions)
             ),
             None,
         )

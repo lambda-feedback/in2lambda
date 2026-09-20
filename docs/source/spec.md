@@ -33,7 +33,8 @@ ignore:   Header level=1
 layout:   PartsSepSol
 ```
 
-`question` and `layout` have to be there; `part`, `solution`, `strip` and `ignore` need not be.
+`question` and `layout` have to be there; `part`, `solution`, `strip`, `ignore` and
+`predicates` need not be.
 
 - **`question`, `part`, `solution`** select the blocks that are each of those things.
 - **`ignore`** selects the blocks that are none of them - a running header, a page of
@@ -41,6 +42,8 @@ layout:   PartsSepSol
   as left out.
 - **`strip`** is a list of patterns taken off the front of every value: the `(a) ` or `1. ` that
   labels a part in the document, but not in the question.
+- **`predicates`** names a Python file beside the spec, for the selectors that cannot say what
+  they mean in constraints alone. See below.
 - **`layout`** is one of the [filters](filters/index), and says which solution answers which
   question or part. See below.
 
@@ -76,6 +79,45 @@ A selector matches what **pandoc** makes of the document, while a field holds th
 the lines it came from. That is worth knowing in two places: a part written `(a) Find the load.`
 is a `ListItem`, because pandoc reads `(a)` as a list marker, and `strip` still has to take the
 `(a) ` off the front of the value, because the line it was copied from still has it.
+
+## Predicates
+
+Some documents cannot be told apart by their text. If the questions are the paragraphs written
+in bold, and a paragraph about marking starts with the word `Question` as surely as they do,
+then no `text~` constraint will do it. For those, a spec names a Python file beside it and calls
+functions from it:
+
+```yaml
+predicates: predicates.py
+question:   Para bold_lead()
+solution:   Para italic_lead()
+layout:     PartsOneSol
+```
+
+A `name()` anywhere in a selector is a call, and goes with a type, with constraints and with
+`after` - `after Header text=Solutions, is_solution()` - all of which have to hold as well. A
+predicate is an ordinary function of one argument, the [panflute](https://scorreia.com/software/panflute/)
+element the block is, that says whether the block is one of those:
+
+```python
+import panflute as pf
+
+
+def bold_lead(element: pf.Element) -> bool:
+    """Whether a block begins in bold."""
+    first = element.content[0] if element.content else None
+    while isinstance(first, pf.Span) and first.content:  # Past the sourcepos spans.
+        first = first.content[0]
+    return isinstance(first, pf.Strong)
+```
+
+The frozen source is parsed with pandoc's `sourcepos`, so that each block knows which lines it
+came from, and that leaves every inline wrapped in a `Span` carrying where it is. A predicate
+looking at the markup has to see through them, as the one above does.
+
+The file is named in the draft's log with its hash, exactly as the spec is, and it is run from
+the bytes that hash was taken of. So a predicate edited after a run is refused the same way an
+edited spec is, by `in2lambda draft replay` and by running the spec again.
 
 ## Layouts
 

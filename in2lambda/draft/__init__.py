@@ -87,7 +87,10 @@ class ReplayDiffers(SourceError):
 
 
 class SpecChanged(SourceError):
-    """The spec file a log names is not the one that ran: it has changed, or gone."""
+    """A file a log names - a spec, or its predicates - is not the one that ran.
+
+    Either it has changed since, or it has gone.
+    """
 
 
 def command(name: str) -> Callable[[Handler], Handler]:
@@ -610,29 +613,107 @@ def _split_block(
     return f"{block}a and {block}b"
 
 
-def _spec_as_run(directory: str, name: str, digest: str) -> bytes:
-    """A spec the log says has run, given it is still there and still says the same.
+def _file_as_run(directory: str, name: str, digest: str) -> bytes:
+    """A file the log says a spec run used, given it still says what it said then.
+
+    Args:
+        directory: Where the draft is, and so what the file is beside.
+        name: What the log calls the file: the spec, or the predicates it names.
+        digest: What the log says the file hashed to when it ran.
+
+    Returns:
+        The contents of the file, for whoever is about to run it.
 
     Raises:
         SpecChanged: there is no such file beside the draft, or it is not the one the
-            log records running. Either way the fields it wrote are fields nothing on
-            disk would write again, so neither a replay nor another run can check them.
+            log records running. Either way the fields the spec wrote are fields nothing
+            on disk would write again, so neither a replay nor another run can check
+            them.
     """
     try:
         raw = (Path(directory) / name).read_bytes()
     except FileNotFoundError:
         raise SpecChanged(
             f"There is no {name} beside {DRAFT}, and the log says the draft was filled "
-            "in from one. Put it back, or start the draft again with in2lambda source "
+            "in with it. Put it back, or start the draft again with in2lambda source "
             "add --start-over."
         ) from None
     if _digest(raw) != digest:
         raise SpecChanged(
-            f"{name} has changed since it was run against {DRAFT}, so the fields it "
-            "wrote are not the ones it would write now. Put it back, or start the "
+            f"{name} has changed since it was run against {DRAFT}, so the fields the "
+            "spec wrote are not the ones it would write now. Put it back, or start the "
             "draft again with in2lambda source add --start-over."
         )
     return raw
+
+
+def _files(args: dict[str, Any]) -> list[tuple[str, str]]:
+    """What a `spec run` entry says it ran, as ``(name, hash)`` for each file.
+
+    The spec, and then the Python file of predicates it named, where it named one.
+
+    Raises:
+        MalformedCommand: the entry names a file without hashing it, or the other way
+            about.
+    """
+    files = [
+        (
+            _argument(args, "spec", "spec run"),
+            _argument(args, "hash", "spec run"),
+        )
+    ]
+    if "predicates" in args or "predicates_hash" in args:
+        files.append(
+            (
+                _argument(args, "predicates", "spec run"),
+                _argument(args, "predicates_hash", "spec run"),
+            )
+        )
+    return files
+
+
+def spec_command(name: str, by: str, directory: str = ".") -> Command:
+    """The `spec run` entry for a spec, with everything it depends on hashed into it.
+
+    The hashes go in the log beside the names, so that a replay can tell whether it is
+    running the files that wrote the fields it is checking.
+
+    Args:
+        name: The spec to run, as it is to be named in the log: beside the draft.
+        by: Who is running it, as a name or a model.
+        directory: Where the draft is, and so what the spec is beside.
+
+    Returns:
+        The command, for :func:`execute` to run.
+
+    Raises:
+        SourceError: pandoc, panflute or pyyaml is missing; the spec cannot be read; or
+            it names a file of predicates that is not beside it.
+    """
+    _require_conversion_tools()
+    try:
+        raw = (Path(directory) / name).read_bytes()
+    except OSError:
+        raise in2lambda.spec.BadSpec(
+            f"There is no {name} to read a spec from. A spec is the file of selectors "
+            "the draft's fields are filled in from."
+        ) from None
+    args: dict[str, Any] = {"spec": name, "hash": _digest(raw)}
+    spec = in2lambda.spec.load(raw)
+    if spec.predicates is not None:
+        # Beside the spec, which is what a spec naming a file next to it means and all
+        # that load lets one name, and recorded from the draft's directory, which is
+        # what the log names things from.
+        beside = (Path(name).parent / spec.predicates).as_posix()
+        try:
+            code = (Path(directory) / beside).read_bytes()
+        except OSError:
+            raise in2lambda.spec.BadSpec(
+                f"There is no {beside} to read the spec's predicates from. The "
+                "functions a spec calls are in a Python file beside it."
+            ) from None
+        args |= {"predicates": beside, "predicates_hash": _digest(code)}
+    return {"command": "spec run", "args": args, "by": by}
 
 
 @command("spec run")
@@ -641,29 +722,32 @@ def _spec_run(
 ) -> str:
     """Fills in a draft's fields from a spec of selectors over the frozen source."""
     _require_conversion_tools()
-    name = _argument(args, "spec", "spec run")
-    digest = _argument(args, "hash", "spec run")
-    # Every spec the log says has run, rather than one named the same way as this one: a
-    # spec that has been edited since leaves fields the log can no longer reproduce
-    # whatever it is spelled as now, so what has run is what to check. On a replay this
-    # re-reads specs whose own entries checked them, which is a file read each.
+    # Every file every spec the log says has run was run with, rather than one named the
+    # same way as this one: a spec that has been edited since leaves fields the log can
+    # no longer reproduce whatever it is spelled as now, so what has run is what to
+    # check. On a replay this re-reads files whose own entries checked them, which is a
+    # file read each.
     for entry in map(_checked, draft["log"]):
         if entry["command"] == "spec run":
-            _spec_as_run(
-                directory,
-                _argument(entry["args"], "spec", "spec run"),
-                _argument(entry["args"], "hash", "spec run"),
-            )
-    raw = _spec_as_run(directory, name, digest)
+            for file, digest in _files(entry["args"]):
+                _file_as_run(directory, file, digest)
+    raw = [_file_as_run(directory, file, digest) for file, digest in _files(args)]
 
-    spec = in2lambda.spec.load(raw)
+    spec = in2lambda.spec.load(raw[0])
+    functions = None
+    if spec.predicates is not None:
+        # Named by the entry rather than taken from the spec, so that what is run is the
+        # file the hash beside it in the log was checked against.
+        functions = in2lambda.spec.predicates(
+            spec, raw[-1], _argument(args, "predicates", "spec run")
+        )
     # The blocks the selectors run over are the ones the parser makes of the source, and
     # a `split block` since has left the draft holding halves the parser never made. So
     # an ignored block is named and ranged from here rather than from the draft: the
     # field then spans the whole of what was ignored, and `uncovered`, which goes by the
     # lines a field was taken from, counts each half of a split block as covered by it.
     elements = _elements(markdown)
-    fields, ignored = in2lambda.spec.fields(spec, elements, markdown)
+    fields, ignored = in2lambda.spec.fields(spec, elements, markdown, functions)
     for found in fields:
         record(draft, found.key, found.value, layer=1, ranges=found.ranges, by=by)
     lines = {block.id: [block.start, block.end] for block, _ in elements}

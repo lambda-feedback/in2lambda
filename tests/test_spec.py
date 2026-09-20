@@ -18,10 +18,18 @@ import pytest
 from click.testing import CliRunner
 from conftest import SPECS, SPECS_DIR
 
+import in2lambda.draft
 from in2lambda.main import cli
+from in2lambda.source import SourceError
 
 WORKED_EXAMPLE = SPECS_DIR / "parts_sep_sol"
 """The case the tests below happen to use; what they check holds for any of them."""
+
+PREDICATES = SPECS_DIR / "predicates"
+"""The one whose spec calls functions from a file beside it, for the tests about those."""
+
+HASHED = {"spec": "hash", "predicates": "predicates_hash"}
+"""The files a `spec run` entry names, and what it calls each one's hash."""
 
 
 def _frozen(folder: Path, tmp_path: Path) -> CliRunner:
@@ -30,6 +38,11 @@ def _frozen(folder: Path, tmp_path: Path) -> CliRunner:
     runner = CliRunner()
     assert runner.invoke(cli, ["source", "add", "source.md"]).exit_code == 0
     return runner
+
+
+def _sha(path: Path) -> str:
+    """A file's hash, written the way the log writes one."""
+    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
 @pytest.mark.parametrize("folder", SPECS, ids=lambda path: path.name)
@@ -52,14 +65,18 @@ def test_a_spec_fills_in_the_fields_beside_it_and_replays(
     ]
     assert reported == (folder / "uncovered.txt").read_text().split()
 
-    # The spec is named and hashed in the log, so a replay runs the one that ran.
-    spec = (tmp_path / "spec.yaml").read_bytes()
+    # Every file the run needed is named and hashed in the log, so a replay runs the
+    # ones that ran - and a spec calling no functions names no file of them.
+    named = {"spec": "spec.yaml"}
+    if "predicates:" in (folder / "spec.yaml").read_text():
+        named["predicates"] = "predicates.py"
     assert draft["log"] == [
         {
             "command": "spec run",
             "args": {
-                "spec": "spec.yaml",
-                "hash": f"sha256:{hashlib.sha256(spec).hexdigest()}",
+                key: value
+                for file, name in named.items()
+                for key, value in ((file, name), (HASHED[file], _sha(tmp_path / name)))
             },
             "by": "tests",
         }
@@ -129,59 +146,75 @@ def test_the_checks_read_the_fields_a_spec_wrote(tmp_path: Path, monkeypatch) ->
     ]
 
 
+@pytest.mark.parametrize("file", ["spec.yaml", "predicates.py"])
 def test_a_replay_is_refused_once_the_spec_has_changed(
-    tmp_path: Path, monkeypatch
+    file: str, tmp_path: Path, monkeypatch
 ) -> None:
-    """The fields came from the spec as it was, so a replay of a new one proves nothing."""
+    """The fields came from the files as they were, so a replay of new ones proves nothing."""
     monkeypatch.setenv("COLUMNS", "200")  # So the message is not wrapped mid-sentence.
     monkeypatch.chdir(tmp_path)
-    runner = _frozen(WORKED_EXAMPLE, tmp_path)
+    runner = _frozen(PREDICATES, tmp_path)
     assert runner.invoke(cli, ["spec", "run", "spec.yaml"]).exit_code == 0
     draft_path = tmp_path / "draft.json"
     written = draft_path.read_bytes()
 
-    spec = tmp_path / "spec.yaml"
-    spec.write_text(spec.read_text().replace("PartsSepSol", "PartsOneSol"))
+    _edit(tmp_path / file)
     result = runner.invoke(cli, ["draft", "replay"])
 
     assert result.exit_code != 0
-    assert "spec.yaml has changed" in result.output
+    assert f"{file} has changed" in result.output
     assert draft_path.read_bytes() == written
 
 
+def _edit(path: Path) -> None:
+    """Changes a file without changing what it says, which YAML and Python both allow."""
+    path.write_bytes(path.read_bytes() + b"\n# Changed since it was run.\n")
+
+
 @pytest.mark.parametrize(
-    "named",
-    ["spec.yaml", "./spec.yaml", "spec2.yaml"],
-    ids=["as it was", "spelled another way", "as a copy"],
+    ("file", "named"),
+    [
+        ("spec.yaml", "spec.yaml"),
+        ("spec.yaml", "./spec.yaml"),
+        ("spec.yaml", "spec2.yaml"),
+        ("predicates.py", "spec.yaml"),
+    ],
+    ids=[
+        "as it was",
+        "spelled another way",
+        "as a copy",
+        "its predicates edited",
+    ],
 )
 def test_running_an_edited_spec_again_is_refused(
-    named: str, tmp_path: Path, monkeypatch
+    file: str, named: str, tmp_path: Path, monkeypatch
 ) -> None:
     """The fields of the first run would stay, and the draft could never replay again."""
     monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.chdir(tmp_path)
-    runner = _frozen(WORKED_EXAMPLE, tmp_path)
+    runner = _frozen(PREDICATES, tmp_path)
     assert runner.invoke(cli, ["spec", "run", "spec.yaml"]).exit_code == 0
     draft_path = tmp_path / "draft.json"
     written = draft_path.read_bytes()
 
-    spec = tmp_path / "spec.yaml"
-    spec.write_text(spec.read_text().replace("PartsSepSol", "PartsOneSol"))
+    edited = tmp_path / file
+    was = edited.read_bytes()
+    _edit(edited)
     # However the second run names the spec - the way the first did, another way round
     # to the same file, or as a copy under a name of its own - what is refused is that
-    # the spec the draft was filled in from has changed, since that is what no replay
+    # a file the draft was filled in from has changed, since that is what no replay
     # could get past afterwards.
-    shutil.copy(spec, tmp_path / "spec2.yaml")
+    shutil.copy(tmp_path / "spec.yaml", tmp_path / "spec2.yaml")
     result = runner.invoke(cli, ["spec", "run", named])
 
     assert result.exit_code != 0
-    # Named as the spec that ran, whatever this run called it, and refused for having
-    # changed rather than for the fields of the first run being in the way.
-    assert "spec.yaml has changed" in result.output
+    # Named as the file that ran, whatever this run called the spec, and refused for
+    # having changed rather than for the fields of the first run being in the way.
+    assert f"{file} has changed" in result.output
     assert "--start-over" in result.output
     assert draft_path.read_bytes() == written
     # And what is on disk is still a draft that replays, which is the point of refusing.
-    spec.write_text(spec.read_text().replace("PartsOneSol", "PartsSepSol"))
+    edited.write_bytes(was)
     assert runner.invoke(cli, ["draft", "replay"]).exit_code == 0
 
 
@@ -210,20 +243,28 @@ def test_a_spec_run_over_a_log_holding_something_that_is_not_a_command_is_refuse
     assert draft_path.read_bytes() == written
 
 
+@pytest.mark.parametrize("file", ["spec.yaml", "predicates.py"])
 def test_a_replay_is_refused_once_the_spec_has_gone(
-    tmp_path: Path, monkeypatch
+    file: str, tmp_path: Path, monkeypatch
 ) -> None:
-    """A draft names the spec that filled it in, and someone may well have moved it."""
+    """A draft names the files that filled it in, and someone may well have moved one."""
     monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.chdir(tmp_path)
-    runner = _frozen(WORKED_EXAMPLE, tmp_path)
+    runner = _frozen(PREDICATES, tmp_path)
     assert runner.invoke(cli, ["spec", "run", "spec.yaml"]).exit_code == 0
-    (tmp_path / "spec.yaml").unlink()
+    written = (tmp_path / "draft.json").read_bytes()
+    (tmp_path / file).unlink()
 
     result = runner.invoke(cli, ["draft", "replay"])
+    again = runner.invoke(cli, ["spec", "run", "spec.yaml"])
 
+    # Neither a replay nor another run can check fields written by a file that is not
+    # there to write them again.
     assert result.exit_code != 0
-    assert "spec.yaml" in result.output
+    assert file in result.output
+    assert again.exit_code != 0
+    assert file in again.output
+    assert (tmp_path / "draft.json").read_bytes() == written
 
 
 @pytest.mark.parametrize(
@@ -236,6 +277,17 @@ def test_a_replay_is_refused_once_the_spec_has_gone(
         ("question: Sausage\nlayout: PartsOneSol\n", "line 1", "pandoc element"),
         ("question: Header colour=blue\nlayout: PartsOneSol\n", "line 1", "colour"),
         ("quesiton: Header\nlayout: PartsOneSol\n", "line 1", "quesiton"),
+        ("question: Para lead()\nlayout: PartsOneSol\n", "line 1", "predicates:"),
+        (
+            "question: Header\npredicates: 5\nlayout: PartsOneSol\n",
+            "line 2",
+            "predicates names a Python file",
+        ),
+        (
+            "question: Para lead()\npredicates: ../shared.py\nlayout: PartsOneSol\n",
+            "line 2",
+            "../shared.py",
+        ),
     ],
     ids=[
         "not yaml",
@@ -245,6 +297,9 @@ def test_a_replay_is_refused_once_the_spec_has_gone(
         "unknown type",
         "unknown attribute",
         "typo",
+        "a function with no file to find it in",
+        "predicates that is not a file name",
+        "predicates somewhere other than beside the spec",
     ],
 )
 def test_a_spec_that_cannot_be_read_says_which_line_to_look_at(
@@ -265,6 +320,48 @@ def test_a_spec_that_cannot_be_read_says_which_line_to_look_at(
     assert isinstance(result.exception, SystemExit)
     # Nothing is half written: the draft is as it was before the spec was run.
     assert (tmp_path / "draft.json").read_bytes() == written
+
+
+@pytest.mark.parametrize(
+    ("spec", "named"),
+    [
+        (
+            "predicates: nowhere.py\nquestion: Para bold_lead()\nlayout: PartsOneSol\n",
+            ["nowhere.py"],
+        ),
+        (
+            "predicates: predicates.py\nquestion: Para sausage()\nlayout: PartsOneSol\n",
+            ["predicates.py", "sausage"],
+        ),
+    ],
+    ids=["a file that is not there", "a function the file has not got"],
+)
+def test_a_spec_calling_a_predicate_nothing_holds_is_refused(
+    spec: str, named: list[str], tmp_path: Path, monkeypatch
+) -> None:
+    """A predicate is named twice - in the spec and in the file - so it can be misspelt."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    runner = _frozen(PREDICATES, tmp_path)
+    written = (tmp_path / "draft.json").read_bytes()
+    (tmp_path / "spec.yaml").write_text(spec)
+
+    result = runner.invoke(cli, ["spec", "run", "spec.yaml"])
+
+    assert result.exit_code != 0
+    for name in named:
+        assert name in result.output
+    assert isinstance(result.exception, SystemExit)
+    assert (tmp_path / "draft.json").read_bytes() == written
+
+
+def test_a_spec_that_is_not_there_is_refused_rather_than_left_to_the_file_system(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The command line checks the path; a script calling this straight does not."""
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SourceError, match="nowhere.yaml"):
+        in2lambda.draft.spec_command("nowhere.yaml", "tests")
 
 
 def test_a_spec_saved_as_utf_16_is_read_like_any_other(

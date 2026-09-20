@@ -1,0 +1,6 @@
+predicates: predicates.py
+question:   Para bold_lead()
+solution:   Para italic_lead()
+strip:      ['^\*\*Q\d+\.\*\* ', '^\*Solution:\* ']
+ignore:     Header
+layout:     PartsOneSol
