@@ -334,6 +334,12 @@ $ in2lambda draft question solution q2 --text b8b
 Wrote q2.solution.
 ```
 
+This sheet writes one solution per question. A sheet that writes a solution under each part is
+quoted part by part instead, by `in2lambda draft part solution PART --text RANGE`, where PART is
+written `q1.p2`. It writes `q1.p2.solution`, takes `--text` and `--literal` as
+`in2lambda draft question solution` does, and refuses a part that `in2lambda draft part add` has
+not written.
+
 ## Change what a field says
 
 The sheet writes the second solution with `\half`, which KaTeX does not define, and

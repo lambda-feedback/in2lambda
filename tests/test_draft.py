@@ -397,6 +397,11 @@ def test_the_refusal_names_the_lines_that_are_in_the_way(
         (["draft", "question", "add", "--text", "s8", "--literal", "Words."], "both"),
         (["draft", "question", "add"], "neither"),
         (["draft", "part", "add", "q9", "--text", "s8"], "q9"),
+        (["draft", "part", "solution", "q1.p9", "--text", "s8"], "no part q1.p9"),
+        # A question is not a part of one, and the field it would write is q1.solution,
+        # which is the other command's.
+        (["draft", "part", "solution", "q1", "--text", "s8"], "no part q1"),
+        (["draft", "part", "solution", "q1.p", "--text", "s8"], "no part q1.p"),
         (["draft", "split", "block", "b3", "5"], "b3 is lines 5-6"),
         (["draft", "split", "block", "b3", "7"], "b3 is lines 5-6"),
         # q1.text has a $d$ and a $v$ in it, so a $ names four places and none of them.
@@ -422,6 +427,9 @@ def test_the_refusal_names_the_lines_that_are_in_the_way(
         "a text and a literal",
         "no text and no literal",
         "a question nothing has written",
+        "a part nothing has written",
+        "a question where a part was asked for",
+        "a part id that is not one",
         "a split at the line the block starts on",
         "a split past the line it ends on",
         "wording the field says more than once",

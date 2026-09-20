@@ -1,0 +1,110 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        11,
+        11
+      ]
+    ],
+    "value": "Solution: $W = nRT\\ln(V_1/V_2)$."
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "Find the work done on the gas."
+  },
+  "q1.p2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        13,
+        13
+      ]
+    ],
+    "value": "Solution: $Q = W$, since the internal energy does not change."
+  },
+  "q1.p2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": "Find the heat rejected."
+  },
+  "q1.p3.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "Sketch the process on a $p$-$V$ diagram."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "Q1. An ideal gas is compressed isothermally from $V_1$ to $V_2$."
+  },
+  "q2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        17,
+        17
+      ]
+    ],
+    "value": "Solution: $\\eta = 1 - T_c/T_h = 0.5$."
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        15,
+        15
+      ]
+    ],
+    "value": "Q2. Find the efficiency of a Carnot engine between 300 K and 600 K."
+  }
+}
