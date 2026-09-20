@@ -10,6 +10,8 @@ name = "in2lambda"
 version = "0.2.1"  # <-- This line here
 ```
 
+and add an entry to [`CHANGELOG.md`](https://github.com/lambda-feedback/in2lambda/blob/main/CHANGELOG.md) saying what changed for anyone using the command line or the Python API.
+
 2) Create a new [tag](https://git-scm.com/book/en/v2/Git-Basics-Tagging) for the docker image to be built. For instance, to tag a version v1.2.3:
 
 ```shell
