@@ -80,7 +80,7 @@ def _runs(lines: list[int]) -> list[list[int]]:
 
 
 def uncovered(draft: dict[str, Any]) -> list[Finding]:
-    """Blocks of the source that no field, and no `mark ignore`, accounts for.
+    """Blocks of the sources that no field, and no `mark ignore`, accounts for.
 
     A block partly quoted is reported for the rest of it: a question taken from the first
     line of a block leaves the other lines as much unaccounted for as a whole block would.
@@ -92,34 +92,38 @@ def uncovered(draft: dict[str, Any]) -> list[Finding]:
 
     Returns:
         One :data:`Finding` per block with lines nothing has made anything of, in
-        document order. `in2lambda.spec` reports through this as well as the checks do:
-        what a spec run left out is the same question asked the moment it finishes.
+        document order and source by source. `in2lambda.spec` reports through this as
+        well as the checks do: what a spec run left out is the same question asked the
+        moment it finishes.
     """
+    # By source as well as by line: line 12 of the solutions document is not line 12 of
+    # the sheet, and a field quoting the one accounts for nothing in the other.
     claimed = {
-        line
+        (field.get("source", 1), line)
         for field in draft["fields"].values()
         for start, end in field["ranges"]
         for line in range(start, end + 1)
     }
     found = []
-    for block in draft["blocks"]:
-        free = _runs(
-            [
-                line
-                for line in range(block["start"], block["end"] + 1)
-                if line not in claimed
-            ]
-        )
-        if free:
-            found.append(
-                {
-                    "check": "uncovered",
-                    "field": block["id"],
-                    "ranges": free,
-                    "message": f"{block['id']}{_where(free)} is in no field and not "
-                    "marked ignore.",
-                }
+    for number, source in enumerate(draft["sources"], start=1):
+        for block in source["blocks"]:
+            free = _runs(
+                [
+                    line
+                    for line in range(block["start"], block["end"] + 1)
+                    if (number, line) not in claimed
+                ]
             )
+            if free:
+                found.append(
+                    {
+                        "check": "uncovered",
+                        "field": block["id"],
+                        "ranges": free,
+                        "message": f"{block['id']}{_where(free)} is in no field and not "
+                        "marked ignore.",
+                    }
+                )
     return found
 
 
@@ -141,7 +145,10 @@ def _overlaps(draft: dict[str, Any]) -> list[Finding]:
         }
         for index, key in enumerate(keys)
         for other in keys[index + 1 :]
-        if overlapping(fields[key]["ranges"], fields[other]["ranges"])
+        # Of the same source, since the same lines of two documents are not the same
+        # lines, as `in2lambda.draft.record` compares them.
+        if fields[key].get("source", 1) == fields[other].get("source", 1)
+        and overlapping(fields[key]["ranges"], fields[other]["ranges"])
     ]
 
 
@@ -223,7 +230,9 @@ def checks(draft: dict[str, Any]) -> list[Finding]:
     Examples:
         >>> from in2lambda.draft.report import checks
         >>> draft = {
-        ...     "blocks": [{"id": "b1", "type": "paragraph", "start": 1, "end": 2}],
+        ...     "sources": [
+        ...         {"blocks": [{"id": "b1", "type": "paragraph", "start": 1, "end": 2}]}
+        ...     ],
         ...     "fields": {},
         ... }
         >>> [finding["message"] for finding in checks(draft)]
@@ -261,8 +270,8 @@ def validate(directory: str = ".") -> list[Finding]:
     Raises:
         DraftMissing: there is no draft in that directory.
         DraftUnreadable: what is there is not a draft anything here wrote.
-        SourceUnreadable: the markdown the draft names has moved, or is not text.
-        DraftExists: the markdown has changed since the draft was written from it, so
+        SourceUnreadable: a markdown the draft names has moved, or is not text.
+        DraftExists: a markdown has changed since the draft was written from it, so
             the lines the report named would not be the lines it was written about.
     """
     draft, _ = frozen(directory)

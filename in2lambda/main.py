@@ -226,20 +226,32 @@ def convert(
 
 @cli.group("source")
 def source_group() -> None:
-    """Freezes a source document, so its text can be quoted by line range."""
+    """Freezes the source documents of a draft, so their text can be quoted by line range."""
 
 
 @source_group.command("add")
-@click.argument("file", type=click.Path(exists=True, dir_okay=False, resolve_path=True))
+@click.argument(
+    "files",
+    nargs=-1,
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, resolve_path=True),
+)
 @click.option(
     "--start-over",
     is_flag=True,
-    help="Freeze FILE again, discarding the draft already there.",
+    help="Freeze FILES again, discarding the draft already there.",
 )
-def source_add(file: str, start_over: bool) -> None:
-    """Converts FILE to markdown and records its blocks in draft.json beside it."""
+def source_add(files: tuple[str, ...], start_over: bool) -> None:
+    """Converts each FILE to markdown and records its blocks in draft.json beside them.
+
+    A sheet written as two documents - the questions in one file and the solutions in
+    another - is frozen as both, in that order: in2lambda source add questions.docx
+    solutions.docx. A file can be added to the draft later, as the next source. The
+    first source's blocks and lines are named b3 and s10:14; every source after it
+    carries its number - 2/b3, 2/s10:14.
+    """
     with _message_not_traceback():
-        draft = in2lambda.source.add(file, start_over)
+        draft = in2lambda.source.add(list(files), start_over)
     click.echo(f"Wrote {draft}")
 
 
@@ -273,8 +285,9 @@ def _text_or_literal(command: Callable[..., None]) -> Callable[..., None]:
         ),
         click.option(
             "--text",
-            help="Where in the frozen source the text is: a block id such as b3, or "
-            "lines such as s10:14. Run in2lambda source show to see both.",
+            help="Where in a frozen source the text is: a block id such as b3, or "
+            "lines such as s10:14, with the source's number in front - 2/b3, 2/s10:14 "
+            "- for any but the first. Run in2lambda source show to see both.",
         ),
     ):
         command = option(command)

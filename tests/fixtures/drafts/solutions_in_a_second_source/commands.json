@@ -1,0 +1,17 @@
+[
+  {
+    "args": {
+      "hash": "sha256:e6f8f7aff47a4ea67756f0084709ba055209351bcab9607538a50ed440797907",
+      "spec": "spec.yaml"
+    },
+    "by": "tests",
+    "command": "spec run"
+  },
+  {
+    "args": {
+      "block": "2/b7"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  }
+]

@@ -22,6 +22,12 @@ is the one thing that differs between the filters in :mod:`in2lambda.filters` an
 copied from them here. What comes out is one field per question, part and solution, so
 that a draft written by a spec says the same things as a draft written by hand.
 
+The same spec runs over every source a draft has frozen. The first is the sheet, laid
+out as the layout says; a source after it is a document of solutions written separately,
+and its solutions are paired onto the questions of the sheet the way ``in2lambda convert
+-a`` pairs an answers file - the ``question`` selector picking out the marker above each
+question's solutions rather than a question.
+
 Reading a spec needs pyyaml, which only the ``convert`` extra installs; the command that
 calls this checks for it first, along with pandoc and panflute.
 """
@@ -156,6 +162,8 @@ class Field(NamedTuple):
     key: str
     value: str
     ranges: list[list[int]]
+    source: int
+    """Which of the draft's frozen sources the ranges are lines of, numbered from 1."""
 
 
 def _attribute(name: str, element: Any, pf: Any) -> Optional[str]:
@@ -445,11 +453,12 @@ def _stems(roles: list[Optional[str]]) -> list[Optional[str]]:
     return stems
 
 
-def _slots(roles: list[Optional[str]], stems: list[Optional[str]]) -> list[str]:
-    """What a separate section of solutions answers, one after another.
+def _slots(roles: list[Optional[str]], stems: list[Optional[str]]) -> list[list[str]]:
+    """What a separate section of solutions answers, question by question.
 
-    Each question with parts is its parts; each question without is itself. That is the
-    order the solutions in a PartsSepSol document are written in.
+    Each question with parts is answered part by part; each question without is answered
+    itself. That is the order the solutions in a PartsSepSol document are written in, and
+    the order a document of solutions written beside the sheet is written in.
     """
     questions: list[tuple[str, list[str]]] = []
     for index, role in enumerate(roles):
@@ -457,13 +466,31 @@ def _slots(roles: list[Optional[str]], stems: list[Optional[str]]) -> list[str]:
             questions.append((str(stems[index]), []))
         elif role == "part" and questions and stems[index]:
             questions[-1][1].append(str(stems[index]))
-    return [slot for stem, parts in questions for slot in (parts or [stem])]
+    return [parts or [stem] for stem, parts in questions]
 
 
-def _keys(layout: str, roles: list[Optional[str]]) -> list[Optional[str]]:
-    """The field each block's text goes in, or None where the layout puts it in none."""
-    stems = _stems(roles)
-    separate = iter(_slots(roles, stems))
+def _keys(layout: str, roles: list[list[Optional[str]]]) -> list[list[Optional[str]]]:
+    """The field each block's text goes in, source by source.
+
+    The first source is the sheet, and the layout says which solution written in it
+    answers what. Every source after it is a document of solutions written separately
+    from the sheet, and is paired onto the sheet's questions rather than laid out.
+    """
+    stems = _stems(roles[0])
+    slots = _slots(roles[0], stems)
+    return [_laid_out(layout, roles[0], stems, slots)] + [
+        _answers(later, slots) for later in roles[1:]
+    ]
+
+
+def _laid_out(
+    layout: str,
+    roles: list[Optional[str]],
+    stems: list[Optional[str]],
+    slots: list[list[str]],
+) -> list[Optional[str]]:
+    """The field each block of the sheet goes in, or None where the layout puts it in none."""
+    separate = iter([slot for question in slots for slot in question])
     keys: list[Optional[str]] = [None] * len(roles)
     question: Optional[str] = None
     parts: list[str] = []
@@ -493,31 +520,54 @@ def _keys(layout: str, roles: list[Optional[str]]) -> list[Optional[str]]:
     return keys
 
 
-def fields(
+def _answers(roles: list[Optional[str]], slots: list[list[str]]) -> list[Optional[str]]:
+    """The field each block of a separate document of solutions goes in.
+
+    The pairing `in2lambda convert -a` does, in the words of a spec. A block the
+    ``question`` selector matches is a marker - the ``Q2.`` written above the solutions
+    to the second question - which answers nothing itself and sends what follows it to
+    that question's first slot. Everything else the spec picks out, whether its ``part``
+    selector matched or its ``solution`` one, is a solution, and they take the slots in
+    order: each question's parts, or the question itself where it has none. A solution
+    past the last slot is in no field, and one landing on a question the solutions
+    before it have answered is refused by `in2lambda.draft.record`, naming both.
+    """
+    ordered = [
+        (number, slot) for number, question in enumerate(slots) for slot in question
+    ]
+    keys: list[Optional[str]] = [None] * len(roles)
+    at, markers = 0, 0
+    for index, role in enumerate(roles):
+        if role == "question":
+            markers += 1
+            at = next(
+                (
+                    position
+                    for position, (number, _) in enumerate(ordered)
+                    if number == markers - 1
+                ),
+                len(ordered),
+            )
+        elif role in ("part", "solution") and at < len(ordered):
+            keys[index] = f"{ordered[at][1]}.solution"
+            at += 1
+    return keys
+
+
+def _roles(
     spec: Spec,
     elements: list[tuple[Block, Any]],
-    markdown: str,
-    functions: Optional[dict[str, Callable[[Any], Any]]] = None,
-) -> tuple[list[Field], list[str]]:
-    """What a spec makes of a document: its fields, and the blocks it says to ignore.
+    pf: Any,
+    functions: Optional[dict[str, Callable[[Any], Any]]],
+) -> list[Optional[str]]:
+    """What the spec says each block of one source is, or None where it says nothing.
 
-    Args:
-        spec: The spec to run, as :func:`load` read it.
-        elements: Every block of the frozen markdown beside the element it is, as
-            :func:`in2lambda.source._elements` gives them.
-        markdown: The frozen markdown itself, which the values are quoted out of.
-        functions: The predicates its selectors call, as :func:`predicates` bound them,
-            and None for a spec that calls none.
-
-    Returns:
-        One :class:`Field` per question, part and solution the spec found, and the ids
-        of the blocks its ``ignore`` selector matched. A block that is neither is in
-        neither, which is what a coverage report is about.
+    A selector matches within the source it is run over - ``after Header text=Solutions``
+    is about where a block sits in its own document - so each source is decided about on
+    its own, whatever the sources before it hold.
     """
-    import panflute as pf
-
     found = [element for _, element in elements]
-    roles = [
+    return [
         next(
             (
                 role
@@ -529,15 +579,55 @@ def fields(
         )
         for index in range(len(found))
     ]
-    lines = markdown.splitlines()
-    return (
-        [
-            Field(key, _stripped(spec, lines, block), [[block.start, block.end]])
-            for (block, _), key in zip(elements, _keys(spec.layout, roles))
+
+
+def fields(
+    spec: Spec,
+    documents: list[tuple[list[tuple[Block, Any]], str]],
+    functions: Optional[dict[str, Callable[[Any], Any]]] = None,
+) -> tuple[list[Field], list[str]]:
+    """What a spec makes of a draft's sources: its fields, and the blocks to ignore.
+
+    Args:
+        spec: The spec to run, as :func:`load` read it.
+        documents: Every source of the draft, in the order it froze them: each as the
+            blocks of its frozen markdown beside the element each is, as
+            :func:`in2lambda.source._elements` gives them, and the markdown itself,
+            which the values are quoted out of.
+        functions: The predicates its selectors call, as :func:`predicates` bound them,
+            and None for a spec that calls none.
+
+    Returns:
+        One :class:`Field` per question, part and solution the spec found, each saying
+        which source it came from, and the ids of the blocks to mark as ignored: what
+        the ``ignore`` selector matched, and the markers of a separate document of
+        solutions, which say which question the solutions under them answer and nothing
+        else. A block in neither is in neither, which is what a coverage report is about.
+    """
+    import panflute as pf
+
+    roles = [_roles(spec, elements, pf, functions) for elements, _ in documents]
+    written = []
+    for number, ((elements, markdown), keys) in enumerate(
+        zip(documents, _keys(spec.layout, roles)), start=1
+    ):
+        lines = markdown.splitlines()
+        written += [
+            Field(
+                key, _stripped(spec, lines, block), [[block.start, block.end]], number
+            )
+            for (block, _), key in zip(elements, keys)
             if key is not None
-        ],
-        [block.id for (block, _), role in zip(elements, roles) if role == "ignore"],
-    )
+        ]
+    ignored = [
+        block.id
+        for number, ((elements, _), found) in enumerate(zip(documents, roles), start=1)
+        for (block, _), role in zip(elements, found)
+        # A marker is ignored rather than quoted: what it says is which question the
+        # solutions under it answer, and that question's text came from the sheet.
+        if role == "ignore" or (number > 1 and role == "question")
+    ]
+    return written, ignored
 
 
 def _stripped(spec: Spec, lines: list[str], block: Block) -> str:

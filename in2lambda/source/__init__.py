@@ -1,10 +1,16 @@
-"""Freezes a source document, so that its text can be quoted by line range.
+"""Freezes the source documents of a draft, so their text can be quoted by line range.
 
 Anything that writes questions from a document - the in2lambda agent, say - needs to
 take the wording out of the source rather than retype it, and a line range is only an
 address if the text it points into cannot move underneath it. So the document is frozen
 once: converted to markdown, hashed, and written down beside a ``draft.json`` listing
 every top-level block with the lines it spans.
+
+A draft freezes several documents where a sheet is written that way - the questions in
+one file and the solutions in another. They are numbered in the order they were frozen,
+and a block id or a line range of any source after the first carries its number:
+``2/b3``, ``2/s10:14``. The first source's are written plain, as they were when a draft
+held one.
 
 Everything here needs pandoc, and the parsing needs panflute, which only the ``convert``
 extra installs; :func:`add` says so rather than failing on the import.
@@ -18,7 +24,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 DRAFT = "draft.json"
 """What a frozen source is written to, beside the source itself."""
@@ -27,16 +33,21 @@ DRAFT = "draft.json"
 def _field_fault(field: Any) -> str:
     """What is wrong with the shape of one field of a draft, or "" if nothing is.
 
-    ``ranges`` and ``value`` are what is looked for, because they are the parts of a
-    field anything here reads: `in2lambda.draft.record` compares the lines a command is
-    quoting against the lines every field was taken from, and
+    ``ranges``, ``source`` and ``value`` are what is looked for, because they are the
+    parts of a field anything here reads: `in2lambda.draft.record` compares the lines a
+    command is quoting against the lines every field of that source was taken from, and
     `in2lambda.draft.report.checks` reports a field whose value says nothing. Only
     whether there is a value is asked, since the checks look at one as a string or not
     at all. The layer, whether it was edited and by whom are written and read back
     whole, and an edit to any of them is what a replay catches byte for byte.
+
+    A field quoted from the first source has no ``source`` in it, which is what every
+    field of a draft frozen from one document looks like.
     """
     if not isinstance(field, dict):
         return "is not an object"
+    if not isinstance(field.get("source", 1), int):
+        return f"has source {field['source']!r} rather than a number"
     if "ranges" not in field:
         return "has no ranges"
     if not isinstance(field["ranges"], list) or not all(
@@ -51,8 +62,14 @@ def _field_fault(field: Any) -> str:
     return ""
 
 
-_FIELDS = ("source", "hash", "blocks", "log", "fields")
+_FIELDS = ("sources", "log", "fields")
 """What a draft has in it, and so what one has to have for anything here to read it.
+
+``sources`` is one ``{source, hash, blocks}`` per frozen document, in the order they
+were frozen. A draft written before there could be more than one holds those three at
+the top level instead, and is refused as one nothing here wrote rather than read as a
+draft of one source: the ids and ranges in it were written against a shape that has
+gone. Freezing the document again is the way through, which is what the refusal says.
 
 A draft written before ``log`` and ``fields`` existed has neither, and is refused as one
 nothing here wrote: there is no command log to replay it from, and inventing an empty one
@@ -245,6 +262,7 @@ def _draft(path: Path) -> dict[str, Any]:
     # The one gate everything reading a draft passes through, so a hand-edited log or
     # fields is refused here rather than as a TypeError from whatever iterated it.
     for field, shape, called in (
+        ("sources", list, "a list"),
         ("log", list, "a list"),
         ("fields", dict, "an object"),
     ):
@@ -252,6 +270,15 @@ def _draft(path: Path) -> dict[str, Any]:
             raise DraftUnreadable(
                 f"{path} is not a draft anything here wrote: its {field} is "
                 f"{draft[field]!r} rather than {called}. {advice}"
+            )
+    for source in draft["sources"]:
+        if not isinstance(source, dict) or not all(
+            key in source for key in ("source", "hash", "blocks")
+        ):
+            raise DraftUnreadable(
+                f"{path} is not a draft anything here wrote: its sources holds "
+                f"{source!r} rather than a frozen document, its hash and its blocks. "
+                f"{advice}"
             )
     for key, field in draft["fields"].items():
         if fault := _field_fault(field):
@@ -278,32 +305,37 @@ def save(path: Path, draft: dict[str, Any]) -> None:
     path.write_bytes(serialise(draft))
 
 
-def frozen(directory: str = ".") -> tuple[dict[str, Any], str]:
-    """The draft in a directory and the markdown it was written from, still unmoved.
+def frozen(directory: str = ".") -> tuple[dict[str, Any], list[str]]:
+    """The draft in a directory and the markdown of every source it names, unmoved.
 
     Args:
         directory: Where the ``draft.json`` is.
 
     Returns:
-        The draft, and the text of the markdown it names.
+        The draft, and the text of each markdown it names, in the order it froze them:
+        the first is source 1, whose blocks and lines are the ones named unqualified.
 
     Raises:
         DraftMissing: there is no draft in that directory.
         DraftUnreadable: what is there is not a draft anything here wrote.
-        SourceUnreadable: the markdown the draft names has moved, or is not text.
-        DraftExists: the markdown has changed since the draft was written from it, so
-            the line ranges in the draft no longer name the lines they were taken from.
+        SourceUnreadable: a markdown the draft names has moved, or is not text.
+        DraftExists: a markdown has changed since the draft was written from it, so the
+            line ranges in the draft no longer name the lines they were taken from. The
+            refusal names the file that changed, since a draft may hold several.
     """
     path = Path(directory) / DRAFT
     draft = _draft(path)
-    raw, markdown = _source(path.parent / draft["source"])
-    if _digest(raw) != draft["hash"]:
-        raise DraftExists(
-            f"{draft['source']} has changed since {DRAFT} was written from it, so its "
-            "block ids no longer name the lines they were written against. Run "
-            "in2lambda source add --start-over to freeze the file as it now is."
-        )
-    return draft, markdown
+    texts = []
+    for source in draft["sources"]:
+        raw, markdown = _source(path.parent / source["source"])
+        if _digest(raw) != source["hash"]:
+            raise DraftExists(
+                f"{source['source']} has changed since {DRAFT} was written from it, so "
+                "its block ids no longer name the lines they were written against. Run "
+                "in2lambda source add --start-over to freeze the file as it now is."
+            )
+        texts.append(markdown)
+    return draft, texts
 
 
 @dataclass
@@ -324,11 +356,23 @@ class Block:
         return {"id": self.id, "type": self.type, "start": self.start, "end": self.end}
 
 
-def blocks(markdown: str) -> list[Block]:
+def _numbered(source: int, name: str) -> str:
+    """A block id or a line range as the source it names something in writes it.
+
+    The first source writes them plain - ``b3``, ``s10:14`` - which is what everything
+    wrote when a draft held one source; every source after it puts its number and a
+    slash in front, so that an id or a range says which document it is of.
+    """
+    return name if source == 1 else f"{source}/{name}"
+
+
+def blocks(markdown: str, source: int = 1) -> list[Block]:
     r"""Every top-level block of some markdown, in the order it is written.
 
     Args:
         markdown: A document in the dialect :func:`add` freezes to.
+        source: Which source of a draft the markdown is, which numbers the ids of any
+            but the first: a draft's second source has ``2/b1``, ``2/b2``.
 
     Returns:
         One :class:`Block` per block, numbered ``b1`` onwards. The blocks do not
@@ -340,8 +384,10 @@ def blocks(markdown: str) -> list[Block]:
         >>> from in2lambda.source import blocks
         >>> blocks("# Title\n\nSome words.\n")
         [Block(id='b1', type='heading', start=1, end=1), Block(id='b2', type='paragraph', start=3, end=3)]
+        >>> [block.id for block in blocks("# Solutions\n", 2)]
+        ['2/b1']
     """
-    return [block for block, _ in _elements(markdown)]
+    return [block for block, _ in _elements(markdown, source)]
 
 
 _MARKER = re.compile(r" *(?:[-+*]|\(?(?:\d+|[ivxlcdm]+|[IVXLCDM]+|[A-Za-z])[.)]) {1,4}")
@@ -386,7 +432,7 @@ def dedented(text: str) -> str:
     )
 
 
-def _elements(markdown: str) -> list[tuple[Block, Any]]:
+def _elements(markdown: str, source: int = 1) -> list[tuple[Block, Any]]:
     """Every block of some markdown, each beside the panflute element it was taken from.
 
     A selector matches on what the element is - its type, its heading level, the text it
@@ -405,7 +451,7 @@ def _elements(markdown: str) -> list[tuple[Block, Any]]:
     # nor past the end of the document.
     limits = [start - 1 for _, start, _, _ in found[1:]] + [len(markdown.splitlines())]
     return [
-        (Block(f"b{number}", kind, start, min(end, limit)), element)
+        (Block(_numbered(source, f"b{number}"), kind, start, min(end, limit)), element)
         for number, ((kind, start, end, element), limit) in enumerate(
             zip(found, limits), 1
         )
@@ -481,80 +527,100 @@ def _range(element) -> tuple[int, int]:  # type: ignore[no-untyped-def]
     )
 
 
-def add(file: str, start_over: bool = False) -> Path:
-    """Freezes a document and writes the draft of it beside the file.
+def add(files: list[str], start_over: bool = False) -> Path:
+    """Freezes one or more documents and writes the draft of them beside the files.
 
     A .docx or .tex file is converted to markdown next to it; a markdown file is taken
     as it is and nothing is copied. Either way the markdown is hashed and its blocks
-    written to ``draft.json``, so that whatever quotes the source by line range can tell
+    written to ``draft.json``, so that whatever quotes a source by line range can tell
     that the lines it was given still say what they said.
 
+    The files are numbered in the order they are given, and a file already frozen into
+    the draft beside them is checked against the hash it was frozen at rather than
+    frozen afresh. So a sheet and the solutions written separately from it are frozen
+    together, or the solutions added later as the next source; either way the questions
+    keep the ids and the lines the commands so far were run against.
+
     Args:
-        file: The document to freeze, as .docx, .tex or markdown.
-        start_over: Freeze the file again, discarding whatever is already there.
+        files: The documents to freeze, as .docx, .tex or markdown, all in the one
+            directory, in the order they are to be numbered in.
+        start_over: Freeze them again, discarding whatever draft is already there.
 
     Returns:
         The path of the ``draft.json`` that was written.
 
     Raises:
         ConversionToolsMissing: pandoc or panflute is not installed.
-        SourceUnreadable: the file is markdown, but not UTF-8 text.
-        DraftUnreadable: there is a draft.json beside the file that nothing here wrote,
+        SourceError: the files are not all in one directory, so there is no one draft
+            beside them to freeze them into.
+        SourceUnreadable: a file is markdown, but not UTF-8 text.
+        DraftUnreadable: there is a draft.json beside the files that nothing here wrote,
             so it is not ours to read a hash out of or to write over.
-        DraftExists: the source has changed since it was frozen, or the markdown would
+        DraftExists: a source has changed since it was frozen, or a markdown would
             overwrite a file that no draft claims. Neither happens with `start_over`.
     """
     _require_conversion_tools()
-    source = Path(file)
-    if file_type(file) == "markdown":
-        raw, markdown = _source(source)
-        frozen_path = source
-    else:
-        raw = _pandoc(file, _MARKDOWN)
-        markdown = raw.decode("utf-8")
-        frozen_path = source.with_suffix(".md")
-    draft = source.parent / DRAFT
-    digest = _digest(raw)
+    paths = [Path(file) for file in files]
+    if len({path.parent for path in paths}) != 1:
+        raise SourceError(
+            "A draft sits beside the documents it is of, so the files frozen into one "
+            f"are all in the same directory: {', '.join(files)}."
+        )
+    draft = paths[0].parent / DRAFT
 
-    # What a draft already here has been told, which freezing the same file again does
-    # not undo: the commands were run against these very lines, so they still hold.
-    # --start-over is the way to throw them away, and the only one.
-    log: list[Any] = []
-    fields: dict[str, Any] = {}
-    # And what the checks found about it, which still holds for the same reason: this
-    # writes the draft back as it was, so a report of it is a report of what is saved.
-    report: Any = None
-    # The blocks a draft already here has, which are not always what parsing the
-    # markdown gives: `split block` cuts one in two, and parsing again would undo that
-    # while keeping the log entry saying it happened, leaving the ids the fields were
-    # written against naming nothing.
-    found: Optional[list[Any]] = None
+    # What a draft already here has been told, which freezing the same files again does
+    # not undo: the commands were run against these very lines, so they still hold. The
+    # blocks are kept for the same reason, and are not always what parsing the markdown
+    # gives: `split block` cuts one in two, and parsing again would undo that while
+    # keeping the log entry saying it happened, leaving the ids the fields were written
+    # against naming nothing. --start-over is the way to throw all of it away, and the
+    # only one.
+    existing: dict[str, Any] = {"sources": [], "log": [], "fields": {}}
+    if not start_over and draft.is_file():
+        existing = _draft(draft)
+    sources: list[dict[str, Any]] = list(existing["sources"])
 
-    if not start_over:
-        if draft.is_file():
-            existing = _draft(draft)
-            if existing["hash"] != digest:
+    # Every file is read and parsed before any is written: a parse that fails half way
+    # through would otherwise leave a markdown there with no draft claiming it, and the
+    # next run would refuse to touch a file this one wrote.
+    converted: list[tuple[Path, bytes]] = []
+    for path in paths:
+        if file_type(str(path)) == "markdown":
+            raw, markdown = _source(path)
+            frozen_path = path
+        else:
+            raw = _pandoc(str(path), _MARKDOWN)
+            markdown = raw.decode("utf-8")
+            frozen_path = path.with_suffix(".md")
+            converted.append((frozen_path, raw))
+        digest = _digest(raw)
+        if found := next(
+            (source for source in sources if source["source"] == frozen_path.name), None
+        ):
+            if found["hash"] != digest:
                 raise DraftExists(
-                    f"{source.name} has changed since {DRAFT} was written from it. "
+                    f"{path.name} has changed since {DRAFT} was written from it. "
                     "Run in2lambda source add --start-over to freeze it again, which "
                     "invalidates every line range taken from the old draft."
                 )
-            found, log, fields = existing["blocks"], existing["log"], existing["fields"]
-            report = existing.get("report")
-        elif frozen_path != source and frozen_path.exists():
+            continue
+        if not start_over and frozen_path != path and frozen_path.exists():
             raise DraftExists(
                 f"{frozen_path.name} is already there and no {DRAFT} claims it, so it "
                 "is not ours to overwrite. Move it aside, or run in2lambda source add "
                 "--start-over."
             )
+        sources.append(
+            {
+                "source": frozen_path.name,
+                "hash": digest,
+                "blocks": [
+                    block.to_dict() for block in blocks(markdown, len(sources) + 1)
+                ],
+            }
+        )
 
-    # Before either file is written: a parse that fails half way through would
-    # otherwise leave the markdown there with no draft claiming it, and the next run
-    # would refuse to touch a file this one wrote.
-    if found is None:
-        found = [block.to_dict() for block in blocks(markdown)]
-
-    if frozen_path != source:
+    for frozen_path, raw in converted:
         # The bytes pandoc wrote, so that the file on disk is what `digest` is of;
         # writing text would rewrite the line endings on Windows and it would not be.
         frozen_path.write_bytes(raw)
@@ -563,12 +629,17 @@ def add(file: str, start_over: bool = False) -> Path:
     save(
         draft,
         {
-            "source": frozen_path.name,
-            "hash": digest,
-            "blocks": found,
-            "log": log,
-            "fields": fields,
-            **({"report": report} if report is not None else {}),
+            "sources": sources,
+            "log": existing["log"],
+            "fields": existing["fields"],
+            # What the checks found about the draft still holds for the same reason as
+            # the fields do: this writes the draft back as it was, so a report of it is
+            # a report of what is saved.
+            **(
+                {"report": existing["report"]}
+                if existing.get("report") is not None
+                else {}
+            ),
         },
     )
     return draft
@@ -581,26 +652,36 @@ def show(directory: str = ".") -> str:
         directory: Where the ``draft.json`` to print is.
 
     Returns:
-        One line per line of the frozen markdown: the id of the block starting there,
-        where one does, then the line number and the line itself.
+        One line per line of each frozen markdown: the id of the block starting there,
+        where one does, then the line number and the line itself. A draft of more than
+        one source heads each with its number and its name, since the line numbers
+        start again at 1 in every one of them.
 
     Raises:
         DraftMissing: there is no draft in that directory.
         DraftUnreadable: what is there is not a draft anything here wrote.
-        SourceUnreadable: the markdown the draft names has moved, or is not text.
-        DraftExists: the markdown has changed since the draft was written from it, so
+        SourceUnreadable: a markdown the draft names has moved, or is not text.
+        DraftExists: a markdown has changed since the draft was written from it, so
             the ids would be printed against lines they are not the ids of.
     """
     # A line range is only an address while the lines have not moved: printing ids
     # against markdown the draft was not written from would be worse than printing
     # nothing, because it would look right.
-    draft, markdown = frozen(directory)
+    draft, sources = frozen(directory)
 
-    ids = {block["start"]: block["id"] for block in draft["blocks"]}
-    lines = markdown.splitlines()
-    margin = max((len(block_id) for block_id in ids.values()), default=0)
-    numbers = len(str(len(lines)))
-    return "\n".join(
-        f"{ids.get(number, ''):>{margin}}  {number:>{numbers}}  {line}".rstrip()
-        for number, line in enumerate(lines, start=1)
-    )
+    printed = []
+    for number, (source, markdown) in enumerate(
+        zip(draft["sources"], sources), start=1
+    ):
+        ids = {block["start"]: block["id"] for block in source["blocks"]}
+        lines = markdown.splitlines()
+        margin = max((len(block_id) for block_id in ids.values()), default=0)
+        numbers = len(str(len(lines)))
+        body = "\n".join(
+            f"{ids.get(line_number, ''):>{margin}}  {line_number:>{numbers}}  {line}".rstrip()
+            for line_number, line in enumerate(lines, start=1)
+        )
+        printed.append(
+            f"Source {number}: {source['source']}\n{body}" if len(sources) > 1 else body
+        )
+    return "\n\n".join(printed)

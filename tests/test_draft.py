@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 from click.testing import CliRunner
-from conftest import DRAFTS, DRAFTS_DIR, needs_compiler
+from conftest import DRAFTS, DRAFTS_DIR, frozen_sources, needs_compiler
 
 import in2lambda.draft
 import in2lambda.draft.report
@@ -41,11 +41,17 @@ TWO_QUESTIONS = DRAFTS_DIR / "two_questions"
 FIGURE = DRAFTS_DIR / "figure_in_a_question"
 """The one whose fields refer to an image file, which the export has to carry."""
 
+SOLUTIONS = DRAFTS_DIR / "solutions_in_a_second_source"
+"""The one written as two documents, for what a command naming the second one does."""
+
 
 def _built(folder: Path, tmp_path: Path) -> Path:
-    """A folder's document, frozen in `tmp_path` with its commands applied and checked."""
+    """A folder's documents, frozen in `tmp_path` with its commands applied and checked."""
     shutil.copytree(folder, tmp_path, dirs_exist_ok=True)
-    assert CliRunner().invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+    # A folder holding a solutions.md is a sheet written as two documents, and freezes
+    # the solutions as its second source; everything of it is then named 2/b3, 2/s14.
+    sources = frozen_sources(tmp_path)
+    assert CliRunner().invoke(cli, ["source", "add", *sources]).exit_code == 0
     for entry in json.loads((folder / "commands.json").read_text()):
         in2lambda.draft.execute(entry)
     # Checked as well as built, so that what a folder's commands leave for the checks to
@@ -361,6 +367,8 @@ def test_the_refusal_names_the_lines_that_are_in_the_way(
     ("arguments", "named"),
     [
         (["draft", "question", "add", "--text", "s99:100"], "s99:100"),
+        (["draft", "question", "add", "--text", "2/s1:2"], "2/s1:2"),
+        (["draft", "question", "add", "--text", "9/b1"], "9/b1"),
         (["draft", "question", "add", "--text", "s6:5"], "s6:5"),
         (["draft", "question", "add", "--text", "sixteen"], "sixteen"),
         (["draft", "question", "add", "--text", "s8", "--literal", "Words."], "both"),
@@ -380,6 +388,8 @@ def test_the_refusal_names_the_lines_that_are_in_the_way(
     ],
     ids=[
         "lines the source has not got",
+        "lines of a source the draft has not got",
+        "a block of a source it has not got",
         "a range that runs backwards",
         "a text that is no kind of address",
         "a text and a literal",
@@ -449,6 +459,40 @@ def test_a_command_says_what_it_wrote(tmp_path: Path, monkeypatch) -> None:
     }
     # --regex is an option, so a command nobody passed it to logs no argument for it.
     assert "regex" not in draft["log"][-1]["args"]
+
+
+def test_a_field_is_quoted_from_a_later_source_by_its_number(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A block or a range of the solutions is named as the sheet's is, with its number."""
+    monkeypatch.chdir(tmp_path)
+    shutil.copytree(SOLUTIONS, tmp_path, dirs_exist_ok=True)
+    runner = CliRunner()
+    assert (
+        runner.invoke(cli, ["source", "add", "source.md", "solutions.md"]).exit_code
+        == 0
+    )
+
+    # Each question out of the sheet and each solution out of the document beside it,
+    # once as the block it is and once as the lines it spans.
+    for arguments in (
+        ["draft", "question", "add", "--text", "b2"],
+        ["draft", "part", "add", "q1", "--text", "b3"],
+        ["draft", "question", "solution", "q1", "--text", "2/b3"],
+        ["draft", "question", "add", "--text", "s9"],
+        ["draft", "question", "solution", "q2", "--text", "2/s11"],
+    ):
+        result = runner.invoke(cli, arguments)
+        assert result.exit_code == 0, result.output
+
+    fields = json.loads((tmp_path / "draft.json").read_text())["fields"]
+    assert fields["q1.solution"]["value"] == "The load is $F = pA$."
+    assert fields["q2.solution"]["value"] == "Solution: The drag is $\\tau A$."
+    # Line 5 of the sheet is q1's part and line 5 of the solutions is what answers it:
+    # the same numbers, and no clash, because each field says which source it is of.
+    assert fields["q1.p1.text"]["ranges"] == fields["q1.solution"]["ranges"] == [[5, 5]]
+    assert "source" not in fields["q1.p1.text"]
+    assert fields["q1.solution"]["source"] == 2
 
 
 def test_a_draft_edited_into_an_overlap_or_a_gap_is_reported(

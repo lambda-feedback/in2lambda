@@ -1,0 +1,153 @@
+{
+  "2/b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "source": 2,
+    "value": true
+  },
+  "2/b2.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "source": 2,
+    "value": true
+  },
+  "2/b5.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "source": 2,
+    "value": true
+  },
+  "2/b7.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        13,
+        13
+      ]
+    ],
+    "source": 2,
+    "value": true
+  },
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "source": 2,
+    "value": "The load is $F = pA$."
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "Find the load the large piston carries."
+  },
+  "q1.p2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "source": 2,
+    "value": "The pressure is $p = F/a$."
+  },
+  "q1.p2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": "Find the pressure in the oil."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "A hydraulic scale has two pistons joined by oil."
+  },
+  "q2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        11,
+        11
+      ]
+    ],
+    "source": 2,
+    "value": "The drag is $\\tau A$."
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "A flat plate is towed through water at $u$."
+  }
+}
