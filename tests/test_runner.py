@@ -72,7 +72,7 @@ def test_cli_reports_problems_and_exports_anyway(tmp_path) -> None:
     out_dir = tmp_path / "out"
 
     result = CliRunner().invoke(
-        cli, [str(question_file), "PartsOneSol", "-o", str(out_dir)]
+        cli, ["convert", str(question_file), "PartsOneSol", "-o", str(out_dir)]
     )
 
     assert result.exit_code == 0

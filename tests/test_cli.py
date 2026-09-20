@@ -1,6 +1,7 @@
 """What the command line does with the current and the pre-2.0 form."""
 
 import os
+import shutil
 import subprocess
 import sys
 
@@ -32,7 +33,9 @@ def test_old_form_fails_and_names_convert(
     so every script passing a full path appeared to succeed without converting anything.
     """
     monkeypatch.setenv("COLUMNS", "200")  # So the message is not wrapped mid-sentence.
-    monkeypatch.chdir(os.path.join(filters_dir, "PartsSepSol"))
+    # Run from a directory of our own, so `out` appearing there is this command's doing.
+    shutil.copy(os.path.join(filters_dir, "PartsSepSol", "example.tex"), tmp_path)
+    monkeypatch.chdir(tmp_path)
     if path == "ABSOLUTE":  # Only known once we're in the directory holding the file.
         path = os.path.abspath("example.tex")
 
