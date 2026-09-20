@@ -48,12 +48,17 @@ def image_directories(tex_file: str) -> list[str]:
         >>> image_directories(tex_file)
         []
     """
-    with open(tex_file, "r") as file:
-        for line in file:
-            if "graphicspath" in line:
-                # Matches anything surrounded by curly braces, but excludes the top level
-                # graphicspath brace.
-                return [match.strip() for match in re.findall(r"{([^{]*?)}", line)]
+    try:
+        with open(tex_file, "r") as file:
+            for line in file:
+                if "graphicspath" in line:
+                    # Matches anything surrounded by curly braces, but excludes the top level
+                    # graphicspath brace.
+                    return [match.strip() for match in re.findall(r"{([^{]*?)}", line)]
+    except UnicodeDecodeError:
+        # `graphicspath` is a TeX command, and a .docx is a zip rather than text: reading
+        # one as UTF-8 raises where there is nothing in it to find.
+        pass
     return []
 
 
