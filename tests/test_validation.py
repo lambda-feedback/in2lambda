@@ -9,15 +9,22 @@ The markdown cases were ported from ``conversion2025/tools and testing/validator
 on the ``Summer2025`` branch.
 """
 
+import shutil
 from pathlib import Path
 
 import pytest
 from conftest import EXPORTS, PROBLEM_SETS
 
 from in2lambda.api.set import Set
-from in2lambda.validation import MathDelimiterError, validate
+from in2lambda.validation import MathDelimiterError, pdf, validate
 
 E = MathDelimiterError
+
+needs_compiler = pytest.mark.skipif(
+    bool(pdf.missing_tools()),
+    reason="compiling the set as the PDF generator does needs pandoc and xelatex",
+)
+"""The fixtures are reported with the PDF generator's toolchain installed; CI has it."""
 
 VALID = [
     "This is an inline math expression: $x = y$.",
@@ -83,9 +90,10 @@ def _messages(markdown: str) -> list[str]:
     """What the validator says about a single piece of markdown."""
     question_set = Set()
     question_set.add_question("Markdown", markdown)
-    return [problem.message for problem in validate(question_set)]
+    return [problem.message for problem in validate(question_set, compile=False)]
 
 
+@needs_compiler
 @pytest.mark.parametrize("problem_set", PROBLEM_SETS, ids=lambda path: path.name)
 def test_expected_problems_are_reported(problem_set: Path) -> None:
     """Each hand-written export produces exactly the report written beside it."""
@@ -95,6 +103,7 @@ def test_expected_problems_are_reported(problem_set: Path) -> None:
     assert sorted(str(problem) for problem in found) == sorted(expected)
 
 
+@needs_compiler
 @pytest.mark.parametrize("export", EXPORTS, ids=lambda path: path.name)
 def test_real_exports_have_no_problems(export: Path) -> None:
     """A set the platform wrote and accepted back must never be reported."""
@@ -119,6 +128,21 @@ def test_image_that_is_not_on_disk_is_reported(tmp_path: Path) -> None:
     question_set.add_question("Rocket", "![pictureTag](rocket.png)")
     question_set.current_question.images.append(str(tmp_path / "rocket.png"))
 
-    assert [problem.message for problem in question_set.problems()] == [
+    assert [problem.message for problem in question_set.problems(compile=False)] == [
         f"there is no image file at {tmp_path / 'rocket.png'}"
     ]
+
+
+def test_missing_compiler_says_what_to_install(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without the PDF generator's toolchain, the set is not compiled but is reported."""
+    monkeypatch.setattr(shutil, "which", lambda tool: None)
+    question_set = Set()
+    question_set.add_question("Angles", "Turn through 90°.")
+
+    problems = validate(question_set)
+
+    assert len(problems) == 1
+    assert "xelatex" in problems[0].message
+    assert "texlive-xetex" in problems[0].message
