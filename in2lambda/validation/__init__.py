@@ -1,17 +1,17 @@
 """Checks a question set for what Lambda Feedback would refuse or render wrongly.
 
-A question can be perfectly valid JSON and still fail to import, or import and then
-look wrong: an answer that does not fit the box marking it, an image the export will
-not contain, maths KaTeX cannot render. Authors otherwise find this out by uploading
-and looking.
+A question can be valid JSON and still fail to import, or import and then render wrongly:
+an answer that does not fit the box marking it, an image the export will not contain,
+maths KaTeX cannot render. An author otherwise finds this out by uploading the set and
+reading it.
 
-Everything here reports, never refuses: :func:`validate` returns what it found and the
-export goes ahead regardless, since a problem may well be deliberate.
+The checks report and never refuse: :func:`validate` returns what it found, and the export
+goes ahead, because an author may have intended a problem.
 
-Maths is rendered with KaTeX itself, which needs Node.js, and the set is compiled as the
-PDF generator compiles it, which needs pandoc and xelatex. Both are optional: without
-Node the maths check is skipped with a warning saying so, and without the compiler
-:mod:`in2lambda.validation.pdf` reports what to install.
+KaTeX renders the maths, which needs Node.js, and the set is compiled as the PDF generator
+compiles it, which needs pandoc and xelatex. Both are optional. Without Node.js,
+:func:`validate` skips the maths check and warns that it did. Without pandoc and xelatex,
+:mod:`in2lambda.validation.pdf` names the packages to install.
 """
 
 import json
@@ -62,12 +62,13 @@ def _location(
 ) -> str:
     """Where in a set something is, as every message here names it.
 
-    The one place that naming lives, since `in2lambda.draft.export` reads it backwards
-    to say which field of a draft a problem reported against it came from.
+    This function is the one place that naming is written, because
+    `in2lambda.draft.export` reads it backwards to find the field of a draft a problem
+    was reported against.
 
     Args:
         number: The question's number, from 1.
-        title: The question's title, quoted even where it is empty.
+        title: The question's title, quoted even where the title is empty.
         part: Which part of the question, from 0, or None for the question itself.
         field: Which field - ``main text``, ``worked solution`` - or None for the
             question or the part as a whole.
@@ -85,16 +86,16 @@ def validate(question_set: Set, compile: bool = True) -> list[Problem]:
 
     Args:
         question_set: The set about to be exported.
-        compile: Whether to also compile the set as Lambda Feedback's PDF generator
-            will, which needs pandoc and xelatex - see
+        compile: Whether to compile the set as well, as Lambda Feedback's PDF generator
+            compiles it, which needs pandoc and xelatex - see
             :mod:`in2lambda.validation.pdf`.
 
     Returns:
         One :class:`~in2lambda.api.problem.Problem` per problem found, each naming the
-        question, part and field to look at, in the order they are written - save for
-        what KaTeX refused, which comes last because the whole set is rendered at once.
-        An empty list means nothing was found - not that the set will import, since
-        only some mistakes can be seen from here.
+        question, the part and the field to read, in the order they are written. What
+        KaTeX refused comes last, because in2lambda renders the whole set in one process.
+        An empty list means these checks found nothing, and not that the set will import:
+        they find some mistakes and not others.
 
     Examples:
         >>> from in2lambda.api.set import Set
@@ -105,9 +106,9 @@ def validate(question_set: Set, compile: bool = True) -> list[Problem]:
         ['Question 1 "Angles", main text: ^\\circ does not display; write the degree sign ° instead']
     """
     problems: list[Problem] = []
-    # Every markdown field with the location to report it against, kept so that the
-    # whole set can then be compiled in one go rather than a field at a time. The maths
-    # is collected the same way, and rendered in one Node process.
+    # Every markdown field with the location to report it against, collected so that the
+    # whole set compiles in one run and not a field at a time. The maths is collected the
+    # same way, and rendered in one Node process.
     fields: list[tuple[str, str]] = []
     images: list[str] = []
     expressions: list[_Expression] = []
@@ -147,8 +148,8 @@ def validate(question_set: Set, compile: bool = True) -> list[Problem]:
                 problems += [
                     Problem(area_where, message) for message in _area_problems(area)
                 ]
-                # An answer box is only in the PDF if it is marked to be, so LaTeX it
-                # would not compile cannot break one unless it is.
+                # An answer box reaches the PDF only where it is marked to, so LaTeX in a
+                # box left out breaks no compile.
                 for field, markdown in (
                     ("pre_text", area.pre_text),
                     ("post_text", area.post_text),
@@ -184,11 +185,11 @@ def _markdown_problems(
 ) -> list[Problem]:
     """Every problem in one markdown field, reported against `location`.
 
-    The question is needed because an image reference is only good if that image is
-    among the question's, and so will be written into the export's ``media/``.
+    The question is needed because an image reference is good only where that image is
+    one of the question's, and so is written into the export's ``media/``.
 
-    The field's maths is appended to `expressions` rather than rendered here, so that
-    the whole set takes one Node process instead of one per field.
+    The field's maths is appended to `expressions` and not rendered here, so that the
+    whole set takes one Node process and not one per field.
     """
     problems: list[Problem] = []
 
@@ -196,9 +197,9 @@ def _markdown_problems(
     if delimiters is not MathDelimiterError.PASSED:
         problems.append(Problem(location, delimiters.value))
 
-    # The writer rewrites a reference to the name of the image it matches, and carries
-    # that image into media/; one it matches nothing for is left as written, which is
-    # exactly the reference Lambda Feedback will not find.
+    # The writer rewrites a reference to the name of the image it matches, and copies
+    # that image into media/. A reference matching no image is written as it stands, and
+    # Lambda Feedback does not find it.
     for reference in _IMAGE.findall(markdown):
         if _image_for(reference, question.images) is None:
             problems.append(
@@ -217,10 +218,10 @@ def _katex_problems(
 ) -> list[Problem]:
     """Maths that KaTeX, which Lambda Feedback renders with, will not display.
 
-    Expressions the lists have nothing to say about are appended to `expressions` for
-    KaTeX itself to render. The ones they do object to are not: their message says what
-    to write instead, where KaTeX's only says what it choked on, and one fault reads
-    better as one line.
+    An expression the lists say nothing about is appended to `expressions` for KaTeX
+    itself to render. An expression the lists object to is not appended: their message
+    names what to write instead, where KaTeX's message names the character it stopped at,
+    and one fault reads better as one line.
     """
     problems: list[Problem] = []
     lacks = _katex_lacks()
@@ -250,9 +251,9 @@ def _katex_problems(
                     "^\\circ does not display; write the degree sign ° instead",
                 )
             )
-        # Where the field's delimiters are wrong, what is between them is not reliably
-        # the expression the author meant, so it is not rendered. The checks above are
-        # reported against the field rather than a character range, so they still run.
+        # Where the field's delimiters are wrong, the text between them may not be the
+        # expression the author wrote, so KaTeX does not render it. The checks above
+        # report against the field and not a character range, so they still run.
         if not unsupported and delimiters is MathDelimiterError.PASSED:
             expressions.append(
                 _Expression(location, span.start() + 1, span.end(), maths, display)
@@ -262,10 +263,10 @@ def _katex_problems(
 
 
 def _katex_rejections(expressions: list[_Expression]) -> list[Problem]:
-    """What KaTeX itself refuses to render, the whole set in one Node process.
+    """What KaTeX itself refuses to render, for the whole set in one Node process.
 
-    Node is optional: someone authoring questions in Python should not have to install
-    it, so without it this one check is skipped and says what to install instead.
+    Node.js is optional, because an author writing questions in Python need not install
+    it. Without Node.js this one check is skipped, and the warning names what to install.
     """
     if not expressions:
         return []
@@ -290,16 +291,16 @@ def _katex_rejections(expressions: list[_Expression]) -> list[Problem]:
             ),
             capture_output=True,
             # Not the locale's encoding: KaTeX marks where it stopped reading with
-            # combining low lines, so its messages are never ASCII, and Node writes
-            # them as UTF-8 whatever LANG says.
+            # combining low lines, so its messages hold characters outside ASCII, and
+            # Node writes them as UTF-8 whatever LANG says.
             encoding="utf-8",
             check=True,
         )
         rejections = json.loads(rendered.stdout)
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
-        # Anything named node on the PATH is run here, and it may not be Node.js at all.
-        # Validation reports, never refuses, so a check that cannot be run says so and
-        # leaves the rest of the report - and the export - alone.
+        # Whatever is named node on the PATH runs here, and it may not be Node.js. These
+        # checks report and never refuse, so a check that cannot run warns and leaves the
+        # rest of the report, and the export, alone.
         warnings.warn(
             f"Maths was not checked against KaTeX: running {node} failed ({error})",
             stacklevel=3,
@@ -320,18 +321,17 @@ def _katex_rejections(expressions: list[_Expression]) -> list[Problem]:
 
 @cache
 def _node() -> str | None:
-    """Where node is, or None if it is not installed."""
+    """Where node is installed, or None where it is not installed."""
     return shutil.which("node")
 
 
 @cache
 def _katex_lacks() -> dict[str, str | None]:
-    """What KaTeX lacks, keyed by the command as it is written rather than as a regex.
+    """What KaTeX lacks, keyed by the command as it is written, not as a regex.
 
-    :func:`~in2lambda.katex_convert.katex_convert.unsupported_commands` gives the lists
-    as they are written, where a command's backslash is escaped for the replacing pass.
-    The entries that are not a single command, such as whole environments, simply never
-    match one.
+    :func:`~in2lambda.katex_convert.katex_convert.unsupported_commands` returns the lists
+    as they are written, with a command's backslash escaped for the replacing pass. An
+    entry that is not a single command, such as a whole environment, matches no command.
     """
     return {
         pattern.replace("\\\\", "\\"): (
@@ -342,11 +342,11 @@ def _katex_lacks() -> dict[str, str | None]:
 
 
 def _area_problems(area: ResponseArea) -> list[str]:
-    """Where an answer box's answer does not fit the box, or what marks it.
+    """Where an answer box's answer does not fit the box, or does not fit what marks it.
 
-    Only the three response type / evaluation function pairings the real exports use
-    (``tests/fixtures/exports/README.md``) are judged. Any other evaluation function
-    may expect an answer of any shape, and guessing at it would only cry wolf.
+    Only the three response type and evaluation function pairings the real exports use
+    (``tests/fixtures/exports/README.md``) are checked. Any other evaluation function may
+    expect an answer of any shape, and a check on one would report a fault that is none.
     """
     messages = []
 

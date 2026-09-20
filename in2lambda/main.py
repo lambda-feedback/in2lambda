@@ -1,10 +1,4 @@
-"""The main input for in2lambda, defining both the CLT and main library function."""
-
-# This commented block makes it run the local files rather than the pip library (I think, I don't understand it. Kevin wrote it.)
-#
-# import sys
-# import os
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+"""The in2lambda command line, and the library function behind `in2lambda convert`."""
 
 import getpass
 import importlib
@@ -23,9 +17,9 @@ import in2lambda.filters
 import in2lambda.source
 from in2lambda.api.set import Set
 
-# All four are in other people's scripts as in2lambda.main names, whether or not they
-# are used here: `_pandoc` and `file_type` were defined here before there was an
-# in2lambda.source, and `ConversionToolsMissing` is what `runner` documents raising.
+# Other people's scripts import all four as in2lambda.main names: `_pandoc` and
+# `file_type` were defined here before in2lambda.source existed, and `runner` documents
+# raising `ConversionToolsMissing`.
 from in2lambda.source import (  # noqa: F401  # Re-exported, so not unused.
     ConversionToolsMissing,
     SourceError,
@@ -38,11 +32,11 @@ from in2lambda.source import (  # noqa: F401  # Re-exported, so not unused.
 @contextmanager
 def _message_not_traceback():  # No annotation: beartype 0.22 on 3.10 checks the
     # decorated object, a _GeneratorContextManager, against a generator hint.
-    """Turns anything raised for a reader into what to do about it and a non-zero exit.
+    """Turns a `SourceError` into a message and a non-zero exit.
 
-    Every command wraps whatever it calls in this: a missing pandoc, a draft from
-    somewhere else, a source that has moved on are all things the person running it can
-    act on, and none of them are worth a traceback.
+    Every command wraps its call in this. A missing pandoc, a draft another tool wrote
+    and a source that has changed are faults the person running the command can act on,
+    and a traceback tells them less than the message does.
     """
     try:
         yield
@@ -52,11 +46,12 @@ def _message_not_traceback():  # No annotation: beartype 0.22 on 3.10 checks the
 
 @contextmanager
 def _warnings_said():  # Unannotated for the same reason as _message_not_traceback.
-    """Echoes whatever is warned inside it as a line, as `runner` says its problems.
+    """Echoes each warning raised inside it as a line, as `runner` prints its problems.
 
-    What `build` and `render` warn about is something they wrote out anyway - a question
-    nothing answers, a question xelatex gave up on - so it belongs beside what they
-    wrote, and is said even where the command goes on to refuse for another reason.
+    `build` and `render` warn about a question they wrote out all the same - a question
+    nothing answers, a question xelatex gave up on - so each warning is printed beside
+    what the command wrote, and is printed where the command goes on to refuse for
+    another reason.
     """
     with warnings.catch_warnings(record=True) as said:
         warnings.simplefilter("always")
@@ -68,13 +63,13 @@ def _warnings_said():  # Unannotated for the same reason as _message_not_traceba
 
 
 def docx_to_md(docx_file: str) -> str:
-    """Converts .docx files to markdown.
+    """Converts a .docx file to markdown.
 
     Args:
-        docx_file: A file path with the file extension included.
+        docx_file: A file path, including the file extension.
 
     Returns:
-        the contents of the .docx file in markdown formatting
+        The contents of the .docx file as markdown.
     """
     return _pandoc(docx_file, "markdown").decode("utf-8")
 
@@ -85,18 +80,17 @@ def runner(
     output_dir: Optional[str] = None,
     answer_file: Optional[str] = None,
 ) -> Set:
-    r"""Takes in a TeX file for a given subject and outputs how it's broken down within Lambda Feedback.
+    r"""Converts a question document into the set Lambda Feedback imports.
 
     Args:
-        question_file: The absolute path to a TeX question file.
-        chosen_filter: The filter chosen to parse the TeX file.
-        output_dir: An optional argument for where to output the Lambda Feedback compatible json/zip files.
-        answer_file: The absolute path to a TeX answer file.
+        question_file: The absolute path to a question file.
+        chosen_filter: The filter that parses the document.
+        output_dir: Where to write the JSON and zip files. None writes no files.
+        answer_file: The absolute path to a file of answers.
 
     Returns:
-        A list of questions and how they would be broken down into different Lambda Feedback sections
-        in a Python-readable format. If `output_dir` is specified, the corresponding json/zip files are
-        produced.
+        The set the document describes, as questions holding parts. Where `output_dir` is
+        given, `runner` also writes the JSON and zip files.
 
     Raises:
         ConversionToolsMissing: pandoc or panflute is not installed.
@@ -113,14 +107,12 @@ def runner(
     _require_conversion_tools()
     import panflute as pf
 
-    # The list of questions for Lambda Feedback as a Python API.
     set_obj = Set()
 
-    # Dynamically import the correct pandoc filter depending on the subject.
+    # The filter is named on the command line, so it is imported by name.
     filter_module = importlib.import_module(f"in2lambda.filters.{chosen_filter}.filter")
 
     if file_type(question_file) == "docx":
-        # Convert .docx to md using Pandoc and proceed
         text = docx_to_md(question_file)
         input_format = "markdown"
     else:
@@ -129,7 +121,6 @@ def runner(
 
         input_format = file_type(question_file)
 
-    # Parse the Pandoc AST using the relevant panflute filter.
     pf.run_filter(
         filter_module.pandoc_filter,
         doc=pf.convert_text(text, input_format=input_format, standalone=True),
@@ -138,7 +129,6 @@ def runner(
         parsing_answers=False,
     )
 
-    # If separate answer TeX file provided, parse that as well.
     if answer_file:
         if file_type(answer_file) == "docx":
             answer_text = docx_to_md(answer_file)
@@ -158,10 +148,10 @@ def runner(
             parsing_answers=True,
         )
 
-    # Report before writing anything: the problems are the set's whether or not it is
-    # written out, and an author reading the command line should see them first. A check
-    # that could not be run at all - the maths, with no Node.js to render it - warns
-    # instead, and is caught here so that it reads as a line rather than a traceback.
+    # Reported before anything is written: the problems belong to the set whether or not
+    # in2lambda writes it out, and an author reads them first. A check that could not run
+    # at all - the maths, with no Node.js to render it - warns instead, and is caught
+    # here so that it prints as a line and not as a traceback.
     with warnings.catch_warnings(record=True) as not_checked:
         warnings.simplefilter("always")
         problems = set_obj.problems()
@@ -170,7 +160,6 @@ def runner(
     for warning in not_checked:
         click.echo(f"Warning: {warning.message}")
 
-    # Read the Python API format and convert to JSON.
     if output_dir is not None:
         set_obj.to_json(output_dir)
 
@@ -178,14 +167,14 @@ def runner(
 
 
 class _Cli(click.RichGroup):
-    """The in2lambda group, which says what to run when given the pre-2.0 command line."""
+    """The in2lambda group, which names the command to run for a pre-2.0 command line."""
 
     def resolve_command(self, ctx, args):  # type: ignore[no-untyped-def]
-        """Fail with the new command line rather than click's handling of an unknown name.
+        """Refuses an unknown command by naming the command to run.
 
         Click resolves a first argument starting with ``/`` or ``.`` by printing the
-        group's help and exiting successfully, so `in2lambda /path/to/questions.tex
-        PartsSepSol` would look like it had worked while converting nothing.
+        group's help and exiting 0, so `in2lambda /path/to/questions.tex PartsSepSol`
+        would read as a successful run that converted nothing.
         """
         # Shell completion resolves partial command lines, and must not raise.
         if not ctx.resilient_parsing and self.get_command(ctx, args[0]) is None:
@@ -205,10 +194,9 @@ def cli() -> None:
 
 
 @cli.command()
-@click.argument(  # Use resolve_path to get absolute path
+@click.argument(
     "question_file", type=click.Path(exists=True, readable=True, resolve_path=True)
 )
-# Python files in the subjects directory
 @click.argument(
     "chosen_filter",
     type=click.Choice(in2lambda.filters.builtin_filters(), case_sensitive=False),
@@ -219,7 +207,7 @@ def cli() -> None:
     "output_dir",
     default="./out",
     show_default=True,
-    help="Directory to output json/zip files to.",
+    help="Directory to write the JSON and zip files to.",
     type=click.Path(resolve_path=True),
 )
 @click.option(
@@ -227,21 +215,21 @@ def cli() -> None:
     "-a",
     "answer_file",
     default=None,
-    help="File containing solutions for QUESTION_FILE.",
+    help="File holding the solutions to QUESTION_FILE.",
     type=click.Path(resolve_path=True, exists=True, dir_okay=False),
 )
 def convert(
     question_file: str, chosen_filter: str, output_dir: str, answer_file: Optional[str]
 ) -> None:
-    """Takes in a QUESTION_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
-    # main() is made separate from click() so that it can be easily imported as part of a library.
+    """Converts QUESTION_FILE with CHOSEN_FILTER into Lambda Feedback JSON and a zip."""
+    # `runner` is separate from this command so that a script can import it.
     with _message_not_traceback():
         runner(question_file, chosen_filter, output_dir, answer_file)
 
 
 @cli.group("source")
 def source_group() -> None:
-    """Freezes the source documents of a draft, so their text can be quoted by line range."""
+    """Freezes the source documents of a draft, so that their text can be quoted."""
 
 
 _draft = click.option(
@@ -250,7 +238,7 @@ _draft = click.option(
     help="The draft to work on, as FILE.draft.json or the source it was frozen from. "
     " [default: the one draft in this directory]",
 )
-"""Which draft a command is about, since a folder of sheets holds one draft each."""
+"""Which draft a command works on, because a folder of sheets holds a draft per sheet."""
 
 
 @source_group.command("add")
@@ -274,13 +262,12 @@ _draft = click.option(
 def source_add(files: tuple[str, ...], start_over: bool, draft: Optional[str]) -> None:
     """Converts each FILE to markdown and records its blocks in a draft beside them.
 
-    The draft is named after the first file - questions.draft.json - unless --draft
-    says which one to freeze into. A sheet written as two documents, the questions in
-    one file and the solutions in another, is frozen as both, in that order: in2lambda
-    source add questions.docx solutions.docx. A file can be added to a draft already
-    written as its next source, by naming that draft with --draft. The first source's
-    blocks and lines are named b3 and s10:14; every source after it carries its number
-    - 2/b3, 2/s10:14.
+    The draft is named after the first file - questions.draft.json - unless --draft names
+    the draft to freeze into. A sheet written as two documents, the questions in one file
+    and the solutions in another, is frozen as both, in that order: in2lambda source add
+    questions.docx solutions.docx. Naming an existing draft with --draft adds a file to
+    that draft as its next source. The first source's blocks and lines are named b3 and
+    s10:14, and every source after it carries its number: 2/b3, 2/s10:14.
     """
     with _message_not_traceback():
         written = in2lambda.source.add(list(files), start_over, draft)
@@ -297,7 +284,7 @@ def source_show(draft: Optional[str]) -> None:
 
 @cli.group("draft")
 def draft_group() -> None:
-    """Builds up a draft, recording every command in it."""
+    """Builds a draft up, recording every command in the draft."""
 
 
 _by = click.option(
@@ -305,7 +292,7 @@ _by = click.option(
     default=getpass.getuser,
     help="Who to record the command as having been run by.  [default: your username]",
 )
-"""Who ran a draft command, which every one of them records."""
+"""Who ran a draft command, which every draft command records."""
 
 
 def _text_or_literal(command: Callable[..., None]) -> Callable[..., None]:
@@ -313,14 +300,14 @@ def _text_or_literal(command: Callable[..., None]) -> Callable[..., None]:
     for option in (
         click.option(
             "--literal",
-            help="The text itself, where the source does not say it in a form the "
-            "field can take. Marks the field as edited.",
+            help="The text itself, for wording the source does not hold in a form the "
+            "field takes. Marks the field as edited.",
         ),
         click.option(
             "--text",
-            help="Where in a frozen source the text is: a block id such as b3, or "
+            help="Where the text is in a frozen source: a block id such as b3, or "
             "lines such as s10:14, with the source's number in front - 2/b3, 2/s10:14 "
-            "- for any but the first. Run in2lambda source show to see both.",
+            "- for any source after the first. Run in2lambda source show to see both.",
         ),
     ):
         command = option(command)
@@ -328,10 +315,11 @@ def _text_or_literal(command: Callable[..., None]) -> Callable[..., None]:
 
 
 def _run(command: str, args: dict[str, Any], by: str, draft: Optional[str]) -> None:
-    """Runs one draft command against the draft asked for and says what it wrote.
+    """Runs one draft command against the draft named, and prints what it wrote.
 
-    Arguments nobody gave are left out rather than recorded as nulls: the log is what a
-    replay runs, and an option that was not passed is not an argument of the command.
+    An argument the reader did not give is left out of the log, and is not recorded as
+    null: a replay runs the log, and an option nobody passed is not an argument of the
+    command.
     """
     with _message_not_traceback():
         written = in2lambda.draft.execute(
@@ -349,7 +337,7 @@ def _run(command: str, args: dict[str, Any], by: str, draft: Optional[str]) -> N
 
 @draft_group.group("mark")
 def draft_mark() -> None:
-    """Says what to make of a block of the frozen source."""
+    """Marks a block of the frozen source."""
 
 
 @draft_mark.command("ignore")
@@ -357,13 +345,13 @@ def draft_mark() -> None:
 @_by
 @_draft
 def draft_mark_ignore(block: str, by: str, draft: Optional[str]) -> None:
-    """Marks BLOCK as nothing to take a question from."""
+    """Marks BLOCK as holding no question, part or solution."""
     _run("mark ignore", {"block": block}, by, draft)
 
 
 @draft_group.group("question")
 def draft_question() -> None:
-    """Adds a question to the draft, or says where its solution is written."""
+    """Adds a question to the draft, or names where its solution is written."""
 
 
 @draft_question.command("add")
@@ -373,7 +361,7 @@ def draft_question() -> None:
 def draft_question_add(
     text: Optional[str], literal: Optional[str], by: str, draft: Optional[str]
 ) -> None:
-    """Adds a question, numbered after the ones already there."""
+    """Adds a question, numbered after the questions already written."""
     _run("question add", {"text": text, "literal": literal}, by, draft)
 
 
@@ -415,7 +403,7 @@ def draft_part_add(
     by: str,
     draft: Optional[str],
 ) -> None:
-    """Adds a part of QUESTION, numbered after the parts it already has."""
+    """Adds a part to QUESTION, numbered after the parts QUESTION already holds."""
     _run(
         "part add", {"question": question, "text": text, "literal": literal}, by, draft
     )
@@ -423,7 +411,7 @@ def draft_part_add(
 
 @draft_group.group("split")
 def draft_split() -> None:
-    """Cuts up a block of the frozen source that is really two things."""
+    """Cuts a block of the frozen source that holds two things."""
 
 
 @draft_split.command("block")
@@ -438,7 +426,7 @@ def draft_split_block(block: str, at: int, by: str, draft: Optional[str]) -> Non
 
 @draft_group.group("field")
 def draft_field() -> None:
-    """Changes the wording of a field the draft has written already."""
+    """Changes the wording of a field the draft already holds."""
 
 
 @draft_field.command("replace")
@@ -448,14 +436,14 @@ def draft_field() -> None:
 @click.option(
     "--regex",
     is_flag=True,
-    help="Read OLD as a regular expression, and NEW as what to replace it with.",
+    help="Read OLD as a regular expression, and NEW as the replacement.",
 )
 @_by
 @_draft
 def draft_field_replace(
     field: str, old: str, new: str, regex: bool, by: str, draft: Optional[str]
 ) -> None:
-    """Replaces OLD with NEW in FIELD, which OLD has to occur exactly once in."""
+    """Replaces OLD with NEW in FIELD, where OLD occurs once."""
     _run(
         "field replace",
         {"field": field, "old": old, "new": new, "regex": True if regex else None},
@@ -467,7 +455,7 @@ def draft_field_replace(
 @draft_group.command("replay")
 @_draft
 def draft_replay(draft: Optional[str]) -> None:
-    """Rebuilds a draft from its log and checks it is the same."""
+    """Rebuilds a draft from its log and checks the result matches."""
     with _message_not_traceback():
         in2lambda.draft.replay(in2lambda.source.find(draft))
     click.echo("Replays as it stands.")
@@ -479,13 +467,13 @@ def spec_group() -> None:
 
 
 @spec_group.command("run")
-# Named from the draft's directory rather than from here, which is where `spec_command`
-# looks for it and how the log records it, so click is not the one to check it is there.
+# The spec is named from the draft's directory, which is where `spec_command` reads it
+# and how the log records it, so click does not check that the file is there.
 @click.argument("spec")
 @_by
 @_draft
 def spec_run(spec: str, by: str, draft: Optional[str]) -> None:
-    """Fills the draft's fields in from SPEC, and says which blocks it left out."""
+    """Fills the draft's fields in from SPEC, and reports the blocks left in no field."""
     with _message_not_traceback():
         path = in2lambda.source.find(draft)
         report = in2lambda.draft.execute(
@@ -497,23 +485,23 @@ def spec_run(spec: str, by: str, draft: Optional[str]) -> None:
 @cli.command("validate")
 @_draft
 def validate(draft: Optional[str]) -> None:
-    """Checks a draft over and writes the report into it.
+    """Checks a draft and writes the report into it.
 
     Reports source blocks in no field and not marked ignore, two fields taken from the
     same lines, gaps in the numbering of the questions or their parts, and fields holding
-    nothing. The set the draft describes is checked over as well - maths delimiters, what
+    nothing. The set the draft describes is checked as well - maths delimiters, what
     KaTeX will not render, images the export would not carry, and the compile Lambda
-    Feedback's PDF generator does where pandoc and xelatex are installed - each against
-    the field it is written in. All of those in2lambda build refuses; a question or part
-    nothing answers is reported as a warning, which it builds over. Finding something is
-    not a failure: the report is written into the draft either way, and replaced by the
-    next one.
+    Feedback's PDF generator performs where pandoc and xelatex are installed - each
+    against the field holding it. in2lambda build refuses every one of those. A question
+    or part nothing answers is reported as a warning, which in2lambda build prints before
+    writing the set. A finding is not a failure: the report is written into the draft,
+    and the next run of the checks replaces it.
     """
     with _message_not_traceback():
         report = in2lambda.draft.report.validate(in2lambda.source.find(draft))
     for finding in report:
-        # Marked as such, since the two are acted on differently and the report is often
-        # read off the terminal rather than out of the draft.
+        # Marked in the output, because a warning and an error are acted on differently
+        # and the report is often read from the terminal and not from the draft.
         if finding["level"] == in2lambda.draft.report.WARNING:
             click.echo(f"Warning: {finding['message']}")
         else:
@@ -531,7 +519,7 @@ _out = click.option(
     help="Directory to write the files to.",
     type=click.Path(resolve_path=True),
 )
-"""Where what a command makes is written, as `convert` has always taken it."""
+"""Where a command writes its files, named as `convert` has always named it."""
 
 
 @cli.command("build")
@@ -540,10 +528,10 @@ _out = click.option(
 def build(output_dir: str, draft: Optional[str]) -> None:
     """Writes a draft out as a Lambda Feedback set.
 
-    Refused unless in2lambda validate has been run since the draft last changed and
-    found no error, so that what is uploaded is what the checks have been over. What it
-    found at level warning - a question or part with no solution written for it - is
-    said, and the set written all the same.
+    Refused unless in2lambda validate has run since the draft last changed and found no
+    error, so that the set uploaded is the set the checks have read. A finding at level
+    warning - a question or part with no solution written for it - is printed, and the
+    set is written all the same.
     """
     with _message_not_traceback(), _warnings_said():
         written = in2lambda.draft.export.build(
@@ -559,11 +547,11 @@ def render(output_dir: str, draft: Optional[str]) -> None:
     """Writes each question of a draft as a PDF, for review.
 
     The questions are compiled as Lambda Feedback's PDF generator compiles them, which
-    needs pandoc and xelatex. What the checks have to say about the draft is not asked:
-    a draft is rendered to look at, including one there is something to fix in.
+    needs pandoc and xelatex. in2lambda render does not read the draft's report: a draft
+    is rendered to be read, including a draft with something to fix in it.
     """
-    # A question xelatex complains about is still written out, and what it refused is a
-    # line to read rather than a traceback.
+    # A question xelatex complains about is written out all the same, and what xelatex
+    # refused is printed as a line and not as a traceback.
     with _message_not_traceback(), _warnings_said():
         written = in2lambda.draft.export.render(
             in2lambda.source.find(draft), output_dir=output_dir

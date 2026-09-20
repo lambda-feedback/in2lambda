@@ -1,27 +1,25 @@
-"""Checks a draft over as a whole, and writes what it finds into it.
+"""Checks a draft as a whole, and writes what the checks find into the draft.
 
-A draft is written one command at a time, and what a run of them left out is not
-something any one command can see: a block nobody quoted, two fields taken from the same
-lines, a question numbered 3 where there is no 2, a part with nothing answering it. So
-the finished draft is looked over at once, and what the checks find is written into it as
-its ``report``, which is what whoever is writing the draft - an agent or a person - reads
-to find out what is left to do, without reading the draft itself.
+A draft is written one command at a time, and no one command sees what a run of them left
+out: a block nobody quoted, two fields taken from the same lines, a question numbered 3
+where there is no 2, a part nothing answers. So the checks read the finished draft and
+write what they find into it as its ``report``, which the agent or the person writing the
+draft reads to find what is left to do, without reading the draft itself.
 
-Everything here reports, never refuses: what the checks found may well be deliberate, and
-deciding that is whoever is writing the draft's to do. The checks themselves read only
-what is in the draft - its blocks, its field keys, their ranges and their values - and
-what the text of a question says is `in2lambda.validation`'s: the set the draft describes
-is exported and checked over as well, so that maths Lambda Feedback will not render is
-reported against the field it is written in rather than found after uploading.
+The checks report and never refuse, because the author may have intended what a check
+found. The checks themselves read only the draft - its blocks, its field keys, their
+ranges and their values. `in2lambda.validation` reads the text of a question:
+:func:`problems` exports the set the draft describes and checks that set, so that maths
+Lambda Feedback will not render is reported against the field holding it, before the set
+is uploaded.
 
-Each finding carries the level it is found at, which is what `in2lambda.draft.export`
-goes by. An error is the draft contradicting its own source or its own export - lines
-nothing accounts for, two fields quoting the same ones, a numbering with a hole in it, a
-quotation of nothing, maths that will not render - and there is no sheet those are right
-about. A warning is something that may well be right: half the sheets there are write
-their solutions in another file, or have none, so a question nothing answers is said to
-whoever is building the set rather than stopping them - inventing a solution to quiet it
-is the one thing nobody wanted.
+Each finding records the level it was found at, which `in2lambda.draft.export` reads. An
+error is the draft contradicting its own source or its own export: lines no field
+accounts for, two fields quoting the same lines, a hole in the numbering, a field holding
+nothing, maths that will not render. No sheet is written that way. A warning is a finding
+the author may have intended: many sheets write their solutions in another file, or write
+none, so in2lambda reports a question nothing answers to the person building the set and
+writes the set.
 """
 
 import re
@@ -36,18 +34,18 @@ from in2lambda.validation import pdf
 Finding = dict[str, Any]
 """One thing a check found: ``{"check", "level", "field", "ranges", "message"}``.
 
-``check`` is which check found it - ``problem`` where it was `in2lambda.validation`,
-over the set the draft describes - ``level`` :data:`ERROR` or :data:`WARNING`, ``field``
-the block id or field key it is about, ``ranges`` the lines in question as
-``[[start, end], ...]``, and ``message`` a sentence naming all of that, so that a line of
-the report can be acted on by itself.
+``check`` names the check that found it, and is ``problem`` where `in2lambda.validation`
+found it over the set the draft describes. ``level`` is :data:`ERROR` or :data:`WARNING`.
+``field`` is the block id or field key the finding is about. ``ranges`` are the lines, as
+``[[start, end], ...]``. ``message`` is a sentence naming all of those, so that one line
+of the report can be acted on by itself.
 """
 
 ERROR = "error"
-"""A finding the draft cannot be exported over: it says something its source does not."""
+"""A finding that stops an export: the draft says what its source does not say."""
 
 WARNING = "warning"
-"""A finding the export says and goes on past: it may be what the sheet really is."""
+"""A finding the export prints before writing the set, because the sheet may be right."""
 
 _NUMBERED = re.compile(r"((?:q\d+\.p)|q)(\d+)\.text")
 """A question's or a part's text, split into what numbers it and the number."""
@@ -67,7 +65,7 @@ def overlapping(ranges: list[list[int]], other: list[list[int]]) -> bool:
 
     Args:
         ranges: Line ranges, as ``[[start, end], ...]``, each end inclusive.
-        other: The ranges to test them against.
+        other: The ranges to test `ranges` against.
 
     Returns:
         Whether the two sets share a line.
@@ -87,7 +85,7 @@ def overlapping(ranges: list[list[int]], other: list[list[int]]) -> bool:
 
 
 def _where(ranges: list[list[int]]) -> str:
-    """The lines something covers, as a message names them, or "" if it covers none."""
+    """The lines a finding covers, as its message names them, or "" for no lines."""
     if not ranges:
         return ""
     return " (lines " + ", ".join(f"{start}-{end}" for start, end in ranges) + ")"
@@ -107,22 +105,21 @@ def _runs(lines: list[int]) -> list[list[int]]:
 def uncovered(draft: dict[str, Any]) -> list[Finding]:
     """Blocks of the sources that no field, and no `mark ignore`, accounts for.
 
-    A block partly quoted is reported for the rest of it: a question taken from the first
-    line of a block leaves the other lines as much unaccounted for as a whole block would.
-    Blocks are accounted for by the lines the fields were taken from rather than by name,
-    so that a block `split block` has cut in two is covered by an ignore of the whole.
+    A block quoted in part is reported for the rest of it: a question taken from the first
+    line of a block leaves the other lines unaccounted for. This check accounts for a
+    block by the lines the fields were taken from and not by the block's name, so that an
+    ignore of a whole block covers both halves of a block `split block` has cut in two.
 
     Args:
         draft: A draft, as `in2lambda.source.frozen` reads one.
 
     Returns:
-        One :data:`Finding` per block with lines nothing has made anything of, in
-        document order and source by source. `in2lambda.spec` reports through this as
-        well as the checks do: what a spec run left out is the same question asked the
-        moment it finishes.
+        One :data:`Finding` per block holding lines no field accounts for, in document
+        order and source by source. `in2lambda.spec` reports through this function as
+        well as the checks do, because a spec run asks the same question as it finishes.
     """
     # By source as well as by line: line 12 of the solutions document is not line 12 of
-    # the sheet, and a field quoting the one accounts for nothing in the other.
+    # the sheet, so a field quoting one document accounts for no line of the other.
     claimed = {
         (field.get("source", 1), line)
         for field in draft["fields"].values()
@@ -156,8 +153,8 @@ def uncovered(draft: dict[str, Any]) -> list[Finding]:
 def _overlaps(draft: dict[str, Any]) -> list[Finding]:
     """Pairs of fields quoted from some of the same lines.
 
-    No command writes such a pair - `record` refuses the second of them - so this is here
-    for a draft edited by hand, where one of the two fields is quoting the wrong thing.
+    No command writes such a pair, because `record` refuses the second field. This check
+    reports a draft edited by hand, in which one of the two fields quotes the wrong lines.
     """
     fields = draft["fields"]
     keys = sorted(fields)
@@ -172,18 +169,18 @@ def _overlaps(draft: dict[str, Any]) -> list[Finding]:
         }
         for index, key in enumerate(keys)
         for other in keys[index + 1 :]
-        # Of the same source, since the same lines of two documents are not the same
-        # lines, as `in2lambda.draft.record` compares them.
+        # Of the same source, because the same line numbers in two documents are
+        # different lines, as `in2lambda.draft.record` compares them.
         if fields[key].get("source", 1) == fields[other].get("source", 1)
         and overlapping(fields[key]["ranges"], fields[other]["ranges"])
     ]
 
 
 def _gaps(draft: dict[str, Any]) -> list[Finding]:
-    """Questions or parts numbered past one that was never written.
+    """Questions or parts numbered past a number that no command wrote.
 
-    Numbers are given out by `in2lambda.draft._next`, which leaves no gap, so this too is
-    a draft that was edited: a question renumbered, or one deleted out of the middle.
+    `in2lambda.draft._next` gives the numbers out and leaves no gap, so this check too
+    reports a draft edited by hand: a question renumbered, or one deleted from the middle.
     """
     numbered: dict[str, list[int]] = {}
     for key in draft["fields"]:
@@ -205,12 +202,12 @@ def _gaps(draft: dict[str, Any]) -> list[Finding]:
 
 
 def _without_solutions(draft: dict[str, Any]) -> list[Finding]:
-    """Parts, and questions written without any, that nothing in the draft answers.
+    """Parts, and questions written without parts, that nothing in the draft answers.
 
-    A part is answered by its own solution or by the solution of the question it belongs
-    to, since a sheet often writes one worked solution covering every part at once. A
-    question with parts is answered through them and is not reported itself; one with
-    none is a question in its own right, and is reported where nothing answers it.
+    A part is answered by its own solution, or by the solution of the question it belongs
+    to, because a sheet often writes one worked solution covering every part. A question
+    with parts is answered through its parts and is not reported. A question without parts
+    is reported where nothing answers it.
     """
     fields = draft["fields"]
     found = []
@@ -250,7 +247,7 @@ def _without_solutions(draft: dict[str, Any]) -> list[Finding]:
 
 
 def _empty(draft: dict[str, Any]) -> list[Finding]:
-    """Fields holding nothing, which is a quotation of the wrong lines or of none."""
+    """Fields holding nothing, which quote the wrong lines or no lines at all."""
     return [
         {
             "check": "empty",
@@ -271,11 +268,10 @@ def checks(draft: dict[str, Any]) -> list[Finding]:
         draft: A draft, as `in2lambda.source.frozen` reads one.
 
     Returns:
-        One :data:`Finding` per thing found, earliest line first and then by what it is
-        about, with the findings about no particular line last. An empty list means the
-        draft covers its source once each, with nothing missing from its numbering; a
-        list holding only warnings is one `in2lambda.draft.export.build` says and
-        exports over.
+        One :data:`Finding` per fault, earliest line first and then by the field each one
+        is about, with the findings about no particular line last. An empty list means the
+        draft covers its source once over, with no hole in its numbering. A list holding
+        only warnings is a list `in2lambda.draft.export.build` prints and exports over.
 
     Examples:
         >>> from in2lambda.draft.report import checks
@@ -299,7 +295,7 @@ def checks(draft: dict[str, Any]) -> list[Finding]:
 
 
 def _order(finding: Finding) -> tuple[int | float, str]:
-    """Where a finding goes in a report: earliest line first, then by what it is about."""
+    """Where a finding sorts in a report: earliest line first, then by field."""
     return (
         finding["ranges"][0][0] if finding["ranges"] else _UNPLACED,
         finding["field"],
@@ -313,8 +309,8 @@ def errors(findings: list[Finding]) -> list[Finding]:
         findings: A report, as :func:`checks` or :func:`validate` writes one.
 
     Returns:
-        Those at level :data:`ERROR`, in the order they were reported. The rest are
-        warnings, which `in2lambda.draft.export.build` says and exports anyway.
+        The findings at level :data:`ERROR`, in the order they were reported. The rest
+        are warnings, which `in2lambda.draft.export.build` prints before writing the set.
 
     Examples:
         >>> from in2lambda.draft.report import errors
@@ -328,36 +324,35 @@ def errors(findings: list[Finding]) -> list[Finding]:
 def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
     """What `in2lambda.validation` finds in the set the draft describes.
 
-    The draft is exported as it stands and the set checked over - maths delimiters,
-    what KaTeX will not render, images the export would not carry, and the compile
-    Lambda Feedback's PDF generator does - so that a question that will not render is
-    reported while the draft is being written rather than after it is uploaded.
+    :func:`problems` exports the draft as it stands and checks the set: maths delimiters,
+    expressions KaTeX will not render, images the export would not carry, and the compile
+    Lambda Feedback's PDF generator performs. A question that will not render is reported
+    while the draft is being written, before the set is uploaded.
 
     Args:
         draft: A draft, as `in2lambda.source.frozen` reads one.
-        directory: Where the draft is, and so what the images it names are beside.
+        directory: Where the draft is, and so where the images it names sit.
 
     Returns:
-        One :data:`Finding` per problem, named by the field of the draft it is in
-        rather than by the question and part of the export, so that a line of it can be
-        acted on with `field replace`. A problem about no one field - the set as a
-        whole failing to compile - keeps the validator's own naming of where it is.
-        All of them are at level :data:`ERROR`: what Lambda Feedback will not render is
-        not something to upload.
+        One :data:`Finding` per problem, named by the field of the draft holding it and
+        not by the question and part of the export, so that a line of the report can be
+        acted on with `field replace`. A problem about no one field, such as the set
+        failing to compile, keeps the validator's own name for where it is. Every finding
+        is at level :data:`ERROR`, because Lambda Feedback will not render what they name.
 
     Warns:
         UserWarning: pandoc or xelatex is not installed, so the set was not compiled.
     """
     where = located(draft)
     if not where:
-        # A draft with no question in it yet describes an empty set, which has nothing
-        # to find and is not worth a xelatex run to find it in.
+        # A draft holding no question describes an empty set, which holds no problem to
+        # find and does not merit a xelatex run.
         return []
 
     missing = pdf.missing_tools()
     if missing:
-        # As `_katex_rejections` does without Node: a check that cannot be run here says
-        # what to install and leaves the rest of the report alone.
+        # As `_katex_rejections` does without Node.js: a check that cannot run names the
+        # packages to install and leaves the rest of the report alone.
         warnings.warn(
             "The set the draft describes was not compiled as the PDF generator would: "
             "install " + " and ".join(missing),
@@ -375,8 +370,8 @@ def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
         if location:
             key = where[location]
             ranges = fields[key]["ranges"]
-            # Whatever the location says past the field: KaTeX names the characters of
-            # it that it stopped at, and those are the field's characters here as well.
+            # Whatever the location says past the field: KaTeX names the characters it
+            # stopped at, and those are characters of the field.
             rest = problem.location[len(location) :]
             finding = {
                 "check": "problem",
@@ -394,34 +389,33 @@ def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
                 "message": str(problem),
             }
         if finding not in found:
-            # A question's solution answers every part of it that has no solution of its
-            # own, so one fault in it is found once per part. They are the same field,
-            # the same lines and the same wording: a second line of the report saying so
-            # is a `field replace` that would be refused for finding nothing to replace.
+            # A question's solution answers every part that has no solution of its own,
+            # so one fault in that solution is found once per part. Each finding names
+            # the same field, the same lines and the same wording, and a second line of
+            # the report would send the author to a `field replace` with nothing left to
+            # replace.
             found.append(finding)
     return found
 
 
 def validate(draft: str | Path) -> list[Finding]:
-    """Checks a draft over and writes the report into it.
+    """Checks a draft and writes the report into it.
 
-    The report replaces whatever one is there, and is dropped again by the next command
-    that changes the draft: it describes the draft as it stood, and a report saying
-    something else is worse than none at all.
+    The report replaces the report already there, and the next command that changes the
+    draft deletes it, because the report describes the draft as it stood.
 
     Args:
         draft: The path of the draft to check.
 
     Returns:
-        What the checks and `in2lambda.validation` found, as it was written into the
-        draft.
+        What the checks and `in2lambda.validation` found, as written into the draft.
 
     Raises:
         DraftMissing: there is no draft at that path.
-        DraftUnreadable: what is there is not a draft anything here wrote.
+        DraftUnreadable: the file at that path is not a draft in2lambda wrote.
         SourceUnreadable: a markdown the draft names has moved, or is not text.
         DraftExists: a markdown has changed since the draft was written from it, so
-            the lines the report named would not be the lines it was written about.
+            the lines the report names would not be the lines it was written about.
 
     Warns:
         UserWarning: a check could not be run here - see :func:`problems`.

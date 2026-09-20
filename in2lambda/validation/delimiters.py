@@ -1,20 +1,19 @@
 """Checks that ``$ ... $`` and ``$$ ... $$`` math delimiters are balanced and placed correctly.
 
-KaTeX (and Lambda Feedback) expect inline math wrapped in single dollar signs on
-one line, and display math wrapped in ``$$`` that each sit alone on their own
-line. This module scans markdown character by character and reports the first
-delimiter mistake it finds.
+KaTeX, and so Lambda Feedback, reads inline maths wrapped in single dollar signs
+on one line, and display maths wrapped in ``$$``, each of which sits alone on its
+own line. :func:`math_delimiter_checker` reads markdown character by character and
+reports the first delimiter mistake it finds.
 """
 
 from enum import Enum
 
 
 class MathDelimiterError(Enum):
-    """Outcome of :func:`math_delimiter_checker`.
+    """The outcome of :func:`math_delimiter_checker`.
 
-    ``PASSED`` means no problem was found; every other member describes a
-    specific delimiter mistake. The value is a short human-readable message
-    suitable for showing on the command line.
+    ``PASSED`` means the checker found no mistake. Every other member names one
+    delimiter mistake. The value is a short message for the command line.
     """
 
     PASSED = "ok"
@@ -32,16 +31,16 @@ class MathDelimiterError(Enum):
 
 
 def math_delimiter_checker(md_content: str) -> MathDelimiterError:
-    r"""Scan markdown for the first math-delimiter mistake.
+    r"""Scans markdown for the first math-delimiter mistake.
 
-    ``\$`` is treated as a literal dollar sign, not a delimiter.
+    ``\$`` is a literal dollar sign and not a delimiter.
 
     Args:
         md_content: The markdown text to check.
 
     Returns:
-        ``MathDelimiterError.PASSED`` if the delimiters are well formed,
-        otherwise the member describing the first problem found.
+        ``MathDelimiterError.PASSED`` where the delimiters are well formed, and
+        otherwise the member naming the first mistake found.
 
     Examples:
         >>> from in2lambda.validation.delimiters import math_delimiter_checker
@@ -54,9 +53,9 @@ def math_delimiter_checker(md_content: str) -> MathDelimiterError:
         >>> math_delimiter_checker("Broken $x = y")
         <MathDelimiterError.MISSING_CLOSING_SINGLE_DOLLAR: 'unclosed inline $ ... $'>
     """
-    # False once we are inside a math expression and awaiting its closing delimiter.
+    # False inside a maths expression, while its closing delimiter is still to come.
     expect_open_delimiter = True
-    # While inside an expression, whether it opened with a single "$" (inline) or "$$" (display).
+    # Inside an expression, whether it opened with a single "$" (inline) or "$$" (display).
     expect_single_dollar = True
 
     idx = 0

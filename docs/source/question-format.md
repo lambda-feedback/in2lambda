@@ -8,7 +8,7 @@ describes that JSON, and how to build it from Python without a source document.
 A {class}`~in2lambda.api.set.Set` holds {class}`~in2lambda.api.question.Question` objects, each
 holding {class}`~in2lambda.api.part.Part` objects, each holding the
 {class}`~in2lambda.api.response_area.ResponseArea` boxes students type into.
-{meth}`~in2lambda.api.set.Set.to_json` writes the lot.
+{meth}`~in2lambda.api.set.Set.to_json` writes the set as JSON.
 
 ```pycon
 >>> from in2lambda.api.part import Part
@@ -66,8 +66,8 @@ holding {class}`~in2lambda.api.part.Part` objects, each holding the
 
 ```
 
-{meth}`~in2lambda.api.set.Set.to_json` writes a folder named after the set, and a zip of it to
-upload:
+{meth}`~in2lambda.api.set.Set.to_json` writes a folder named after the set, and a zip of that
+folder to upload:
 
 ```pycon
 >>> import json, os, tempfile
@@ -87,24 +87,23 @@ upload:
 
 ```
 
-A few things the example shows in passing:
+The example also shows the following:
 
-- **Building parts directly beats the incremental helpers.** [Filters](filters/index)
-  read a document in order, so they call
+- **Pass `Part` objects to `Question` where the script holds the whole question.**
+  [Filters](filters/index) read a document in order, so they call
   {meth}`~in2lambda.api.question.Question.add_part_text` and
   {meth}`~in2lambda.api.question.Question.add_solution`, which fill in whichever part comes next.
-  A script that already knows the whole question should pass `Part` objects to `Question`, as
-  above; only those give a part a final answer or an answer box.
+  A `Part` object gives a part a final answer and an answer box, which those two methods do not.
 - **A line holding only `---` (or `***`) splits a worked solution** into the steps students go
   through one at a time in the structured tutorial.
-- **Unset question settings are left out of the JSON** rather than guessed at, so `skill`,
-  `guidance` and the two durations only appear when set. `publish` and the four `display_*`
-  settings always do, defaulting to `True`.
-- **Images** go in `Question.images` as paths on disk; they are copied into `media/` under the file
-  name they already had, and every reference to one in the question's markdown is rewritten to that
-  name, which is all Lambda Feedback looks an image up by.
+- **Unset question settings are left out of the JSON**, so `skill`, `guidance` and the two
+  durations appear only when set. `publish` and the four `display_*` settings always appear, and
+  default to `True`.
+- **Images** are paths on disk listed in `Question.images`. `to_json` copies each image into
+  `media/` under its own file name, and rewrites every reference to that image in the question's
+  markdown to the same name. Lambda Feedback looks an image up by that name alone.
 - **{meth}`Set.from_json <in2lambda.api.set.Set.from_json>`** reads an existing export, as a folder
-  or a zip, so an edit to a real set can start from what Lambda Feedback produced.
+  or a zip, so an edit to a real set starts from the export Lambda Feedback produced.
 
 ## The JSON in2lambda writes
 
@@ -116,12 +115,13 @@ A few things the example shows in passing:
 <set name>.zip                                 # the folder, zipped, to upload
 ```
 
-A question's filename is its title with spaces and the characters Windows and path separators
-forbid (`/ \ < > : " | ?  *`) each replaced by an underscore. An image keeps the file name it
-already had, so `images=["figures/rocket-momentum.png"]` gives `media/rocket-momentum.png`, and the
-references to it are rewritten to that name. `media/` is one flat folder for the whole set, so a
-file two questions use is copied once, and a second file of a name already taken is named as Lambda
-Feedback names one, `question_001_<Title>_0001.png`. Files are written on a single line.
+A question's filename is its title, with spaces and the characters Windows and path separators
+forbid (`/ \ < > : " | ?  *`) each replaced by an underscore. An image keeps its own file name, so
+`images=["figures/rocket-momentum.png"]` gives `media/rocket-momentum.png`, and every reference to
+that image is rewritten to `rocket-momentum.png`. `media/` is one flat folder for the whole set: a
+file two questions use is copied once, and a second file whose name is already taken is named as
+Lambda Feedback names an image, `question_001_<Title>_0001.png`. Each JSON file is written on a
+single line.
 
 ### Set
 
@@ -154,33 +154,32 @@ The three types in2lambda writes:
 | `NUMERIC_UNITS` | `comparePhysicalQuantities` | a number and a unit, e.g. `0.106 kg` | `gradeParams` holds `rtol` (and `strict_syntax`); `config` is null |
 | `MULTIPLE_CHOICE` | `arrayEqual` | a list of booleans, one per option | `config` holds `single`, `options` and `randomise`; `gradeParams` is null |
 
-The three lists an area carries, each a dataclass in
+A response area holds three lists, each of a dataclass in
 {mod}`in2lambda.api.response_area`:
 
 - `inputSymbols` — `{"symbol", "code", "aliases", "isVisible"}` from
-  {class}`~in2lambda.api.response_area.InputSymbol`. `symbol` is what students see
-  (e.g. `\(\rho\)`), `code` what the evaluation function reads.
+  {class}`~in2lambda.api.response_area.InputSymbol`. Lambda Feedback displays `symbol` to students
+  (e.g. `\(\rho\)`), and the evaluation function reads `code`.
 - `tests` — `{"id", "payload", "expectedResponse": {"isCorrect"}}` from
   {class}`~in2lambda.api.response_area.Test`: the author's own checks of the marking.
 - `cases` — `{"id", "answer", "feedback", "isCorrect", "params"}` from
   {class}`~in2lambda.api.response_area.Case`: a response matching `answer` is shown `feedback`,
   and may be marked correct.
 
-An `id` left unset is a fresh UUID, which is what import needs.
+An `id` left unset is written as a fresh UUID, which import requires.
 
 ### Markdown
 
-Maths is `$...$` inline and `$$` on its own lines for display, rendered by
-[KaTeX](https://katex.org/): commands KaTeX lacks do not display — degrees, for example, are
-written `^\circ`. An image is written `![pictureTag](rocket-momentum.png)`, naming the file as it
-sits in `media/`. A filter passes through whatever path the source document used, so
-`\includegraphics{figures/rocket-momentum.png}` becomes `![pictureTag](figures/rocket-momentum.png)`
-in the set; writing the set out rewrites it to `![pictureTag](rocket-momentum.png)`, which is the
-image as `media/` holds it. A reference naming no image of the question is left as written, and
-{func}`~in2lambda.validation.validate` reports it.
+[KaTeX](https://katex.org/) renders maths written `$...$` inline and `$$` on its own lines for
+display. KaTeX does not display the commands it lacks, so a degree is written `^\circ`. An image
+is written `![pictureTag](rocket-momentum.png)`, naming the file as `media/` holds it. A filter
+passes the source document's path through, so `\includegraphics{figures/rocket-momentum.png}`
+becomes `![pictureTag](figures/rocket-momentum.png)` in the set, and writing the set out rewrites
+that reference to `![pictureTag](rocket-momentum.png)`. A reference naming no image of the question
+is written as it stands, and {func}`~in2lambda.validation.validate` reports that reference.
 
 :::{note}
-Lambda Feedback's own exports carry a few keys in2lambda neither reads nor writes, among them
-`isSurvey` and `releasedAt` on the set. Diffing a written set against a real export will show
-them missing; the platform fills them in on import.
+Lambda Feedback's own exports hold a few keys in2lambda neither reads nor writes, among them
+`isSurvey` and `releasedAt` on the set. A diff of a written set against a real export shows those
+keys missing. Lambda Feedback fills them in on import.
 :::
