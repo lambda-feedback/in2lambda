@@ -18,14 +18,15 @@ from typing import Any
 import in2lambda.spec
 from in2lambda.draft.report import _order, _where, checks, overlapping, uncovered
 from in2lambda.source import (
+    Block,
     SourceError,
     _digest,
     _elements,
     _numbered,
     _require_conversion_tools,
     blocks,
-    dedented,
     frozen,
+    quoted,
     save,
     serialise,
 )
@@ -515,24 +516,36 @@ def _quoted(
 ) -> str:
     """Lines of one frozen source as a field takes them.
 
-    Lines quoted out of a list item are dedented by the item's own indentation, which
-    is the markdown's rather than the author's; the range is still the source lines.
-    The block the lines fall in says whether they are, rather than the text itself, so
-    that a paragraph reading like a list item is quoted as it is written.
+    Lines quoted out of a list item, or out of a block nested inside one, are dedented
+    by the indentation the markdown gave them rather than the author; the range is still
+    the source lines. The block the lines fall in says whether they are, rather than the
+    text itself, so that a paragraph reading like a list item is quoted as it is written.
     """
     text = "\n".join(markdown.splitlines()[start - 1 : end])
-    # Blocks do not overlap, so the one the first line falls in is the one the lines are
-    # part of - a nested item among them included, since only a top-level item is a
-    # block of its own and a range is how one of those is quoted.
+    # The innermost block the first line falls in, which is the last one to hold it since
+    # a block is written after the block it sits inside. A parent's indentation is the
+    # child's too, so either would dedent by the same width; the innermost is what says
+    # how deep the lines stand when the parent is a fenced div rather than an item.
     block = next(
         (
             held
-            for held in draft["sources"][source - 1]["blocks"]
+            for held in reversed(draft["sources"][source - 1]["blocks"])
             if held["start"] <= start <= held["end"]
         ),
         None,
     )
-    return dedented(text) if block and block["type"] == "list item" else text
+    if block is None:
+        return text
+    return quoted(
+        text,
+        Block(
+            block["id"],
+            block["type"],
+            block["start"],
+            block["end"],
+            block.get("depth", 1),
+        ),
+    )
 
 
 def _next(draft: dict[str, Any], prefix: str) -> str:

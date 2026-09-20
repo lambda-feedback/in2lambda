@@ -1,0 +1,98 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        8,
+        8
+      ]
+    ],
+    "value": "$1+1 = 2$"
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "$1+1$"
+  },
+  "q1.p2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        14,
+        14
+      ]
+    ],
+    "value": "$2+2=4$"
+  },
+  "q1.p2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        11,
+        11
+      ]
+    ],
+    "value": "$2+2$"
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "Here is some interesting information. Calculate the following:"
+  },
+  "q2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        20,
+        20
+      ]
+    ],
+    "value": "This is the solution."
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        17,
+        17
+      ]
+    ],
+    "value": "This questions has no parts. What is the solution?"
+  }
+}

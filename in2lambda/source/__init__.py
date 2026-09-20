@@ -4,7 +4,12 @@ Anything that writes questions from a document - the in2lambda agent, say - need
 take the wording out of the source rather than retype it, and a line range is only an
 address if the text it points into cannot move underneath it. So the document is frozen
 once: converted to markdown, hashed, and written down beside a ``FILE.draft.json``
-listing every top-level block with the lines it spans.
+listing every block with the lines it spans.
+
+A block is a top-level element of the markdown, or an element nested inside one. A list
+item holding a list of its own is one block per question and one per part, and the
+nested ids say where each sits: ``b3`` holds ``b3.1`` and ``b3.2``, and ``b3.2`` holds
+``b3.2.1``. A parent's line range spans its children's.
 
 The draft is named after the source it was frozen from, so a folder holding a term's
 worth of sheets holds a draft for each rather than one they take turns overwriting.
@@ -25,7 +30,8 @@ import json
 import re
 import shutil
 import subprocess
-from dataclasses import dataclass
+import textwrap
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Optional
 
@@ -574,7 +580,7 @@ def frozen(draft: str | Path) -> tuple[dict[str, Any], list[str]]:
 
 @dataclass
 class Block:
-    """One top-level block of a frozen source, and the lines it spans.
+    """One block of a frozen source, and the lines it spans.
 
     Lines are 1-based and inclusive, so `start` and `end` are the numbers
     :func:`show` prints beside that block's first and last line.
@@ -584,10 +590,24 @@ class Block:
     type: str
     start: int
     end: int
+    depth: int = 1
+    """How deep the block sits: 1 for a top-level element, 2 for a child of one."""
 
     def to_dict(self) -> dict[str, str | int]:
-        """The block as it is written into the draft."""
-        return {"id": self.id, "type": self.type, "start": self.start, "end": self.end}
+        """The block as it is written into the draft.
+
+        A top-level block writes no ``depth``, so a document with nothing nested in it
+        freezes to the draft it has always frozen to and replays as it always did.
+        """
+        written: dict[str, str | int] = {
+            "id": self.id,
+            "type": self.type,
+            "start": self.start,
+            "end": self.end,
+        }
+        if self.depth > 1:
+            written["depth"] = self.depth
+        return written
 
 
 def _numbered(source: int, name: str) -> str:
@@ -601,7 +621,7 @@ def _numbered(source: int, name: str) -> str:
 
 
 def blocks(markdown: str, source: int = 1) -> list[Block]:
-    r"""Every top-level block of some markdown, in the order it is written.
+    r"""Every block of some markdown, in the order it is written.
 
     Args:
         markdown: A document in the dialect :func:`add` freezes to.
@@ -609,15 +629,18 @@ def blocks(markdown: str, source: int = 1) -> list[Block]:
             but the first: a draft's second source has ``2/b1``, ``2/b2``.
 
     Returns:
-        One :class:`Block` per block, numbered ``b1`` onwards. The blocks do not
-        overlap and every line of the document falls in at most one: a block that is
+        One :class:`Block` per top-level element, numbered ``b1`` onwards, each followed
+        by the blocks nested inside it, numbered ``b1.1`` onwards. Top-level blocks do
+        not overlap and every line of the document falls in at most one: a block that is
         none of the types the agent quotes is still listed, as ``other``, rather than
-        leaving its lines unaddressable.
+        leaving its lines unaddressable. A block with children spans them.
 
     Examples:
         >>> from in2lambda.source import blocks
         >>> blocks("# Title\n\nSome words.\n")
-        [Block(id='b1', type='heading', start=1, end=1), Block(id='b2', type='paragraph', start=3, end=3)]
+        [Block(id='b1', type='heading', start=1, end=1, depth=1), Block(id='b2', type='paragraph', start=3, end=3, depth=1)]
+        >>> [(block.id, block.type) for block in blocks("1.  Q1\n\n    1.  (a)\n")]
+        [('b1', 'list item'), ('b1.1', 'paragraph'), ('b1.2', 'list item')]
         >>> [block.id for block in blocks("# Solutions\n", 2)]
         ['2/b1']
     """
@@ -641,7 +664,9 @@ def dedented(text: str) -> str:
         keeps its own relative indent. Text whose first line has no marker on it comes
         back unchanged, but a paragraph reading like one - ``A. Smith says`` - would be
         dedented, so what this is called on is decided by the block's type rather than
-        by its text.
+        by its text. The same holds of a block nested inside an item: :func:`quoted`
+        calls this on one because its first line may carry the item's marker, and a
+        nested block whose first line reads like a marker is dedented too.
 
     Examples:
         >>> from in2lambda.source import dedented
@@ -662,6 +687,35 @@ def dedented(text: str) -> str:
     )
 
 
+def quoted(text: str, block: Block) -> str:
+    r"""Some lines of a block, as a field quotes them.
+
+    Args:
+        text: The lines as the source writes them.
+        block: The block they are the lines of, which says whether the indentation on
+            them is the markdown's.
+
+    Returns:
+        The lines as they are, for a top-level block that is not a list item. For a list
+        item, or for a block nested inside one, the marker comes off the first line and
+        the indent the lines stand at comes off every one of them: both are what the
+        markdown needed to hold the item together, and four leading spaces after a blank
+        line are a code block wherever the field is rendered.
+
+    Examples:
+        >>> from in2lambda.source import Block, quoted
+        >>> quoted("1.  A person walks\n    to the edge.", Block("b1", "list item", 3, 4))
+        'A person walks\nto the edge.'
+        >>> quoted("    It might have\n    two lines.", Block("b1.2", "paragraph", 7, 8, 2))
+        'It might have\ntwo lines.'
+        >>> quoted("A. Smith says\nso.", Block("b1", "paragraph", 1, 2))
+        'A. Smith says\nso.'
+    """
+    if block.type == "list item" or block.depth > 1:
+        return textwrap.dedent(dedented(text))
+    return text
+
+
 def _elements(markdown: str, source: int = 1) -> list[tuple[Block, Any]]:
     """Every block of some markdown, each beside the panflute element it was taken from.
 
@@ -674,22 +728,59 @@ def _elements(markdown: str, source: int = 1) -> list[tuple[Block, Any]]:
     document = pf.convert_text(
         markdown, input_format=f"{_MARKDOWN}+sourcepos", standalone=True
     )
-    found = [span for element in document.content for span in _spans(element, pf)]
-    # Where no blank line separates one block from the next - a list straight after a
-    # paragraph, a definition list - pandoc reports the first as running on into the
-    # second's first line, so no block is allowed to reach where the next one starts,
-    # nor past the end of the document.
-    limits = [start - 1 for _, start, _, _ in found[1:]] + [len(markdown.splitlines())]
+    found = _walk(document.content, "b", 1, len(markdown.splitlines()), pf)
     return [
-        (Block(_numbered(source, f"b{number}"), kind, start, min(end, limit)), element)
-        for number, ((kind, start, end, element), limit) in enumerate(
-            zip(found, limits), 1
-        )
+        (replace(block, id=_numbered(source, block.id)), element)
+        for block, element in found
     ]
 
 
+def _walk(elements, prefix, depth, limit, pf):  # type: ignore[no-untyped-def]
+    """The blocks a run of sibling elements accounts for, each parent before its children.
+
+    Args:
+        elements: The elements standing side by side - the document's own, or the ones
+            inside one block of it.
+        prefix: What their ids start with: ``b`` at the top, ``b3.`` inside ``b3``.
+        depth: How deep they sit, counting the top-level elements as 1.
+        limit: The last line the final sibling may reach, which is the end of the
+            document at the top and the end of the parent block inside one.
+        pf: The panflute module, imported by the caller that has it.
+    """
+    found = [span for element in elements for span in _spans(element, pf)]
+    # Where no blank line separates one block from the next - a list straight after a
+    # paragraph, a definition list - pandoc reports the first as running on into the
+    # second's first line, so no block is allowed to reach where the next one starts,
+    # nor past the end of what holds it.
+    limits = [start - 1 for _, start, _, _ in found[1:]] + [limit]
+    walked = []
+    for number, ((kind, start, end, element), stop) in enumerate(zip(found, limits), 1):
+        block = Block(f"{prefix}{number}", kind, start, min(end, stop), depth)
+        walked.append((block, element))
+        walked.extend(
+            _walk(_children(element, pf), f"{block.id}.", depth + 1, block.end, pf)
+        )
+    return walked
+
+
+def _children(element, pf):  # type: ignore[no-untyped-def]
+    """The elements inside a block that are blocks of their own, and none where it has any.
+
+    A list item and a fenced Div - what pandoc makes of a ``solution`` environment - are
+    the two things a document nests blocks inside, and a spec reaches those blocks by
+    their depth. One holding a single element other than a list is that element, so it
+    stays one block: a sheet written without nesting freezes to the blocks it always did.
+    """
+    if not isinstance(element, (pf.ListItem, pf.Div)):
+        return []
+    inside = [_unwrapped(child, pf) for child in element.content]
+    if len(inside) == 1 and not isinstance(inside[0], (pf.BulletList, pf.OrderedList)):
+        return []
+    return list(element.content)
+
+
 def _spans(element, pf):  # type: ignore[no-untyped-def]
-    """The ``(type, start, end, element)`` quadruples one top-level element accounts for.
+    """The ``(type, start, end, element)`` quadruples one element accounts for.
 
     A list is several: the ticket asks for a list item, not a list, and an item spans
     everything nested under it. The element given back is the one that block is, past
@@ -705,6 +796,20 @@ def _spans(element, pf):  # type: ignore[no-untyped-def]
             ("list item", _range(item.content[0])[0], _range(item.content[-1])[1], item)
             for item in inner.content
             if len(item.content)
+        ]
+    if isinstance(inner, pf.Div):
+        # A fenced Div's own position covers the `:::` lines pandoc wrote around it.
+        # Those are pandoc's, as a list marker is, and a field cannot quote them, so the
+        # lines of the Div are the ones its content stands on.
+        if not len(inner.content):
+            return []
+        return [
+            (
+                _kind(inner, pf),
+                _range(inner.content[0])[0],
+                _range(inner.content[-1])[1],
+                inner,
+            )
         ]
     return [(_kind(inner, pf), *_range(element), inner)]
 
@@ -738,6 +843,8 @@ def _kind(inner, pf) -> str:  # type: ignore[no-untyped-def]
             if isinstance(contents[0], pf.Image):
                 return "image"
         return "paragraph"
+    if isinstance(inner, pf.Div):
+        return "div"
     return "other"
 
 
@@ -897,10 +1004,12 @@ def show(draft: str | Path) -> str:
         draft: The path of the draft to print.
 
     Returns:
-        One line per line of each frozen markdown: the id of the block starting there,
-        where one does, then the line number and the line itself. A draft of more than
-        one source heads each with its number and its name, since the line numbers
-        start again at 1 in every one of them.
+        One line per line of each frozen markdown: the ids of the blocks starting there,
+        where any do, then the line number and the line itself. A nested block and the
+        block holding it start on the same line, so a line may carry several ids, and
+        the margin is indented two spaces for each level of nesting below the top. A
+        draft of more than one source heads each with its number and its name, since the
+        line numbers start again at 1 in every one of them.
 
     Raises:
         DraftMissing: there is no draft at that path.
@@ -918,12 +1027,22 @@ def show(draft: str | Path) -> str:
     for number, (source, markdown) in enumerate(
         zip(found["sources"], sources), start=1
     ):
-        ids = {block["start"]: block["id"] for block in source["blocks"]}
+        starting: dict[int, list[dict[str, Any]]] = {}
+        for block in source["blocks"]:
+            starting.setdefault(block["start"], []).append(block)
+        # The blocks are in document order, so the ids of one line read outermost first,
+        # and the margin is indented by the shallowest of them: a nested block whose
+        # parent starts further up stands out to the right of it.
+        ids = {
+            line_number: "  " * (min(block.get("depth", 1) for block in found) - 1)
+            + " ".join(block["id"] for block in found)
+            for line_number, found in starting.items()
+        }
         lines = markdown.splitlines()
-        margin = max((len(block_id) for block_id in ids.values()), default=0)
+        margin = max((len(shown) for shown in ids.values()), default=0)
         numbers = len(str(len(lines)))
         body = "\n".join(
-            f"{ids.get(line_number, ''):>{margin}}  {line_number:>{numbers}}  {line}".rstrip()
+            f"{ids.get(line_number, ''):<{margin}}  {line_number:>{numbers}}  {line}".rstrip()
             for line_number, line in enumerate(lines, start=1)
         )
         printed.append(

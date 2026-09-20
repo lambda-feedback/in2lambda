@@ -15,12 +15,17 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from click.testing import CliRunner
 from conftest import SPECS, SPECS_DIR, frozen_sources
 
+import in2lambda
 import in2lambda.draft
 from in2lambda.main import cli
 from in2lambda.source import SourceError
+
+FILTERS = Path(in2lambda.__file__).parent / "filters"
+"""Where the example each filter ships lives, for a spec folder holding no document."""
 
 WORKED_EXAMPLE = SPECS_DIR / "parts_sep_sol"
 """The case the tests below happen to use; what they check holds for any of them."""
@@ -33,8 +38,17 @@ HASHED = {"spec": "hash", "predicates": "predicates_hash"}
 
 
 def _frozen(folder: Path, tmp_path: Path) -> CliRunner:
-    """A folder's documents and its spec, copied into `tmp_path` with the sources frozen."""
+    """A folder's documents and its spec, copied into `tmp_path` with the sources frozen.
+
+    A folder holding no document of its own is a spec written for the example the filter
+    it names ships, which is copied in as the source: the three layouts that nest their
+    parts inside their questions are spec-able exactly where the filters are, so the one
+    sheet covers both routes.
+    """
     shutil.copytree(folder, tmp_path, dirs_exist_ok=True)
+    if not frozen_sources(tmp_path):
+        layout = yaml.safe_load((folder / "spec.yaml").read_text())["layout"]
+        shutil.copy(FILTERS / layout / "example.tex", tmp_path / "source.tex")
     runner = CliRunner()
     assert (
         runner.invoke(cli, ["source", "add", *frozen_sources(tmp_path)]).exit_code == 0

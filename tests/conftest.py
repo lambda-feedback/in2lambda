@@ -52,9 +52,15 @@ def frozen_sources(folder: Path) -> list[str]:
 
     A folder holding a ``solutions.md`` beside its ``source.md`` is a sheet written as
     two documents - the questions, and the worked solutions separately - and freezes as
-    two sources, so covering that is a second file in a folder rather than a test.
+    two sources, so covering that is a second file in a folder rather than a test. A
+    folder whose spec runs over a filter's ``example.tex`` holds a ``source.tex``, which
+    `tests.test_spec._frozen` copies in.
     """
-    return [name for name in ("source.md", "solutions.md") if (folder / name).is_file()]
+    return [
+        name
+        for name in ("source.md", "source.tex", "solutions.md")
+        if (folder / name).is_file()
+    ]
 
 
 @pytest.fixture

@@ -37,8 +37,10 @@ the fields point at.
 commands one at a time, and the only one whose question has two parts: both are answered by the
 spec's own solutions, so the `question solution` after it answers nothing, and the export carries
 it as a part of its own rather than dropping the wording. `nested_list` is a numbered question with two lettered parts nested inside it, quoted by line
-range because only the top-level item is a block: each field is dedented by its own depth, four
-spaces for the question and eight for the parts, while its range still names the source lines.
+range: each field is dedented by the depth of the block its first line falls in, four spaces for
+the question and eight for the parts, while its range still names the source lines. Nothing is
+left in no field, because a block holding blocks of its own is not reported and each of its
+children is quoted.
 `question_without_parts` is a question
 and nothing else, which the checks warn has no solution: it is here because a question with
 no parts is what the export has to write out as an empty part rather than as the template's.

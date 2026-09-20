@@ -1,0 +1,62 @@
+[
+  {
+    "end": 1,
+    "id": "b1",
+    "start": 1,
+    "type": "heading"
+  },
+  {
+    "end": 12,
+    "id": "b2",
+    "start": 3,
+    "type": "list item"
+  },
+  {
+    "depth": 2,
+    "end": 4,
+    "id": "b2.1",
+    "start": 3,
+    "type": "paragraph"
+  },
+  {
+    "depth": 2,
+    "end": 8,
+    "id": "b2.2",
+    "start": 6,
+    "type": "list item"
+  },
+  {
+    "depth": 3,
+    "end": 6,
+    "id": "b2.2.1",
+    "start": 6,
+    "type": "paragraph"
+  },
+  {
+    "depth": 3,
+    "end": 8,
+    "id": "b2.2.2",
+    "start": 8,
+    "type": "paragraph"
+  },
+  {
+    "depth": 2,
+    "end": 10,
+    "id": "b2.3",
+    "start": 10,
+    "type": "list item"
+  },
+  {
+    "depth": 2,
+    "end": 12,
+    "id": "b2.4",
+    "start": 12,
+    "type": "heading"
+  },
+  {
+    "end": 14,
+    "id": "b3",
+    "start": 14,
+    "type": "list item"
+  }
+]

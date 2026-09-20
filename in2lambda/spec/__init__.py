@@ -47,13 +47,19 @@ from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
 from in2lambda.filters import builtin_filters
-from in2lambda.source import Block, SourceError, dedented
+from in2lambda.source import Block, SourceError, quoted
 
 _KEYS = ("question", "part", "solution", "strip", "ignore", "layout", "predicates")
 """Everything a spec may say. Anything else in one is a typo, and is refused as one."""
 
-_ATTRIBUTES = ("level", "text", "label")
-"""What a constraint can be about: a heading's level, a block's text, its first word."""
+_ATTRIBUTES = ("level", "text", "label", "depth")
+"""What a constraint can be about.
+
+A heading's level, a block's text, its first word, and how deep the block sits: 1 for a
+top-level element of the document, 2 for a block nested inside one. A sheet whose
+questions are list items with their parts nested under them is written ``question:
+ListItem depth=1`` and ``part: ListItem depth=2``.
+"""
 
 _ROLES = ("ignore", "question", "part", "solution")
 """The roles a spec holds selectors for, in the order a block is tried against them.
@@ -112,7 +118,7 @@ class Selector:
 
     def matches(
         self,
-        elements: list[Any],
+        elements: list[tuple[Block, Any]],
         index: int,
         pf: Any,
         functions: Optional[dict[str, Callable[[Any], Any]]] = None,
@@ -120,7 +126,9 @@ class Selector:
         """Whether the block at `index` is one of these.
 
         Args:
-            elements: Every block of the document, as the panflute element it is.
+            elements: Every block of the document, each beside the panflute element it
+                is. A constraint about ``depth`` is about the block; the rest, and a
+                predicate, are about the element.
             index: Which of them to decide about.
             pf: The panflute module, imported by the caller that has it.
             functions: The predicates the spec's file holds, as :func:`predicates` bound
@@ -130,7 +138,7 @@ class Selector:
             True if the element is of this type, meets every constraint, satisfies every
             predicate it calls, and comes after something the ``after`` selector matches.
         """
-        element = elements[index]
+        block, element = elements[index]
         if self.after is not None and not any(
             self.after.matches(elements, earlier, pf, functions)
             for earlier in range(index)
@@ -139,7 +147,7 @@ class Selector:
         if self.type is not None and type(element).__name__ != self.type:
             return False
         if not all(
-            constraint.holds(_attribute(constraint.attribute, element, pf))
+            constraint.holds(_attribute(constraint.attribute, block, element, pf))
             for constraint in self.constraints
         ):
             return False
@@ -188,8 +196,10 @@ class Doubled(NamedTuple):
     """Which block the field holds, and the lines that block was taken from."""
 
 
-def _attribute(name: str, element: Any, pf: Any) -> Optional[str]:
+def _attribute(name: str, block: Block, element: Any, pf: Any) -> Optional[str]:
     """What a block says for one attribute, or None where it has not got one."""
+    if name == "depth":
+        return str(block.depth)
     if name == "level":
         return str(element.level) if isinstance(element, pf.Header) else None
     text = pf.stringify(element).strip()
@@ -634,21 +644,31 @@ def _roles(
     matches within the source it is run over - ``after Header text=Solutions`` is about
     where a block sits in its own document - so each source is decided about on its own,
     whatever the sources before it hold.
+
+    A block whose children hold a role holds none itself. A parent spans its children,
+    so a question quoted from the whole of a list item and a part quoted from an item
+    nested inside it would be two fields written over the same lines, which
+    `in2lambda.draft.record` refuses. The spec quotes the item's own paragraph into the
+    question and the nested items into the parts, and one selector may match both.
     """
-    found = [element for _, element in elements]
-    return [
+    found = [
         next(
             (
                 role
                 for role in _ROLES
                 if any(
-                    selector.matches(found, index, pf, functions)
+                    selector.matches(elements, index, pf, functions)
                     for selector in getattr(spec, role)
                 )
             ),
             None,
         )
-        for index in range(len(found))
+        for index in range(len(elements))
+    ]
+    held = {block.id for (block, _), role in zip(elements, found) if role is not None}
+    return [
+        None if any(other.startswith(f"{block.id}.") for other in held) else role
+        for (block, _), role in zip(elements, found)
     ]
 
 
@@ -718,11 +738,9 @@ def _stripped(spec: Spec, lines: list[str], block: Block) -> str:
     The markdown rather than the text pandoc stringifies it to, so that the maths, the
     emphasis and the images in a question survive into the field.
     """
-    text = "\n".join(lines[block.start - 1 : block.end])
     # The list marker and the indent under it are the markdown's, not the author's, so
     # they come off before the spec's patterns, which are for what is left.
-    if block.type == "list item":
-        text = dedented(text)
+    text = quoted("\n".join(lines[block.start - 1 : block.end]), block)
     for pattern in spec.strip:
         text = pattern.sub("", text)
     return text.strip()

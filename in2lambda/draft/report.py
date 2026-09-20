@@ -112,6 +112,11 @@ def uncovered(draft: dict[str, Any]) -> list[Finding]:
     Blocks are accounted for by the lines the fields were taken from rather than by name,
     so that a block `split block` has cut in two is covered by an ignore of the whole.
 
+    A block with blocks nested inside it is not reported; its children are. Such a block
+    spans its children and the blank lines and fences pandoc wrote between them, which no
+    field can quote, so reporting it would name lines nobody can account for and say
+    again what each child already says.
+
     Args:
         draft: A draft, as `in2lambda.source.frozen` reads one.
 
@@ -131,7 +136,16 @@ def uncovered(draft: dict[str, Any]) -> list[Finding]:
     }
     found = []
     for number, source in enumerate(draft["sources"], start=1):
+        # A nested block's id is its parent's and a number, so a block whose id is the
+        # stem of another's is one holding blocks of its own.
+        parents = {
+            block["id"].rsplit(".", 1)[0]
+            for block in source["blocks"]
+            if "." in block["id"]
+        }
         for block in source["blocks"]:
+            if block["id"] in parents:
+                continue
             free = _runs(
                 [
                     line
