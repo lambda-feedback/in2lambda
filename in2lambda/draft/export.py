@@ -36,6 +36,15 @@ class NotValidated(SourceError):
     """A draft is being exported that the checks have not passed, or not seen at all."""
 
 
+class MissingImage(SourceError):
+    """A field refers to an image file that is not beside the draft.
+
+    The checks do not look at files, so such a draft validates clean; it is refused
+    here rather than exported, since what would be uploaded is a question with a broken
+    figure in it.
+    """
+
+
 def as_set(draft: dict[str, Any], directory: str = ".") -> Set:
     r"""The set a draft's fields describe, in question and part order.
 
@@ -50,6 +59,9 @@ def as_set(draft: dict[str, Any], directory: str = ".") -> Set:
         parts, which is the rule :meth:`~in2lambda.api.question.Question.add_solution`
         applies. A block marked ignore is in no question: it is the source's, not the
         set's.
+
+    Raises:
+        MissingImage: a field refers to an image file that is not beside the draft.
 
     Examples:
         >>> from in2lambda.draft.export import as_set
@@ -88,12 +100,18 @@ def as_set(draft: dict[str, Any], directory: str = ".") -> Set:
                     part_of.worked_solution = fields[written]["value"]
         # As the export refers to them: beside the draft, since that is where a command
         # naming a file names one. Both the export's media/ and the renderer work from
-        # the question's images rather than from the references in its markdown.
-        question.images += [
-            str(Path(directory) / reference)
-            for _, markdown in _fields(question, number)
-            for reference in _IMAGE.findall(markdown)
-        ]
+        # the question's images rather than from the references in its markdown, so a
+        # file that is not there would be copied into media/ from nowhere.
+        for where, markdown in _fields(question, number):
+            for reference in _IMAGE.findall(markdown):
+                image = Path(directory) / reference
+                if not image.is_file():
+                    raise MissingImage(
+                        f"{where} refers to the image {reference}, and there is no "
+                        f"file at {image}. Put the image there, or take the reference "
+                        "out of the field with in2lambda draft field replace."
+                    )
+                question.images.append(str(image))
     return question_set
 
 
@@ -111,6 +129,7 @@ def build(directory: str = ".", output_dir: str = "out") -> Path:
         NotValidated: the draft has not been checked since it last changed, or the
             checks found something. Either way what would be uploaded is not what
             anybody has looked at.
+        MissingImage: a field refers to an image file that is not beside the draft.
         SourceError: the draft is missing, is not one of ours, or was written from
             markdown that has changed since.
     """
@@ -148,6 +167,7 @@ def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
     Raises:
         ConversionToolsMissing: pandoc or xelatex is not installed.
         CompileFailed: a question produced no PDF at all.
+        MissingImage: a field refers to an image file that is not beside the draft.
         SourceError: the draft is missing, is not one of ours, or was written from
             markdown that has changed since.
 

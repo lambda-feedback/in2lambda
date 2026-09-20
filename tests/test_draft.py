@@ -23,6 +23,7 @@ import in2lambda.draft
 import in2lambda.draft.report
 from in2lambda.api.set import Set
 from in2lambda.main import cli
+from in2lambda.validation import _IMAGE
 
 QUESTION = re.compile(r"q(\d+)\.text")
 """A question's text among a folder's fields, which is one question of the export."""
@@ -32,6 +33,9 @@ MARK_IGNORE = DRAFTS_DIR / "mark_ignore"
 
 TWO_QUESTIONS = DRAFTS_DIR / "two_questions"
 """The one with questions written into it, which is what refusing a second one needs."""
+
+FIGURE = DRAFTS_DIR / "figure_in_a_question"
+"""The one whose fields refer to an image file, which the export has to carry."""
 
 
 def _built(folder: Path, tmp_path: Path) -> Path:
@@ -545,6 +549,37 @@ def test_build_follows_the_report(folder: Path, tmp_path: Path, monkeypatch) -> 
                 f"q{number}.p{index}.solution", fields.get(f"q{number}.solution")
             )
             assert part.worked_solution == (solution["value"] if solution else "")
+
+    # Every image a field refers to travels with the set under media/, which is the only
+    # place Lambda Feedback looks for one; the set's folder is asked rather than the
+    # loaded questions, since reading an export back attributes an image to a question
+    # by the platform's own naming of the file, which a draft's images do not follow.
+    assert {path.name for path in (tmp_path / "out" / "set" / "media").glob("*")} == {
+        Path(reference).name
+        for field in fields.values()
+        if isinstance(field["value"], str)
+        for reference in _IMAGE.findall(field["value"])
+    }
+
+
+def test_build_refuses_a_field_naming_an_image_that_is_not_there(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The checks read the draft and not the folder, so a clean one can still say this.
+
+    Exporting it anyway would upload a question whose figure is a broken image, since
+    the file the markdown names is what the export carries under media/.
+    """
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(FIGURE, tmp_path)
+    (tmp_path / "figure.png").unlink()
+
+    result = CliRunner().invoke(cli, ["build"])
+
+    assert result.exit_code != 0
+    assert "figure.png" in result.output
+    assert not (tmp_path / "out").exists()
 
 
 @needs_compiler

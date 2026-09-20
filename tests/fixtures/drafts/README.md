@@ -22,4 +22,6 @@ both fields end up edited while their ranges still name the lines they were quot
 backslash in what the second one writes is written rather than read as a replacement template.
 `part_without_solution` and `empty_field` are the smallest drafts the other two checks have
 anything to say about; an overlap and a gap in the numbering are not here, because no run of
-commands can make one.
+commands can make one. `figure_in_a_question` is a question whose text runs on into an image, so
+the field quotes the reference and `figure.png` beside the source is what the export has to carry
+into `media/` - the only folder here with a file the fields point at.
