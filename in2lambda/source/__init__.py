@@ -333,11 +333,11 @@ def _display_maths_blocked(markdown: str) -> str:
     A ``$$`` that opens or closes on a pipe table's row, on a block quote's line or on a
     code block's line is left as pandoc wrote it: a table cell cannot hold a block, an
     inserted line carries the indent of the opening line but not a quote's ``> ``, and a
-    code block's ``$$`` is characters the document shows. A match running across a blank
-    line is left as written as well, since display maths holds no blank line: such a
-    match is an unpaired ``$$`` - one in inline code, say - closed by the opening ``$$``
-    of a later maths, and that later maths is then left as written too.
-    ``in2lambda validate`` reports the maths left in any of these.
+    code block's ``$$`` is characters the document shows. A match holding a backtick, or
+    running across a blank line, is left as written as well: display maths holds
+    neither, so such a match is an unpaired ``$$`` - one in inline code, say - closed by
+    the opening ``$$`` of a later maths, and that later maths is then left as written
+    too. ``in2lambda validate`` reports the maths left in any of these.
 
     Examples:
         >>> from in2lambda.source import _display_maths_blocked
@@ -355,6 +355,8 @@ def _display_maths_blocked(markdown: str) -> str:
         '``` python\nprint("$$x = y$$")\n```\n'
         >>> _display_maths_blocked("Type `$$` first.\n\nThe load is $$F = pA$$\n")
         'Type `$$` first.\n\nThe load is $$F = pA$$\n'
+        >>> _display_maths_blocked("Type `$$` then $$F = pA$$ ends.\n")
+        'Type `$$` then $$F = pA$$ ends.\n'
         >>> _display_maths_blocked("The load is $$F = pA\n> and $$ here.\n")
         'The load is $$F = pA\n> and $$ here.\n'
     """
@@ -376,10 +378,13 @@ def _display_maths_blocked(markdown: str) -> str:
     written: list[str] = []
     end = 0
     for match in _DISPLAY_MATHS.finditer(markdown):
-        if any(not line.strip() for line in match.group().split("\n")):
-            # Display maths holds no blank line, so a match across one is an unpaired
-            # `$$` closed by the opening `$$` of a later maths. Rewriting it would make
-            # a maths block of the paragraphs standing between the two.
+        if "`" in match.group(1) or any(
+            not line.strip() for line in match.group().split("\n")
+        ):
+            # Display maths holds neither a backtick nor a blank line, so a match over
+            # one of the two is an unpaired `$$` - one in inline code, say - closed by
+            # the opening `$$` of a later maths. Rewriting it would make a maths block
+            # of the words standing between the two.
             continue
         if blocked(match.start()) or blocked(match.end()):
             # A pipe table's cell cannot hold a block; an inserted line carries the

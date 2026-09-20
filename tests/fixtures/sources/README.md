@@ -37,11 +37,11 @@ rather than maths it renders. A code block is a line indented four past the cont
 list item it stands in, which is how an item's own paragraph - indented four itself - is told from
 code nested inside the item.
 
-A `$$ ... $$` running across a blank line is left as pandoc wrote it as well: display maths holds
-no blank line, so the two delimiters are an unpaired `$$` - one in inline code, say - and the
-opening `$$` of a later maths, and rewriting them would make a maths block of the paragraphs
-between. The later maths is then left as written too. `in2lambda validate` reports the maths left
-as written in any of these places.
+A `$$ ... $$` holding a backtick, or running across a blank line, is left as pandoc wrote it as
+well: display maths holds neither, so the two delimiters are an unpaired `$$` - one in inline
+code, say - and the opening `$$` of a later maths, and rewriting them would make a maths block of
+the words between. The later maths is then left as written too. `in2lambda validate` reports the
+maths left as written in any of these places.
 
 `docx/source.docx` was made from `markdown/source.md` with `pandoc source.md -o source.docx`,
 run beside a `figure.png` so that the image is embedded rather than dropped, and with the
