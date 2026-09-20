@@ -36,10 +36,10 @@ def test_source_add_finds_the_expected_blocks(folder: Path, tmp_path: Path) -> N
     result = CliRunner().invoke(cli, ["source", "add", str(_frozen(tmp_path))])
 
     assert result.exit_code == 0, result.output
-    draft = json.loads((tmp_path / "source.draft.json").read_text())
-    assert draft["blocks"] == json.loads((folder / "expected.json").read_text())
-    markdown = (tmp_path / draft["source"]).read_bytes()
-    assert draft["hash"] == f"sha256:{hashlib.sha256(markdown).hexdigest()}"
+    (source,) = json.loads((tmp_path / "source.draft.json").read_text())["sources"]
+    assert source["blocks"] == json.loads((folder / "expected.json").read_text())
+    markdown = (tmp_path / source["source"]).read_bytes()
+    assert source["hash"] == f"sha256:{hashlib.sha256(markdown).hexdigest()}"
 
 
 def test_freezing_again_is_refused_once_the_source_has_changed(
@@ -96,7 +96,7 @@ def test_a_markdown_file_no_draft_claims_is_not_overwritten(
     assert result.exit_code == 0, result.output
     assert (tmp_path / "source.md").read_text() != theirs
     draft = json.loads((tmp_path / "source.draft.json").read_text())
-    assert draft["source"] == "source.md"
+    assert [source["source"] for source in draft["sources"]] == ["source.md"]
 
 
 def test_source_show_numbers_the_lines_and_names_the_blocks(
@@ -118,10 +118,72 @@ def test_source_show_numbers_the_lines_and_names_the_blocks(
     assert len(lines) == len(markdown)
 
     # Every block's id sits on the line it starts at, and nothing else carries one.
-    blocks = json.loads((tmp_path / "source.draft.json").read_text())["blocks"]
+    blocks = json.loads((tmp_path / "source.draft.json").read_text())["sources"][0][
+        "blocks"
+    ]
     for block in blocks:
         assert lines[block["start"] - 1].split()[0] == block["id"]
     assert sum(bool(re.match(r" *b\d+ ", line)) for line in lines) == len(blocks)
+
+
+def test_a_second_source_is_frozen_beside_the_first(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A sheet and the solutions written separately from it are two sources of a draft."""
+    shutil.copy(_frozen(MARKDOWN), tmp_path / "source.md")
+    (tmp_path / "solutions.md").write_text("# Solutions\n\n1. The load is $F = pA$.\n")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    assert runner.invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+
+    # A file the draft beside it has not got is the next source, not a second freezing.
+    assert (
+        runner.invoke(
+            cli, ["source", "add", "solutions.md", "--draft", "source.md"]
+        ).exit_code
+        == 0
+    )
+
+    draft = json.loads((tmp_path / "source.draft.json").read_text())
+    assert [source["source"] for source in draft["sources"]] == [
+        "source.md",
+        "solutions.md",
+    ]
+    # Every id of a source after the first says which source it is an id of.
+    assert [block["id"] for block in draft["sources"][1]["blocks"]] == ["2/b1", "2/b2"]
+    # And naming both files freezes neither again, as naming one already frozen does not.
+    written = (tmp_path / "source.draft.json").read_bytes()
+    result = runner.invoke(cli, ["source", "add", "source.md", "solutions.md"])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "source.draft.json").read_bytes() == written
+
+    result = runner.invoke(cli, ["source", "show"])
+
+    assert result.exit_code == 0, result.output
+    # Each source under its number and its name, since both start their lines at 1.
+    assert "Source 1: source.md" in result.output
+    assert "Source 2: solutions.md" in result.output
+    assert "2/b1  1  # Solutions" in result.output
+
+
+def test_freezing_files_from_two_directories_is_refused(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A draft sits beside its sources, so there is no one draft for files apart."""
+    monkeypatch.setenv("COLUMNS", "200")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    shutil.copy(_frozen(MARKDOWN), tmp_path / "source.md")
+    (elsewhere / "solutions.md").write_text("# Solutions\n")
+
+    result = CliRunner().invoke(
+        cli,
+        ["source", "add", str(tmp_path / "source.md"), str(elsewhere / "solutions.md")],
+    )
+
+    assert result.exit_code != 0
+    assert "same directory" in result.output
+    assert not (tmp_path / "source.draft.json").exists()
 
 
 def test_source_show_without_a_draft_says_so(tmp_path: Path, monkeypatch) -> None:
@@ -155,7 +217,9 @@ def test_source_show_refuses_once_the_source_has_changed(
 
 
 @pytest.mark.parametrize(
-    "content", ["{ not json at all", '{"blocks": []}'], ids=["not-json", "foreign"]
+    "content",
+    ["{ not json at all", '{"blocks": []}', '{"sources": [], "log": [], "fields": {}}'],
+    ids=["not-json", "foreign", "no-sources"],
 )
 @pytest.mark.parametrize(
     "arguments",

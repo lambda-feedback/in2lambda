@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 from click.testing import CliRunner
-from conftest import SPECS, SPECS_DIR
+from conftest import SPECS, SPECS_DIR, frozen_sources
 
 import in2lambda.draft
 from in2lambda.main import cli
@@ -33,10 +33,12 @@ HASHED = {"spec": "hash", "predicates": "predicates_hash"}
 
 
 def _frozen(folder: Path, tmp_path: Path) -> CliRunner:
-    """A folder's document and its spec, copied into `tmp_path` with the source frozen."""
+    """A folder's documents and its spec, copied into `tmp_path` with the sources frozen."""
     shutil.copytree(folder, tmp_path, dirs_exist_ok=True)
     runner = CliRunner()
-    assert runner.invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+    assert (
+        runner.invoke(cli, ["source", "add", *frozen_sources(tmp_path)]).exit_code == 0
+    )
     return runner
 
 

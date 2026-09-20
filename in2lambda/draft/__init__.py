@@ -21,6 +21,7 @@ from in2lambda.source import (
     SourceError,
     _digest,
     _elements,
+    _numbered,
     _require_conversion_tools,
     blocks,
     dedented,
@@ -32,22 +33,31 @@ from in2lambda.source import (
 Command = dict[str, Any]
 """One entry of the log: ``{"command": name, "args": {...}, "by": who}``."""
 
-Handler = Callable[[dict[str, Any], str, dict[str, Any], str, str], str]
-"""What a command does: `handler(draft, markdown, args, by, directory)`.
+Handler = Callable[[dict[str, Any], list[str], dict[str, Any], str, str], str]
+"""What a command does: `handler(draft, sources, args, by, directory)`.
 
-The frozen markdown is passed in rather than read, so that a handler quoting the source
-by line range quotes the same text on a replay as it did when it first ran; the
-directory is where the draft is, which is what a file a command names is beside. What
-comes back is what the command wrote, named - the key of the field, or the block ids a
-split made - which is what whoever ran it needs in the command after this one, or what
-it left out where a command wrote a draft's worth of fields at once.
+The frozen markdown of every source is passed in rather than read, in the order the
+draft froze them, so that a handler quoting one by line range quotes the same text on a
+replay as it did when it first ran; the directory is where the draft is, which is what a
+file a command names is beside. What comes back is what the command wrote, named - the
+key of the field, or the block ids a split made - which is what whoever ran it needs in
+the command after this one, or what it left out where a command wrote a draft's worth of
+fields at once.
 """
 
 _HANDLERS: dict[str, Handler] = {}
 """Every command there is, by the name a log entry names it with."""
 
 _RANGE = re.compile(r"s(\d+)(?::(\d+))?")
-"""Lines of the frozen source, as ``s16`` for one of them or ``s10:14`` for several."""
+"""Lines of a frozen source, as ``s16`` for one of them or ``s10:14`` for several."""
+
+_QUALIFIED = re.compile(r"(\d+)/([^/]*)")
+"""A block id or a line range with the source it is in in front: ``2/b3``, ``2/s10:14``.
+
+One number and one slash: what follows the slash is an id or a range, never another
+source in front of one. So ``1/2/b3`` matches nothing here and is refused as the address
+it is not, rather than being read as source 1's ``2/b3`` and quoting the wrong document.
+"""
 
 
 class MalformedCommand(SourceError):
@@ -119,6 +129,7 @@ def record(
     ranges: list[list[int]],
     by: str,
     edited: bool = False,
+    source: int = 1,
 ) -> str:
     """Writes one field of a draft, with where it came from.
 
@@ -135,15 +146,19 @@ def record(
         edited: Whether the value is something other than what the source says. A
             literal is the one thing a command writes that arrives edited; otherwise a
             field is edited when something later replaces what a command wrote.
+        source: Which of the draft's frozen sources the ranges are lines of, numbered
+            from 1. Written into the field only where it is not the first, so that a
+            draft of one document holds the fields it has always held.
 
     Returns:
         The key, so that a handler can hand back the field it wrote.
 
     Raises:
         AlreadyFilled: the field is written already, or the lines it was to be copied
-            from are where another field came from. Nothing here writes a field twice -
-            `field replace` changes the wording of one rather than writing it again -
-            so either is a mistake, and worth naming both halves of.
+            from are where another field of the same source came from. Nothing here
+            writes a field twice - `field replace` changes the wording of one rather
+            than writing it again - so either is a mistake, and worth naming both
+            halves of.
     """
     if key in draft["fields"]:
         raise AlreadyFilled(
@@ -152,6 +167,10 @@ def record(
             "in2lambda source add --start-over to begin the draft again."
         )
     for filled, field in draft["fields"].items():
+        # Only the fields quoted from the same source: line 12 of the solutions document
+        # is not line 12 of the sheet, and two fields quoting those quote different text.
+        if field.get("source", 1) != source:
+            continue
         # Each of the field's ranges on its own, so that the refusal names the one in
         # the way: a field edited by hand can be quoted from several, and the rest of
         # them may be lines nobody wants.
@@ -168,6 +187,7 @@ def record(
         "ranges": ranges,
         "edited": edited,
         "by": by,
+        **({"source": source} if source != 1 else {}),
     }
     return key
 
@@ -230,13 +250,13 @@ def _argument(args: dict[str, Any], name: str, command: str, kind: type = str) -
 
 
 def apply(
-    draft: dict[str, Any], markdown: str, entry: Any, directory: str = "."
+    draft: dict[str, Any], sources: list[str], entry: Any, directory: str = "."
 ) -> str:
     """Runs one command against a draft and records it in the draft's log.
 
     Args:
         draft: The draft to change, in place.
-        markdown: The frozen markdown the draft was written from.
+        sources: The frozen markdown of each of the draft's sources, in its order.
         entry: The command, as it is written in the log. Anything at all, rather than a
             `Command`, because a log is read from a file anyone can edit: what shape it
             has is something to tell the reader about, not something to assume.
@@ -255,7 +275,7 @@ def apply(
             f"{entry['command']} is not a command this version of in2lambda has, so "
             "the draft cannot be built from its log. It was written by a newer one."
         )
-    written = handler(draft, markdown, entry["args"], entry["by"], directory)
+    written = handler(draft, sources, entry["args"], entry["by"], directory)
     # After the handler, so a command that was refused is not recorded as having run.
     draft["log"].append(entry)
     # A report is about the draft as it was, so the command that changes it takes the
@@ -280,10 +300,10 @@ def execute(entry: Command, draft: str | Path) -> str:
             markdown that has changed since; or the command is unknown or refused.
     """
     path = Path(draft)
-    found, markdown = frozen(path)
+    found, sources = frozen(path)
     # The handlers are given the folder rather than the draft: what they read beside it
     # - a spec, a file of predicates - is named from there, whichever draft is theirs.
-    written = apply(found, markdown, entry, str(path.parent))
+    written = apply(found, sources, entry, str(path.parent))
     save(path, found)
     return written
 
@@ -308,18 +328,25 @@ def replay(draft: str | Path) -> None:
     """
     _require_conversion_tools()
     path = Path(draft)
-    found, markdown = frozen(path)
+    found, sources = frozen(path)
     # From the markdown rather than from the draft: the blocks are as much a product of
-    # the source as the fields are, and copying them across would not check them.
+    # the sources as the fields are, and copying them across would not check them.
     rebuilt: dict[str, Any] = {
-        "source": found["source"],
-        "hash": found["hash"],
-        "blocks": [block.to_dict() for block in blocks(markdown)],
+        "sources": [
+            {
+                "source": source["source"],
+                "hash": source["hash"],
+                "blocks": [block.to_dict() for block in blocks(markdown, number)],
+            }
+            for number, (source, markdown) in enumerate(
+                zip(found["sources"], sources), start=1
+            )
+        ],
         "log": [],
         "fields": {},
     }
     for entry in found["log"]:
-        apply(rebuilt, markdown, entry, str(path.parent))
+        apply(rebuilt, sources, entry, str(path.parent))
     # The one thing in a draft that no command wrote: the checks did, over the draft the
     # commands left, so rebuilding it is running them again rather than copying it. What
     # `in2lambda.validation` found over the set is carried across instead, since it
@@ -340,54 +367,92 @@ def replay(draft: str | Path) -> None:
         )
 
 
-def _block(draft: dict[str, Any], block: str) -> dict[str, Any]:
-    """One block of the frozen source, given the draft has one of that id.
+def _qualified(where: str) -> tuple[int, str]:
+    """Which source a block id or a line range is of, and the rest of it.
+
+    ``2/b3`` is block b3 of the draft's second source and ``2/s10:14`` its lines 10 to
+    14. Anything with no number in front of it is the first source's, which is how every
+    command written while a draft held one source still reads; ``1/b3`` says the same
+    thing the long way round.
+
+    Anything else comes back as the first source's and under the name it was given, so
+    that whoever looks for it says what was asked for: ``1/2/b3`` names no block of any
+    source and is refused as ``1/2/b3``.
+    """
+    if (named := _QUALIFIED.fullmatch(where)) is None:
+        return 1, where
+    return int(named[1]), named[2]
+
+
+def _block(draft: dict[str, Any], block: str) -> tuple[int, dict[str, Any]]:
+    """Which source a block is of and the block itself, given a source has that id.
 
     Raises:
-        NoSuchBlock: it has not.
+        NoSuchBlock: none of them has, whether because no block is numbered that way or
+            because the draft has not got the source the id names.
     """
-    if (found := next((b for b in draft["blocks"] if b["id"] == block), None)) is None:
+    source, name = _qualified(block)
+    wanted = _numbered(source, name)
+    found = next(
+        (
+            held
+            for frozen_source in draft["sources"]
+            for held in frozen_source["blocks"]
+            if held["id"] == wanted
+        ),
+        None,
+    )
+    if found is None:
         raise NoSuchBlock(
             f"There is no block {block} in the draft. Run in2lambda source show to see "
             "the ids of the blocks there are."
         )
-    return found
+    return source, found
 
 
 def _lines(
-    draft: dict[str, Any], markdown: str, where: str, command: str
-) -> tuple[int, int]:
-    """The first and last line of the source that a ``text`` argument names.
+    draft: dict[str, Any], sources: list[str], where: str, command: str
+) -> tuple[int, int, int]:
+    """Which source a ``text`` argument names, and the first and last line of it.
 
     A block id says the lines are whatever that block spans, which is what an author
     reading `show` has in front of them; a range says them outright, for the part of a
-    block that is not worth splitting in two.
+    block that is not worth splitting in two. Either names a source after the first by
+    writing its number in front: ``2/b3``, ``2/s10:14``.
 
     Raises:
-        NoSuchBlock: it is neither a range nor a block the frozen source has.
-        NoSuchLines: it is a range of lines the source has not got.
+        NoSuchBlock: it is neither a range nor a block a frozen source has.
+        NoSuchLines: it is a range of lines the source it names has not got, or of a
+            source the draft has not got.
     """
+    source, name = _qualified(where)
     # Block ids are b1, b2, b3a, so anything starting with an s was meant as a range and
     # is answered as one, rather than as a block of that name nobody was looking for.
-    if not where.startswith("s"):
-        found = _block(draft, where)
-        return found["start"], found["end"]
-    lines = len(markdown.splitlines())
-    if (named := _RANGE.fullmatch(where)) is not None:
+    if not name.startswith("s"):
+        in_source, found = _block(draft, where)
+        return in_source, found["start"], found["end"]
+    if not 1 <= source <= len(sources):
+        raise NoSuchLines(
+            f"{command} was given {where}, and there is no source {source} in the draft: "
+            f"it holds {len(sources)}. Run in2lambda source add FILE to freeze another "
+            "beside them."
+        )
+    lines = len(sources[source - 1].splitlines())
+    if (named := _RANGE.fullmatch(name)) is not None:
         start, end = int(named[1]), int(named[2] or named[1])
         if 1 <= start <= end <= lines:
-            return start, end
+            return source, start, end
     raise NoSuchLines(
-        f"{command} was given {where}, which is not lines of the frozen source: it has "
+        f"{command} was given {where}, which is not lines of source {source}: it has "
         f"{lines} lines, and they are named as s16, or as s10:14 for a range running "
-        "from an earlier line to a later. Run in2lambda source show to see them "
-        "numbered."
+        "from an earlier line to a later, with the source's number in front - 2/s10:14 "
+        "- for any but the first. Run in2lambda source show to see them numbered."
     )
 
 
 def _fill(
     draft: dict[str, Any],
-    markdown: str,
+    sources: list[str],
     args: dict[str, Any],
     by: str,
     *,
@@ -396,15 +461,15 @@ def _fill(
 ) -> str:
     """Writes the field a command fills, from its ``text`` or its ``literal``.
 
-    A field is copied out of the frozen source by ``text``, which is what freezing it
-    was for, or typed out as a ``literal`` where the source does not say it in a form
-    the field can take. A literal is nobody's quotation: it is layer 4, it has no range
-    behind it, and it arrives edited, because what it holds is not what the source says.
+    A field is copied out of a frozen source by ``text``, which is what freezing it was
+    for, or typed out as a ``literal`` where no source says it in a form the field can
+    take. A literal is nobody's quotation: it is layer 4, it has no range behind it, and
+    it arrives edited, because what it holds is not what any source says.
 
     Raises:
         MalformedCommand: the command gives both of them, or neither, or gives one of
             them as something other than text.
-        NoSuchBlock, NoSuchLines: its ``text`` is not somewhere in the source.
+        NoSuchBlock, NoSuchLines: its ``text`` is not somewhere in a source.
         AlreadyFilled: the field, or the lines it names, are taken.
     """
     text, literal = args.get("text"), args.get("literal")
@@ -431,19 +496,24 @@ def _fill(
             by=by,
             edited=True,
         )
-    start, end = _lines(draft, markdown, _argument(args, "text", command), command)
+    source, start, end = _lines(
+        draft, sources, _argument(args, "text", command), command
+    )
     return record(
         draft,
         key,
-        _quoted(draft, markdown, start, end),
+        _quoted(draft, sources[source - 1], source, start, end),
         layer=3,
         ranges=[[start, end]],
         by=by,
+        source=source,
     )
 
 
-def _quoted(draft: dict[str, Any], markdown: str, start: int, end: int) -> str:
-    """Lines of the frozen source as a field takes them.
+def _quoted(
+    draft: dict[str, Any], markdown: str, source: int, start: int, end: int
+) -> str:
+    """Lines of one frozen source as a field takes them.
 
     Lines quoted out of a list item are dedented by the item's own indentation, which
     is the markdown's rather than the author's; the range is still the source lines.
@@ -454,7 +524,14 @@ def _quoted(draft: dict[str, Any], markdown: str, start: int, end: int) -> str:
     # Blocks do not overlap, so the one the first line falls in is the one the lines are
     # part of - a nested item among them included, since only a top-level item is a
     # block of its own and a range is how one of those is quoted.
-    block = next((b for b in draft["blocks"] if b["start"] <= start <= b["end"]), None)
+    block = next(
+        (
+            held
+            for held in draft["sources"][source - 1]["blocks"]
+            if held["start"] <= start <= held["end"]
+        ),
+        None,
+    )
     return dedented(text) if block and block["type"] == "list item" else text
 
 
@@ -486,29 +563,39 @@ def _require_question(draft: dict[str, Any], question: str, command: str) -> Non
 
 @command("mark ignore")
 def _mark_ignore(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
+    draft: dict[str, Any],
+    sources: list[str],
+    args: dict[str, Any],
+    by: str,
+    directory: str,
 ) -> str:
-    """Marks one block of the frozen source as nothing to take a question from."""
-    block = _argument(args, "block", "mark ignore")
-    found = _block(draft, block)
+    """Marks one block of a frozen source as nothing to take a question from."""
+    source, found = _block(draft, _argument(args, "block", "mark ignore"))
+    # The id as the draft holds it, so that a block named 1/b3 writes the b3.ignore a
+    # block named b3 does, and a block of a later source the 2/b3.ignore it is.
     return record(
         draft,
-        f"{block}.ignore",
+        f"{found['id']}.ignore",
         True,
         layer=3,
         ranges=[[found["start"], found["end"]]],
         by=by,
+        source=source,
     )
 
 
 @command("question add")
 def _question_add(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
+    draft: dict[str, Any],
+    sources: list[str],
+    args: dict[str, Any],
+    by: str,
+    directory: str,
 ) -> str:
     """Adds a question, taking the first number no question has taken."""
     return _fill(
         draft,
-        markdown,
+        sources,
         args,
         by,
         command="question add",
@@ -518,14 +605,18 @@ def _question_add(
 
 @command("part add")
 def _part_add(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
+    draft: dict[str, Any],
+    sources: list[str],
+    args: dict[str, Any],
+    by: str,
+    directory: str,
 ) -> str:
     """Adds a part to a question, taking the first number that question has not."""
     question = _argument(args, "question", "part add")
     _require_question(draft, question, "part add")
     return _fill(
         draft,
-        markdown,
+        sources,
         args,
         by,
         command="part add",
@@ -535,14 +626,22 @@ def _part_add(
 
 @command("question solution")
 def _question_solution(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
+    draft: dict[str, Any],
+    sources: list[str],
+    args: dict[str, Any],
+    by: str,
+    directory: str,
 ) -> str:
-    """Gives a question its worked solution, wherever in the source it is written."""
+    """Gives a question its worked solution, wherever it is written.
+
+    Which is often a document of its own: ``--text 2/b4`` is the block of the solutions
+    frozen beside the sheet that answers it.
+    """
     question = _argument(args, "question", "question solution")
     _require_question(draft, question, "question solution")
     return _fill(
         draft,
-        markdown,
+        sources,
         args,
         by,
         command="question solution",
@@ -552,7 +651,11 @@ def _question_solution(
 
 @command("field replace")
 def _field_replace(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
+    draft: dict[str, Any],
+    sources: list[str],
+    args: dict[str, Any],
+    by: str,
+    directory: str,
 ) -> str:
     """Replaces one piece of wording inside a field that is written already.
 
@@ -613,9 +716,13 @@ def _field_replace(
 
 @command("split block")
 def _split_block(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
+    draft: dict[str, Any],
+    sources: list[str],
+    args: dict[str, Any],
+    by: str,
+    directory: str,
 ) -> str:
-    """Cuts one block of the frozen source in two, so each half can be named.
+    """Cuts one block of a frozen source in two, so each half can be named.
 
     A block is whatever the parser made of the source, which is sometimes two things: a
     question and the part under it, written with no blank line between them. The source
@@ -624,19 +731,20 @@ def _split_block(
     """
     block = _argument(args, "block", "split block")
     at = _argument(args, "at", "split block", int)
-    found = _block(draft, block)
+    source, found = _block(draft, block)
     if not found["start"] < at <= found["end"]:
         raise NoSuchLines(
             f"{block} is lines {found['start']}-{found['end']}, so it cannot be split "
             f"at line {at}: the line split at is the first line of the second half, and "
             "each half has to have a line in it."
         )
-    index = draft["blocks"].index(found)
-    draft["blocks"][index : index + 1] = [
-        {**found, "id": f"{block}a", "end": at - 1},
-        {**found, "id": f"{block}b", "start": at},
+    held = draft["sources"][source - 1]["blocks"]
+    index = held.index(found)
+    held[index : index + 1] = [
+        {**found, "id": f"{found['id']}a", "end": at - 1},
+        {**found, "id": f"{found['id']}b", "start": at},
     ]
-    return f"{block}a and {block}b"
+    return f"{found['id']}a and {found['id']}b"
 
 
 def _file_as_run(directory: str, name: str, digest: str) -> bytes:
@@ -745,9 +853,13 @@ def spec_command(name: str, by: str, draft: str | Path) -> Command:
 
 @command("spec run")
 def _spec_run(
-    draft: dict[str, Any], markdown: str, args: dict[str, Any], by: str, directory: str
+    draft: dict[str, Any],
+    sources: list[str],
+    args: dict[str, Any],
+    by: str,
+    directory: str,
 ) -> str:
-    """Fills in a draft's fields from a spec of selectors over the frozen source."""
+    """Fills in a draft's fields from a spec of selectors over its frozen sources."""
     _require_conversion_tools()
     # Every file every spec the log says has run was run with, rather than one named the
     # same way as this one: a spec that has been edited since leaves fields the log can
@@ -768,20 +880,42 @@ def _spec_run(
         functions = in2lambda.spec.predicates(
             spec, raw[-1], _argument(args, "predicates", "spec run")
         )
-    # The blocks the selectors run over are the ones the parser makes of the source, and
+    # The blocks the selectors run over are the ones the parser makes of the sources, and
     # a `split block` since has left the draft holding halves the parser never made. So
     # an ignored block is named and ranged from here rather than from the draft: the
     # field then spans the whole of what was ignored, and `uncovered`, which goes by the
     # lines a field was taken from, counts each half of a split block as covered by it.
-    elements = _elements(markdown)
-    fields, ignored = in2lambda.spec.fields(spec, elements, markdown, functions)
+    documents = [
+        (_elements(markdown, number), markdown)
+        for number, markdown in enumerate(sources, start=1)
+    ]
+    fields, ignored = in2lambda.spec.fields(spec, documents, functions)
     for found in fields:
-        record(draft, found.key, found.value, layer=1, ranges=found.ranges, by=by)
-    lines = {block.id: [block.start, block.end] for block, _ in elements}
+        record(
+            draft,
+            found.key,
+            found.value,
+            layer=1,
+            ranges=found.ranges,
+            by=by,
+            source=found.source,
+        )
+    lines = {
+        block.id: (number, [block.start, block.end])
+        for number, (elements, _) in enumerate(documents, start=1)
+        for block, _ in elements
+    }
     # The field `mark ignore` writes, so that `uncovered` need not care which said so.
     for block_id in ignored:
+        source, span = lines[block_id]
         record(
-            draft, f"{block_id}.ignore", True, layer=1, ranges=[lines[block_id]], by=by
+            draft,
+            f"{block_id}.ignore",
+            True,
+            layer=1,
+            ranges=[span],
+            by=by,
+            source=source,
         )
     # A spec writes a draft's worth of fields, so what it hands back is the other way
     # round: what it made nothing of, which is what is left for anyone to act on. Said

@@ -1,11 +1,11 @@
 # 📐 Specs
 
 A spec is a small YAML file saying which blocks of a document are questions, which are parts and
-which are solutions. Running one fills in the draft beside the document, so that the wording of
-every question comes out of the source rather than being retyped:
+which are solutions. Running one fills in the draft beside the documents it was frozen from, so
+that the wording of every question comes out of the source rather than being retyped:
 
 ```bash
-$ in2lambda source add questions.docx
+$ in2lambda source add questions.docx solutions.docx
 $ in2lambda spec run spec.yaml
 b6 (lines 12-13) is in no field and not marked ignore.
 ```
@@ -18,7 +18,7 @@ Running an edited one again is refused; freeze the document afresh and run it, w
 commands:
 
 ```bash
-$ in2lambda source add --start-over questions.docx
+$ in2lambda source add --start-over questions.docx solutions.docx
 $ in2lambda spec run spec.yaml
 ```
 
@@ -133,6 +133,43 @@ the solutions are, and what each of them answers.
 | `PartSolPartSol` | Each solution answers the part just before it, or the question if it has no parts yet. |
 | `PartPartSolSol` | The parts come together and their solutions come after, in the same order. |
 | `PartsSepSol` | Every solution is at the end: the first answers the first part of the first question, and so on. |
+
+## A separate solutions document
+
+Many sheets come as two files: the questions, and the solutions written separately from them.
+Freeze both, in that order, and the draft holds them as source 1 and source 2. A file can be
+added to a draft later just as well, which freezes it as the next source:
+
+```bash
+$ in2lambda source add questions.docx
+$ in2lambda source add solutions.docx
+```
+
+`in2lambda source show` then prints each source under its number and its name, and everything
+that names a block or a line range says which source it means. `b3` and `s10:14` are the first
+source's, as they have always been; `2/b3` and `2/s14:20` are the second's, and `1/b3` is `b3`
+the long way round. A field quoted from a source after the first records that source's number
+beside the lines it came from, since line 5 of the solutions is not line 5 of the sheet.
+
+The same spec runs over every source, and each selector matches within the source it is being
+run over - `after Header text=Solutions` is about where a block sits in its own document. What
+changes is what the selectors mean in a document of solutions, which is what `in2lambda convert
+-a` makes of an answers file:
+
+- A block the **`question`** selector matches is a **marker** - the `Q2.` written above the
+  solutions to the second question. It answers nothing itself, is marked ignored, and sends what
+  follows it to that question's first slot.
+- A block the **`part`** or the **`solution`** selector matches is a **solution**, and they take
+  the slots in order: each question's parts, or the question itself where it has none.
+- The **`layout`** is the sheet's, and says nothing about the documents after it. Solutions
+  written separately come in the order the questions do, which is the `PartsSepSol` rule whatever
+  the sheet itself is laid out as.
+
+A solution past the last slot is reported as being in no field, like any other block the spec
+made nothing of; one landing on a question the solutions before it have answered is refused,
+saying that the field - `q2.solution`, say - is already written and that no command here writes
+a field twice. `in2lambda draft field replace` changes the wording of one, and `in2lambda source
+add --start-over` begins the draft again.
 
 ## What it writes
 

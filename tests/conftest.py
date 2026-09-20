@@ -47,6 +47,16 @@ SPECS = sorted(path for path in SPECS_DIR.iterdir() if path.is_dir())
 """Every spec folder, so that covering another kind of document is a folder and no code."""
 
 
+def frozen_sources(folder: Path) -> list[str]:
+    """The documents a draft or spec folder freezes, in the order they are its sources.
+
+    A folder holding a ``solutions.md`` beside its ``source.md`` is a sheet written as
+    two documents - the questions, and the worked solutions separately - and freezes as
+    two sources, so covering that is a second file in a folder rather than a test.
+    """
+    return [name for name in ("source.md", "solutions.md") if (folder / name).is_file()]
+
+
 @pytest.fixture
 def without_node(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Runs the test as if Node.js, which KaTeX is rendered with, were not installed.
