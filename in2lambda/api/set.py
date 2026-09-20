@@ -103,11 +103,15 @@ class Set:
         """
         self._current_question_index += 1
 
-    def problems(self) -> list[Problem]:
+    def problems(self, compile: bool = True) -> list[Problem]:
         r"""Everything in2lambda can tell Lambda Feedback would refuse or render wrongly.
 
         This is a report, not a refusal: the set can still be written out, since a
         problem found here may well be deliberate.
+
+        Args:
+            compile: Whether to also compile the set as Lambda Feedback's PDF generator
+                will, which needs pandoc and xelatex installed.
 
         Returns:
             One :class:`~in2lambda.api.problem.Problem` per problem found, each naming
@@ -118,14 +122,14 @@ class Set:
             >>> s = Set()
             >>> s.add_question("Momentum", "The rocket is at $45^\\circ$.")
             >>> s.current_question.images.append("no_such_file.png")
-            >>> for problem in s.problems():
+            >>> for problem in s.problems(compile=False):
             ...     print(problem)
             Question 1 "Momentum", main text: ^\circ does not display; write the degree sign ° instead
             Question 1 "Momentum": there is no image file at no_such_file.png
         """
         from in2lambda.validation import validate
 
-        return validate(self)
+        return validate(self, compile)
 
     def to_json(self, output_dir: str) -> None:
         """Turns this set into Lambda Feedback JSON/ZIP files.
