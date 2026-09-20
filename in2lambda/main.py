@@ -370,6 +370,30 @@ def draft_split_block(block: str, at: int, by: str) -> None:
     _run("split block", {"block": block, "at": at}, by)
 
 
+@draft_group.group("field")
+def draft_field() -> None:
+    """Changes the wording of a field the draft has written already."""
+
+
+@draft_field.command("replace")
+@click.argument("field")
+@click.argument("old")
+@click.argument("new")
+@click.option(
+    "--regex",
+    is_flag=True,
+    help="Read OLD as a regular expression, and NEW as what to replace it with.",
+)
+@_by
+def draft_field_replace(field: str, old: str, new: str, regex: bool, by: str) -> None:
+    """Replaces OLD with NEW in FIELD, which OLD has to occur exactly once in."""
+    _run(
+        "field replace",
+        {"field": field, "old": old, "new": new, "regex": True if regex else None},
+        by,
+    )
+
+
 @draft_group.command("replay")
 def draft_replay() -> None:
     """Rebuilds the draft in this directory from its log and checks it is the same."""

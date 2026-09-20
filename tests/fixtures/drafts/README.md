@@ -16,6 +16,10 @@ clean one: the second question runs into its part with no blank line between the
 makes one block of the two and `split block` cuts it, and the first question's part is typed out
 rather than quoted, because the source writes it with an `(a)` the field should not carry - which
 is why the block it was typed from is marked ignore rather than left unaccounted for.
+`field_replace` is a sheet the OCR left a brace out of the maths of: one `field replace` puts the
+brace back and another, with `--regex`, writes a `\tfrac` over the division in the solution, so
+both fields end up edited while their ranges still name the lines they were quoted from, and the
+backslash in what the second one writes is written rather than read as a replacement template.
 `part_without_solution` and `empty_field` are the smallest drafts the other two checks have
 anything to say about; an overlap and a gap in the numbering are not here, because no run of
 commands can make one.
