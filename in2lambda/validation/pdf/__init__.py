@@ -56,7 +56,8 @@ _TIMEOUT = 120
 
 
 class CompileFailed(SourceError):
-    """The pipeline produced nothing: pandoc refused the set, or xelatex wrote no PDF.
+    """The pipeline produced nothing: pandoc refused the set, xelatex wrote no PDF, or
+    neither finished.
 
     Not a problem in one field, since there is no generated LaTeX to trace an error back
     through, so it is raised rather than reported - as a `SourceError`, which is what
@@ -101,15 +102,6 @@ def problems(fields: list[tuple[str, str]], images: list[str]) -> list[Problem]:
         return _compiled(fields, images)
     except CompileFailed as failed:
         return [Problem(_SET, str(failed))]
-    except subprocess.TimeoutExpired as expired:
-        # TeX can be made to loop forever, which is itself a fault in the set.
-        return [
-            Problem(
-                _SET,
-                f"the PDF generator cannot compile this: {expired.cmd[0]} did not"
-                f" finish within {_TIMEOUT} seconds",
-            )
-        ]
 
 
 def render(
@@ -130,7 +122,8 @@ def render(
         refuses, so these say what to look at in the PDF rather than that there is none.
 
     Raises:
-        CompileFailed: pandoc refused the fields, or xelatex wrote no PDF at all.
+        CompileFailed: pandoc refused the fields, neither tool finished, or xelatex
+            wrote no PDF at all.
     """
     with tempfile.TemporaryDirectory() as directory:
         work = Path(directory)
@@ -168,8 +161,24 @@ def _compile(
         ``set.pdf``.
 
     Raises:
-        CompileFailed: pandoc would not read the set, so there is no LaTeX to run.
+        CompileFailed: pandoc would not read the set, so there is no LaTeX to run, or
+            one of the two did not finish. A set can be written that makes TeX loop
+            forever, which is a fault in the set like any other: both callers want it
+            said rather than waited for, so it is said here once.
     """
+    try:
+        return _run(fields, images, work)
+    except subprocess.TimeoutExpired as expired:
+        raise CompileFailed(
+            f"the PDF generator cannot compile this: {expired.cmd[0]} did not"
+            f" finish within {_TIMEOUT} seconds"
+        ) from None
+
+
+def _run(
+    fields: list[tuple[str, str]], images: list[str], work: Path
+) -> tuple[str, str]:
+    """The two commands themselves, whatever either of them does."""
     available = set()
     for image in images:
         if Path(image).is_file():

@@ -12,6 +12,7 @@ fixture can say.
 import json
 import re
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +24,7 @@ import in2lambda.draft
 import in2lambda.draft.report
 from in2lambda.api.set import Set
 from in2lambda.main import cli
-from in2lambda.validation import _IMAGE
+from in2lambda.validation import _IMAGE, pdf
 
 QUESTION = re.compile(r"q(\d+)\.text")
 """A question's text among a folder's fields, which is one question of the export."""
@@ -619,3 +620,27 @@ def test_render_says_what_to_install_without_the_compiler(
     assert result.exit_code != 0
     assert "texlive-xetex" in result.output
     assert not (tmp_path / "out").exists()
+
+
+def test_render_says_which_tool_never_finished(tmp_path: Path, monkeypatch) -> None:
+    """A set can be written that makes TeX loop, and waiting is not what happens then.
+
+    The toolchain is stood in for rather than run, so that this says what the command
+    does with a timeout wherever it is run, not only where a compiler is installed.
+    """
+
+    def never_finishes(command: list[str], **_: Any) -> None:
+        raise subprocess.TimeoutExpired(command, pdf._TIMEOUT)
+
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+    monkeypatch.setattr(shutil, "which", lambda command: f"/usr/bin/{command}")
+    monkeypatch.setattr(subprocess, "run", never_finishes)
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code != 0
+    # The line a reader can act on, rather than the traceback out of subprocess.
+    assert "pandoc did not finish" in result.output
+    assert not isinstance(result.exception, subprocess.TimeoutExpired)

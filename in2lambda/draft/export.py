@@ -166,7 +166,8 @@ def render(directory: str = ".", output_dir: str = "out") -> list[Path]:
 
     Raises:
         ConversionToolsMissing: pandoc or xelatex is not installed.
-        CompileFailed: a question produced no PDF at all.
+        CompileFailed: a question produced no PDF at all, or the compiler did not
+            finish with it.
         MissingImage: a field refers to an image file that is not beside the draft.
         SourceError: the draft is missing, is not one of ours, or was written from
             markdown that has changed since.
