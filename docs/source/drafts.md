@@ -1,7 +1,7 @@
 # 📝 Drafts
 
-A draft is a JSON file beside a problem sheet. It names the markdown file the sheet was converted
-to and holds that file's hash, the blocks the markdown is made of, one field per question, part
+A draft is a JSON file beside a problem sheet. A draft names the markdown file the sheet was
+converted to and holds that file's hash, the blocks the markdown is made of, one field per question, part
 and solution, and the log of the commands that wrote those fields. `in2lambda convert` reads a document and writes a set in
 one command. A draft is the other way of working: in2lambda converts the document once, and the
 questions are then written, checked and rebuilt from the frozen markdown and the log.
@@ -166,9 +166,9 @@ b2 (lines 3-3) is in no field and not marked ignore.
 b8 (lines 15-16) is in no field and not marked ignore.
 ```
 
-The spec writes the two questions, their parts and the two headings it was told to ignore. It
-then reports the blocks it made nothing of: the rubric, which no selector matches, and the
-solutions, which this spec has no `solution` selector for. A spec run accounts for every block of
+The spec writes the two questions, their parts and the two headings it was told to ignore.
+`in2lambda spec run` then reports the two blocks the spec wrote no field from: the rubric, which
+no selector matches, and the solutions, which this spec has no `solution` selector for. A spec run accounts for every block of
 the document or names the blocks it left out.
 
 Each field records where its value came from:
@@ -265,8 +265,8 @@ Wrote q1.p1.text.
 }
 ```
 
-A literal is layer 4: no line of the source says it, so the field has no range behind it and
-arrives edited.
+A literal is layer 4. No line of the source holds the wording, so the field's `ranges` is empty.
+The field's `edited` is `true`.
 
 The second question and its part are both quoted:
 
@@ -295,7 +295,7 @@ Warning: q1.p1 has no solution: neither q1.p1.solution nor q1.solution is writte
 report. Whoever is writing the draft reads that report to find the blocks in no field and the
 questions with no solution. A finding at level error is the draft contradicting its own source:
 lines nothing accounts for, two fields quoted from the same lines, a numbering with a hole in it,
-maths Lambda Feedback will not render. A finding at level warning may be right about the sheet.
+maths Lambda Feedback will not render.
 A question with no solution is reported at level warning, because many sheets write their
 solutions in another file, and some sheets have none.
 
@@ -324,7 +324,8 @@ Wrote b8a and b8b.
 ```
 
 The document is unchanged. `b8a` and `b8b` are blocks of the draft, quoted by their ids as any
-other block is, and a replay arrives at the same two ids by running the same command again:
+other block is. `in2lambda draft replay` runs `split block b8 16` again from the log, and writes
+the blocks `b8a` and `b8b` again. The two solutions are then quoted into the two questions:
 
 ```bash
 $ in2lambda draft question solution q1 --text b8a
@@ -368,9 +369,9 @@ Replays as it stands.
 ```
 
 `in2lambda draft replay` builds the draft again from the frozen markdown and the log, and
-compares the result with the file byte for byte. It refuses where the document has changed since
-in2lambda froze it, where the log names a command this version of in2lambda has not got, and
-where somebody edited a field by hand.
+compares the result with the file byte for byte. `in2lambda draft replay` refuses where the
+document has changed since in2lambda froze it, where the log names a command this version of
+in2lambda has not got, and where somebody edited a field by hand.
 
 A command that changes the draft deletes the draft's report, because the report described the
 draft before the command ran. So the checks run again:
@@ -388,9 +389,10 @@ Wrote /home/you/sheet/out/set.zip
 ```
 
 `in2lambda build` writes the draft out as a Lambda Feedback set: `out/set.zip` and the files it
-is zipped from. It refuses a draft `in2lambda validate` has not been run on since the draft last
-changed, and a draft whose report holds a finding at level error. It writes the set over a
-finding at level warning, and prints that finding beside what it wrote. The fields become the
+is zipped from. `in2lambda build` refuses a draft that `in2lambda validate` has not been run on
+since the draft last changed, and refuses a draft whose report holds a finding at level error.
+Where the report holds only findings at level warning, `in2lambda build` prints each finding as a
+`Warning:` line and then writes `out/set.zip`. The fields become the
 questions and parts of the export - see [the question format](question-format) for what the
 export holds.
 
