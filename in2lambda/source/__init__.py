@@ -328,9 +328,16 @@ def _display_maths_blocked(markdown: str) -> str:
 
     The inserted lines take the indent of the line the maths began on - a list item's
     marker width included, so maths in an item stays in the item - and whatever stood
-    either side of it on that line becomes a paragraph of its own. A pipe table's row, a
-    block quote's line and a code block's line are left as pandoc wrote them, so the
-    maths in any of the three is still reported by ``in2lambda validate``.
+    either side of it on that line becomes a paragraph of its own.
+
+    A ``$$`` that opens or closes on a pipe table's row, on a block quote's line or on a
+    code block's line is left as pandoc wrote it: a table cell cannot hold a block, an
+    inserted line carries the indent of the opening line but not a quote's ``> ``, and a
+    code block's ``$$`` is characters the document shows. A match running across a blank
+    line is left as written as well, since display maths holds no blank line: such a
+    match is an unpaired ``$$`` - one in inline code, say - closed by the opening ``$$``
+    of a later maths, and that later maths is then left as written too.
+    ``in2lambda validate`` reports the maths left in any of these.
 
     Examples:
         >>> from in2lambda.source import _display_maths_blocked
@@ -346,6 +353,10 @@ def _display_maths_blocked(markdown: str) -> str:
         'Type this:\n\n    $$x = y$$\n'
         >>> _display_maths_blocked("``` python\nprint(\"$$x = y$$\")\n```\n")
         '``` python\nprint("$$x = y$$")\n```\n'
+        >>> _display_maths_blocked("Type `$$` first.\n\nThe load is $$F = pA$$\n")
+        'Type `$$` first.\n\nThe load is $$F = pA$$\n'
+        >>> _display_maths_blocked("The load is $$F = pA\n> and $$ here.\n")
+        'The load is $$F = pA\n> and $$ here.\n'
     """
     if "\r\n" in markdown:
         # Pandoc writes the line endings of whoever is running it, and the file on disk
@@ -354,17 +365,30 @@ def _display_maths_blocked(markdown: str) -> str:
         return blocked.replace("\n", "\r\n")
 
     verbatim = _verbatim_lines(markdown)
+
+    def blocked(position: int) -> bool:
+        """Whether the `$$` at this offset stands in a table row, a quote or code."""
+        opening = markdown[markdown.rfind("\n", 0, position) + 1 : position]
+        return opening.lstrip()[:1] in ("|", ">") or (
+            markdown.count("\n", 0, position) + 1 in verbatim
+        )
+
     written: list[str] = []
     end = 0
     for match in _DISPLAY_MATHS.finditer(markdown):
-        before = markdown[markdown.rfind("\n", 0, match.start()) + 1 : match.start()]
-        line = markdown.count("\n", 0, match.start()) + 1
-        if before.lstrip()[:1] in ("|", ">") or line in verbatim:
+        if any(not line.strip() for line in match.group().split("\n")):
+            # Display maths holds no blank line, so a match across one is an unpaired
+            # `$$` closed by the opening `$$` of a later maths. Rewriting it would make
+            # a maths block of the paragraphs standing between the two.
+            continue
+        if blocked(match.start()) or blocked(match.end()):
             # A pipe table's cell cannot hold a block; an inserted line carries the
             # indent of the line the maths began on but not a block quote's `> `, so the
             # rewrite would put the maths and the words after it outside the quote; and
-            # a code block's `$$` is characters the document shows, not maths.
+            # a code block's `$$` is characters the document shows, not maths. Either
+            # delimiter standing in one of the three is enough to leave the match alone.
             continue
+        before = markdown[markdown.rfind("\n", 0, match.start()) + 1 : match.start()]
         marker = _MARKER.match(before)
         indent = " " * (
             marker.end() if marker else len(before) - len(before.lstrip(" "))

@@ -30,12 +30,18 @@ list, so the item still holds it. Both are habits of pandoc's writer rather than
 author did, and neither is maths that Lambda Feedback renders, so a field quoted out of a freeze
 that kept them would fail `in2lambda validate`.
 
-A `$$ ... $$` in a pipe table's row, in a block quote's line or in a code block is left as pandoc
-wrote it, and `in2lambda validate` reports each of the three: a table cell cannot hold a block,
-the inserted lines would carry no `> ` and so fall outside the quote, and a code block's `$$` is
-characters the document shows rather than maths it renders. A code block is a line indented four
-past the content column of the list item it stands in, which is how an item's own paragraph -
-indented four itself - is told from code nested inside the item.
+A `$$` that opens or closes on a pipe table's row, on a block quote's line or on a code block's
+line is left as pandoc wrote it: a table cell cannot hold a block, the inserted lines would carry
+no `> ` and so fall outside the quote, and a code block's `$$` is characters the document shows
+rather than maths it renders. A code block is a line indented four past the content column of the
+list item it stands in, which is how an item's own paragraph - indented four itself - is told from
+code nested inside the item.
+
+A `$$ ... $$` running across a blank line is left as pandoc wrote it as well: display maths holds
+no blank line, so the two delimiters are an unpaired `$$` - one in inline code, say - and the
+opening `$$` of a later maths, and rewriting them would make a maths block of the paragraphs
+between. The later maths is then left as written too. `in2lambda validate` reports the maths left
+as written in any of these places.
 
 `docx/source.docx` was made from `markdown/source.md` with `pandoc source.md -o source.docx`,
 run beside a `figure.png` so that the image is embedded rather than dropped, and with the
