@@ -67,6 +67,13 @@ def test_a_spec_fills_in_the_fields_beside_it_and_replays(
     ]
     assert reported == (folder / "uncovered.txt").read_text().split()
 
+    # The blocks the layout sent to a field an earlier block had filled in, which a
+    # folder only has a file of where its document doubles one up.
+    twice = folder / "doubled.txt"
+    assert [
+        line.split()[0] for line in result.output.splitlines() if "already" in line
+    ] == (twice.read_text().split() if twice.is_file() else [])
+
     # Every file the run needed is named and hashed in the log, so a replay runs the
     # ones that ran - and a spec calling no functions names no file of them.
     named = {"spec": "spec.yaml"}
@@ -290,6 +297,12 @@ def test_a_replay_is_refused_once_the_spec_has_gone(
             "line 2",
             "../shared.py",
         ),
+        ("question: []\nlayout: PartsOneSol\n", "line 1", "an empty list"),
+        (
+            "question:\n  - Header\n  - 5\nlayout: PartsOneSol\n",
+            "line 3",
+            "which 5 is not",
+        ),
     ],
     ids=[
         "not yaml",
@@ -302,6 +315,8 @@ def test_a_replay_is_refused_once_the_spec_has_gone(
         "a function with no file to find it in",
         "predicates that is not a file name",
         "predicates somewhere other than beside the spec",
+        "a role with no selectors under it",
+        "a list holding something that is not a selector",
     ],
 )
 def test_a_spec_that_cannot_be_read_says_which_line_to_look_at(
