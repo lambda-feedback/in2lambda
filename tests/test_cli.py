@@ -1,4 +1,4 @@
-"""What the command line does with the current and the old form."""
+"""What the command line does with the current and the pre-2.0 form."""
 
 import os
 import shutil
@@ -25,10 +25,10 @@ def test_convert_writes_the_set(filters_dir: str, tmp_path) -> None:
 
 
 @pytest.mark.parametrize("path", ["example.tex", "./example.tex", "ABSOLUTE"])
-def test_old_form_converts_with_a_deprecation_line(
+def test_old_form_fails_and_names_convert(
     path: str, filters_dir: str, monkeypatch, tmp_path
 ) -> None:
-    """The old form converts whatever the file path looks like, saying so on stderr.
+    """The pre-2.0 form errors out whatever the file path looks like.
 
     A path starting with ``/`` or ``.`` used to make click print the help and exit 0,
     so every script passing a full path appeared to succeed without converting anything.
@@ -42,12 +42,12 @@ def test_old_form_converts_with_a_deprecation_line(
 
     result = CliRunner().invoke(cli, [path, "PartsSepSol"])
 
-    assert result.exit_code == 0, result.output
-    assert "in2lambda FILE FILTER is the old form" in result.stderr
-    assert (tmp_path / "out" / "set.zip").exists()
+    assert result.exit_code != 0
+    assert "in2lambda convert" in result.output
+    assert not (tmp_path / "out").exists()
 
 
-def test_old_form_works_when_run_as_the_installed_command(
+def test_old_form_fails_when_run_as_the_installed_command(
     filters_dir: str, tmp_path
 ) -> None:
     """The same holds for ``cli()``, which is what the installed command runs.
@@ -70,23 +70,9 @@ def test_old_form_works_when_run_as_the_installed_command(
         env={**os.environ, "COLUMNS": "200"},
     )
 
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "in2lambda FILE FILTER is the old form" in result.stderr
-    assert "old form" not in result.stdout
-    assert (tmp_path / "out" / "set.zip").exists()
-
-
-def test_first_argument_that_is_neither_still_names_convert(
-    monkeypatch, tmp_path
-) -> None:
-    """A first argument that is neither a subcommand nor a file is refused."""
-    monkeypatch.setenv("COLUMNS", "200")  # So the message is not wrapped mid-sentence.
-    monkeypatch.chdir(tmp_path)
-
-    result = CliRunner().invoke(cli, ["missing.tex", "PartsSepSol"])
-
-    assert result.exit_code != 0
-    assert "in2lambda convert" in result.output
+    assert result.returncode != 0
+    assert "in2lambda convert" in result.stdout + result.stderr
+    assert not (tmp_path / "out").exists()
 
 
 def test_convert_leaves_only_what_it_writes(filters_dir: str, tmp_path) -> None:
