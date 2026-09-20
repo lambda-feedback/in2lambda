@@ -2,6 +2,7 @@
   {
     "check": "uncovered",
     "field": "b1",
+    "level": "error",
     "message": "b1 (lines 1-1) is in no field and not marked ignore.",
     "ranges": [
       [
@@ -13,6 +14,7 @@
   {
     "check": "uncovered",
     "field": "b3",
+    "level": "error",
     "message": "b3 (lines 6-6) is in no field and not marked ignore.",
     "ranges": [
       [

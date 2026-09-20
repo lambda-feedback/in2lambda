@@ -2,6 +2,7 @@
   {
     "check": "problem",
     "field": "q1.text",
+    "level": "error",
     "message": "q1.text (lines 3-3): ^\\circ does not display; write the degree sign \u00b0 instead",
     "ranges": [
       [
@@ -13,6 +14,7 @@
   {
     "check": "problem",
     "field": "q1.solution",
+    "level": "error",
     "message": "q1.solution (lines 9-9): ^\\circ does not display; write the degree sign \u00b0 instead",
     "ranges": [
       [

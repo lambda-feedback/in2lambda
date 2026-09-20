@@ -1,0 +1,38 @@
+[
+  {
+    "check": "no-solution",
+    "field": "q1.p1",
+    "level": "warning",
+    "message": "q1.p1 (lines 5-5) has no solution: neither q1.p1.solution nor q1.solution is written.",
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ]
+  },
+  {
+    "check": "no-solution",
+    "field": "q1.p2",
+    "level": "warning",
+    "message": "q1.p2 (lines 7-7) has no solution: neither q1.p2.solution nor q1.solution is written.",
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ]
+  },
+  {
+    "check": "no-solution",
+    "field": "q2",
+    "level": "warning",
+    "message": "q2 (lines 9-9) has no solution: q2.solution is not written, and it has no parts.",
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ]
+  }
+]

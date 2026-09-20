@@ -1,0 +1,14 @@
+[
+  {
+    "check": "no-solution",
+    "field": "q1",
+    "level": "warning",
+    "message": "q1 (lines 1-1) has no solution: q1.solution is not written, and it has no parts.",
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ]
+  }
+]
