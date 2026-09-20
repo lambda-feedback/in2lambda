@@ -1,0 +1,24 @@
+[
+  {
+    "check": "uncovered",
+    "field": "b1",
+    "message": "b1 (lines 1-1) is in no field and not marked ignore.",
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "check": "uncovered",
+    "field": "b3",
+    "message": "b3 (lines 6-6) is in no field and not marked ignore.",
+    "ranges": [
+      [
+        6,
+        6
+      ]
+    ]
+  }
+]

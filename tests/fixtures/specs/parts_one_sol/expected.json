@@ -35,7 +35,7 @@
     ],
     "value": true
   },
-  "q1.a.text": {
+  "q1.p1.text": {
     "by": "tests",
     "edited": false,
     "layer": 1,
@@ -47,7 +47,7 @@
     ],
     "value": "Find the thrust."
   },
-  "q1.b.text": {
+  "q1.p2.text": {
     "by": "tests",
     "edited": false,
     "layer": 1,

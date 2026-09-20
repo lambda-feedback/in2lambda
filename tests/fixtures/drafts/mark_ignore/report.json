@@ -1,0 +1,57 @@
+[
+  {
+    "check": "uncovered",
+    "field": "b2",
+    "message": "b2 (lines 3-3) is in no field and not marked ignore.",
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ]
+  },
+  {
+    "check": "uncovered",
+    "field": "b3",
+    "message": "b3 (lines 5-5) is in no field and not marked ignore.",
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ]
+  },
+  {
+    "check": "uncovered",
+    "field": "b4",
+    "message": "b4 (lines 6-6) is in no field and not marked ignore.",
+    "ranges": [
+      [
+        6,
+        6
+      ]
+    ]
+  },
+  {
+    "check": "uncovered",
+    "field": "b5",
+    "message": "b5 (lines 8-10) is in no field and not marked ignore.",
+    "ranges": [
+      [
+        8,
+        10
+      ]
+    ]
+  },
+  {
+    "check": "uncovered",
+    "field": "b6",
+    "message": "b6 (lines 12-12) is in no field and not marked ignore.",
+    "ranges": [
+      [
+        12,
+        12
+      ]
+    ]
+  }
+]

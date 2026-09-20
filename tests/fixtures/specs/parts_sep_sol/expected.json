@@ -11,7 +11,7 @@
     ],
     "value": true
   },
-  "q1.a.solution": {
+  "q1.p1.solution": {
     "by": "tests",
     "edited": false,
     "layer": 1,
@@ -23,7 +23,7 @@
     ],
     "value": "The load is $F = pA$."
   },
-  "q1.a.text": {
+  "q1.p1.text": {
     "by": "tests",
     "edited": false,
     "layer": 1,
@@ -35,7 +35,7 @@
     ],
     "value": "Find the load the large piston carries."
   },
-  "q1.b.solution": {
+  "q1.p2.solution": {
     "by": "tests",
     "edited": false,
     "layer": 1,
@@ -47,7 +47,7 @@
     ],
     "value": "The pressure is $p = F/a$."
   },
-  "q1.b.text": {
+  "q1.p2.text": {
     "by": "tests",
     "edited": false,
     "layer": 1,
