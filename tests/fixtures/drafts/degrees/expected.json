@@ -1,0 +1,50 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "Find the range."
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": "The range is $v^2 \\sin(2 \\times 52^{\\circ}) / g$."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "A projectile is launched at $52^{\\circ}$ to the horizontal."
+  }
+}

@@ -23,7 +23,7 @@ from in2lambda.api.question import Question
 from in2lambda.api.set import Set
 from in2lambda.json_convert.json_convert import _question_stem, _question_title
 from in2lambda.source import DRAFT, ConversionToolsMissing, SourceError, frozen
-from in2lambda.validation import _IMAGE, pdf
+from in2lambda.validation import _IMAGE, _location, pdf
 
 _QUESTION = re.compile(r"q(\d+)\.text")
 """A question's text, and the number that orders it."""
@@ -117,6 +117,60 @@ def as_set(draft: dict[str, Any], directory: str = ".") -> Set:
                 for reference in _IMAGE.findall(markdown)
             ]
     return question_set
+
+
+def located(draft: dict[str, Any]) -> dict[str, str]:
+    """Which field of a draft each place `in2lambda.validation` reports against is.
+
+    :func:`as_set` read backwards. The validator names a question, a part and a field
+    of the export, which is no address in the draft that wrote it, so this walks the
+    fields the way :func:`as_set` walks them and must be changed with it.
+
+    Args:
+        draft: A draft, as `in2lambda.source.frozen` reads one.
+
+    Returns:
+        The draft's field key for each location of the set it describes, the question's
+        own location included - where a problem about the whole question, such as an
+        image the export would not contain, is reported. A part answered by its
+        question's solution is located at that solution, since that is the field to go
+        and edit. Places no field of the draft wrote - a part's answer, the empty part
+        a question written without any exports as - are not here: nothing is in them
+        for the validator to find.
+
+    Examples:
+        >>> from in2lambda.draft.export import located
+        >>> fields = {"q1.text": {"value": "State it."}, "q1.solution": {"value": "$x$"}}
+        >>> located({"fields": fields})
+        {'Question 1 ""': 'q1.text', 'Question 1 "", main text': 'q1.text', 'Question 1 "", part (a), worked solution': 'q1.solution'}
+    """
+    fields = draft["fields"]
+    where = {}
+    for number in sorted(
+        int(found[1]) for key in fields if (found := _QUESTION.fullmatch(key))
+    ):
+        where[_location(number, "")] = f"q{number}.text"
+        where[_location(number, "", field="main text")] = f"q{number}.text"
+        parts = sorted(
+            int(found[2])
+            for key in fields
+            if (found := _PART.fullmatch(key)) and int(found[1]) == number
+        )
+        solution = f"q{number}.solution"
+        for index, part in enumerate(parts):
+            where[_location(number, "", index, "text")] = f"q{number}.p{part}.text"
+            written = f"q{number}.p{part}.solution"
+            if written in fields:
+                where[_location(number, "", index, "worked solution")] = written
+            elif solution in fields:
+                where[_location(number, "", index, "worked solution")] = solution
+        if solution in fields and all(
+            f"q{number}.p{part}.solution" in fields for part in parts
+        ):
+            # The part `as_set` appends for a question's solution with no part left for
+            # it to answer, which is the last one and holds nothing else.
+            where[_location(number, "", len(parts), "worked solution")] = solution
+    return where
 
 
 def build(directory: str = ".", output_dir: str = "out") -> Path:

@@ -1,0 +1,24 @@
+[
+  {
+    "check": "problem",
+    "field": "q1.text",
+    "message": "q1.text (lines 3-3): ^\\circ does not display; write the degree sign \u00b0 instead",
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ]
+  },
+  {
+    "check": "problem",
+    "field": "q1.solution",
+    "message": "q1.solution (lines 7-7): ^\\circ does not display; write the degree sign \u00b0 instead",
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ]
+  }
+]

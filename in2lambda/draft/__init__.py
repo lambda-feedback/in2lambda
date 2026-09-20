@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import in2lambda.spec
-from in2lambda.draft.report import checks, overlapping, uncovered
+from in2lambda.draft.report import findings, overlapping, uncovered
 from in2lambda.source import (
     DRAFT,
     SourceError,
@@ -319,7 +319,7 @@ def replay(directory: str = ".") -> None:
     # The one thing in a draft that no command wrote: the checks did, over the draft the
     # commands left, so rebuilding it is running them again rather than copying it.
     if "report" in draft:
-        rebuilt["report"] = checks(rebuilt)
+        rebuilt["report"] = findings(rebuilt, directory)
 
     path = Path(directory) / DRAFT
     if serialise(rebuilt) != path.read_bytes():
