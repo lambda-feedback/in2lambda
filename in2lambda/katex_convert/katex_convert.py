@@ -8,22 +8,10 @@ import logging
 import re
 from pathlib import Path
 
-# Create a logger object with a name and a level
-logger = logging.getLogger("log")
-logger.setLevel(logging.INFO)
-
-# Create a file handler to write the messages to a file
-file_handler = logging.FileHandler("log", mode="w")  # Clears log with every run
-file_handler.setLevel(logging.INFO)
-
-# Create a formatter to format the messages
-formatter = logging.Formatter("%(message)s")
-
-# Add the formatter to the file handler
-file_handler.setFormatter(formatter)
-
-# Add the file handler to the logger
-logger.addHandler(file_handler)
+# No handler: one attached here wrote a file called `log` into whatever directory the
+# importing process happened to be run from. Where these messages go is the
+# application's to decide, by configuring the `in2lambda` logger or this child of it.
+logger = logging.getLogger("in2lambda.katex_convert")
 
 
 def latex_to_katex(latex_string: str) -> str:
@@ -123,8 +111,6 @@ def replace_functions(latex_string: str) -> str:
     Returns:
         The same LaTeX string with some commands replaced where necessary.
     """
-    logger.info("")
-
     # replace the incompatible functions with their KaTeX equivalents using re.sub
     for old, new in unsupported_commands().items():
         if new is None:  # Deleted rather than replaced; see delete_functions.
