@@ -62,7 +62,13 @@ ogp_social_cards = {
 graphviz_output_format = "svg"
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    # Tables that question-format.md includes: pages of their own otherwise.
+    "_autosummary/question-format/*.md",
+]
 source_suffix = [".rst", ".md"]
 
 copybutton_prompt_text = "$ "

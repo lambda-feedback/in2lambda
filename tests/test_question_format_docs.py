@@ -49,12 +49,15 @@ def test_tables_cover_the_exported_keys(tmp_path: Path) -> None:
     assert "response.responseInput.config" in _table_keys(tmp_path / "response_area.md")
 
 
-def test_a_key_with_no_note_is_named(tmp_path: Path) -> None:
+# An empty object holds no keys to descend into, so it has to be a row in its own
+# right for a new key to be named rather than silently dropped.
+@pytest.mark.parametrize("value", [1, {}])
+def test_a_key_with_no_note_is_named(value: object, tmp_path: Path) -> None:
     """A key added to the schema stops the build, saying which key needs a note."""
     export_dir = Path(shutil.copytree(EXPORTS[0], tmp_path / "export"))
     file = sorted(export_dir.glob("question_*.json"))[0]
     question = json.loads(file.read_text())
-    question["madeUp"] = 1
+    question["madeUp"] = value
     file.write_text(json.dumps(question))
 
     with pytest.raises(ValueError, match="madeUp"):

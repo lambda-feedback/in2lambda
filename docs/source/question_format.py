@@ -133,10 +133,12 @@ def _flatten(
     A key holding an object is descended into, so that `workedSolution` becomes
     `workedSolution.content`, unless it has a note of its own — `gradeParams` and
     `config` hold whatever the box type needs, and are described in prose instead.
+    An empty object is a row like any other: descending into it would yield nothing,
+    so a new key holding `{}` would go unnoticed rather than asking for a note.
     """
     for key, value in obj.items():
         full_path = f"{path}{key}"
-        if isinstance(value, dict) and full_path not in notes:
+        if isinstance(value, dict) and value and full_path not in notes:
             yield from _flatten(value, notes, f"{full_path}.")
         else:
             yield full_path, value
