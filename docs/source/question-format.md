@@ -122,68 +122,26 @@ Files are written on a single line.
 
 ### Set
 
-| key | set by | meaning |
-|---|---|---|
-| `name` | `Set.set_name` | names the folder, the zip and the file |
-| `description` | `Set.set_description` | shown with the set |
-| `finalAnswerVisibility` | `Set._finalAnswerVisibility` | `OPEN`, `HIDE` or `OPEN_WITH_WARNINGS` |
-| `workedSolutionVisibility` | `Set._workedSolutionVisibility` | as above |
-| `structuredTutorialVisibility` | `Set._structuredTutorialVisibility` | as above |
-| `manuallyHidden` | fixed by template (`true`) | |
-| `chatbotVisibility` | fixed by template (`"HIDE"`) | |
+```{include} _autosummary/question-format/set.md
+```
 
 Each visibility is a {class}`~in2lambda.api.visibility_status.VisibilityController`, changed with
 `to_open()`, `to_hide()` or `to_open_with_warnings()`.
 
 ### Question
 
-| key | set by | meaning |
-|---|---|---|
-| `orderNumber` | position in `Set.questions`, from 0 | matches the filename |
-| `title` | `Question.title` | shown to students; an empty title becomes `Question N` |
-| `masterContent` | `Question.main_text` | markdown shared by every part: setup, data, figure |
-| `skill` | `Question.skill` | difficulty; exports use 1/3 and 2/3. Omitted if unset |
-| `guidance` | `Question.guidance` | a sentence to students about the question's purpose. Omitted if unset |
-| `durationLowerBound`, `durationUpperBound` | `Question.duration_lower_bound`, `.duration_upper_bound` | expected minutes. Omitted if unset |
-| `publish` | `Question.publish` | |
-| `displayFinalAnswer` | `Question.display_final_answer` | |
-| `displayWorkedSolution` | `Question.display_worked_solution` | |
-| `displayStructuredTutorial` | `Question.display_structured_tutorial` | |
-| `displayChatbot` | `Question.display_chatbot` | |
-| `parts` | `Question.parts` | ordered from 0; students see (a), (b), ... |
+```{include} _autosummary/question-format/question.md
+```
 
 ### Part
 
-| key | set by | meaning |
-|---|---|---|
-| `orderNumber` | position in `Question.parts`, from 0 | |
-| `content` | `Part.text` | markdown for this part |
-| `answerContent` | `Part.answer` | the final answer shown to students, markdown |
-| `responseAreas` | `Part.response_areas` | the answer boxes; may be empty |
-| `workedSolution.content` | `Part.worked_solution` | markdown, split into tutorial steps on `---` |
-| `workedSolution.children` | fixed by template (`[]`) | |
+```{include} _autosummary/question-format/part.md
+```
 
 ### Response area
 
-| key | set by | meaning |
-|---|---|---|
-| `orderNumber` | position in `Part.response_areas`, from 0 | |
-| `preResponseText`, `postResponseText` | `pre_text`, `post_text` | labels either side of the box |
-| `contentAfter` | `content_after` | markdown shown after the box, before the next one |
-| `inputSymbols` | `input_symbols` | see below |
-| `displayInputSymbols` | `display_input_symbols` | whether students are shown the palette |
-| `evaluationFunctionName` | `evaluation_function` | how Lambda Feedback marks the response |
-| `gradeParams` | `grade_params` | that function's settings; see below |
-| `livePreview` | `live_preview` | render what is typed as the student types |
-| `includeInPdf` | `include_in_pdf` | |
-| `saveAllowed` | `save_allowed` | |
-| `separateFeedback` | `separate_feedback` | |
-| `commonFeedbackColor`, `correctFeedbackColor`, `correctFeedbackPrefix`, `incorrectFeedbackColor`, `incorrectFeedbackPrefix` | `common_feedback_color`, `correct_feedback_color`, `correct_feedback_prefix`, `incorrect_feedback_color`, `incorrect_feedback_prefix` | default to what Lambda Feedback fills in |
-| `tests` | `tests` | see below |
-| `cases` | `cases` | see below |
-| `response.responseInput.responseType` | `response_type` | which box students get |
-| `response.responseInput.answer` | `answer` | the correct answer |
-| `response.responseInput.config` | `config` | the box's own settings; see below |
+```{include} _autosummary/question-format/response_area.md
+```
 
 The three types in2lambda writes:
 

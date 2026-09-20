@@ -17,8 +17,10 @@ from datetime import datetime
 sys.path.insert(0, os.path.abspath("."))
 
 from filters import generate_filters_docs
+from question_format import generate_question_format_tables
 
 generate_filters_docs()
+generate_question_format_tables()
 
 sys.path.insert(0, os.path.abspath("../.."))
 
