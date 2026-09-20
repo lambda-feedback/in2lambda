@@ -10,10 +10,7 @@ import getpass
 import importlib
 import shlex
 import warnings
-from collections.abc import (  # Rather than typing's, which beartype warns on.
-    Callable,
-    Iterator,
-)
+from collections.abc import Callable  # Rather than typing's, which beartype warns on.
 from contextlib import contextmanager
 from typing import Any, Optional
 
@@ -39,7 +36,8 @@ from in2lambda.source import (  # noqa: F401  # Re-exported, so not unused.
 
 
 @contextmanager
-def _message_not_traceback() -> Iterator[None]:
+def _message_not_traceback():  # No annotation: beartype 0.22 on 3.10 checks the
+    # decorated object, a _GeneratorContextManager, against a generator hint.
     """Turns anything raised for a reader into what to do about it and a non-zero exit.
 
     Every command wraps whatever it calls in this: a missing pandoc, a draft from
@@ -53,7 +51,7 @@ def _message_not_traceback() -> Iterator[None]:
 
 
 @contextmanager
-def _warnings_said() -> Iterator[None]:
+def _warnings_said():  # Unannotated for the same reason as _message_not_traceback.
     """Echoes whatever is warned inside it as a line, as `runner` says its problems.
 
     What `build` and `render` warn about is something they wrote out anyway - a question
