@@ -10,9 +10,12 @@ import getpass
 import importlib
 import shlex
 import warnings
-from collections.abc import Iterator  # Rather than typing's, which beartype warns on.
+from collections.abc import (  # Rather than typing's, which beartype warns on.
+    Callable,
+    Iterator,
+)
 from contextlib import contextmanager
-from typing import Optional
+from typing import Any, Optional
 
 import rich_click as click
 
@@ -24,7 +27,7 @@ from in2lambda.api.set import Set
 # All four are in other people's scripts as in2lambda.main names, whether or not they
 # are used here: `_pandoc` and `file_type` were defined here before there was an
 # in2lambda.source, and `ConversionToolsMissing` is what `runner` documents raising.
-from in2lambda.source import (
+from in2lambda.source import (  # noqa: F401  # Re-exported, so not unused.
     ConversionToolsMissing,
     SourceError,
     _pandoc,
@@ -250,6 +253,51 @@ def draft_group() -> None:
     """Builds up the draft in this directory, recording every command in it."""
 
 
+_by = click.option(
+    "--by",
+    default=getpass.getuser,
+    help="Who to record the command as having been run by.  [default: your username]",
+)
+"""Who ran a draft command, which every one of them records."""
+
+
+def _text_or_literal(command: Callable[..., None]) -> Callable[..., None]:
+    """The two ways to fill a field: quoted from the frozen source, or typed out."""
+    for option in (
+        click.option(
+            "--literal",
+            help="The text itself, where the source does not say it in a form the "
+            "field can take. Marks the field as edited.",
+        ),
+        click.option(
+            "--text",
+            help="Where in the frozen source the text is: a block id such as b3, or "
+            "lines such as s10:14. Run in2lambda source show to see both.",
+        ),
+    ):
+        command = option(command)
+    return command
+
+
+def _run(command: str, args: dict[str, Any], by: str) -> None:
+    """Runs one draft command against the draft here and says what it wrote.
+
+    Arguments nobody gave are left out rather than recorded as nulls: the log is what a
+    replay runs, and an option that was not passed is not an argument of the command.
+    """
+    with _message_not_traceback():
+        written = in2lambda.draft.execute(
+            {
+                "command": command,
+                "args": {
+                    name: given for name, given in args.items() if given is not None
+                },
+                "by": by,
+            }
+        )
+    click.echo(f"Wrote {written}.")
+
+
 @draft_group.group("mark")
 def draft_mark() -> None:
     """Says what to make of a block of the frozen source."""
@@ -257,17 +305,68 @@ def draft_mark() -> None:
 
 @draft_mark.command("ignore")
 @click.argument("block")
-@click.option(
-    "--by",
-    default=getpass.getuser,
-    help="Who to record the command as having been run by.  [default: your username]",
-)
+@_by
 def draft_mark_ignore(block: str, by: str) -> None:
     """Marks BLOCK as nothing to take a question from."""
-    with _message_not_traceback():
-        in2lambda.draft.execute(
-            {"command": "mark ignore", "args": {"block": block}, "by": by}
-        )
+    _run("mark ignore", {"block": block}, by)
+
+
+@draft_group.group("question")
+def draft_question() -> None:
+    """Adds a question to the draft, or says where its solution is written."""
+
+
+@draft_question.command("add")
+@_text_or_literal
+@_by
+def draft_question_add(text: Optional[str], literal: Optional[str], by: str) -> None:
+    """Adds a question, numbered after the ones already there."""
+    _run("question add", {"text": text, "literal": literal}, by)
+
+
+@draft_question.command("solution")
+@click.argument("question")
+@_text_or_literal
+@_by
+def draft_question_solution(
+    question: str, text: Optional[str], literal: Optional[str], by: str
+) -> None:
+    """Gives QUESTION the worked solution written at --text or --literal."""
+    _run(
+        "question solution",
+        {"question": question, "text": text, "literal": literal},
+        by,
+    )
+
+
+@draft_group.group("part")
+def draft_part() -> None:
+    """Adds a part to a question of the draft."""
+
+
+@draft_part.command("add")
+@click.argument("question")
+@_text_or_literal
+@_by
+def draft_part_add(
+    question: str, text: Optional[str], literal: Optional[str], by: str
+) -> None:
+    """Adds a part of QUESTION, numbered after the parts it already has."""
+    _run("part add", {"question": question, "text": text, "literal": literal}, by)
+
+
+@draft_group.group("split")
+def draft_split() -> None:
+    """Cuts up a block of the frozen source that is really two things."""
+
+
+@draft_split.command("block")
+@click.argument("block")
+@click.argument("at", type=int)
+@_by
+def draft_split_block(block: str, at: int, by: str) -> None:
+    """Splits BLOCK in two, the second half starting at line AT."""
+    _run("split block", {"block": block, "at": at}, by)
 
 
 @draft_group.command("replay")
