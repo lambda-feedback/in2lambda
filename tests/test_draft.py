@@ -22,6 +22,9 @@ from in2lambda.main import cli
 MARK_IGNORE = DRAFTS_DIR / "mark_ignore"
 """The case the tests below happen to use; what they check holds for any of them."""
 
+TWO_QUESTIONS = DRAFTS_DIR / "two_questions"
+"""The one with questions written into it, which is what refusing a second one needs."""
+
 
 def _built(folder: Path, tmp_path: Path) -> Path:
     """A folder's document, frozen in `tmp_path` with its commands applied to it."""
@@ -119,6 +122,15 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
         ({"command": "mark ignore", "args": None, "by": "tests"}, "None"),
         ({"command": "mark ignore", "args": [], "by": "tests"}, "[]"),
         ({"command": "mark ignore", "args": {}, "by": "tests"}, "block"),
+        (
+            {
+                "command": "question add",
+                "args": {"text": "s1", "literal": "Words."},
+                "by": "tests",
+            },
+            "literal",
+        ),
+        ({"command": "split block", "args": {"block": "b2"}, "by": "tests"}, "at"),
     ],
     ids=[
         "not an object",
@@ -128,6 +140,8 @@ def test_a_log_naming_a_command_nothing_has_is_refused(
         "args is null",
         "args is a list",
         "no block argument",
+        "both a text and a literal",
+        "no at argument",
     ],
 )
 def test_a_log_entry_that_is_not_a_command_is_refused(
@@ -209,3 +223,76 @@ def test_marking_a_block_that_is_not_there_says_so(tmp_path: Path, monkeypatch) 
     assert "b99" in result.output
     assert "in2lambda source show" in result.output
     assert draft_path.read_bytes() == built
+
+
+def test_lines_another_field_was_taken_from_are_refused(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Two fields of the same lines is a mistake about one of them, so neither is guessed."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(TWO_QUESTIONS, tmp_path)
+    built = draft_path.read_bytes()
+
+    # Line 16 is where q1's solution came from, so it is not also a third question.
+    result = CliRunner().invoke(cli, ["draft", "question", "add", "--text", "s16"])
+
+    assert result.exit_code != 0
+    # Both halves of it: which field has the lines, and which one wanted them.
+    assert "q1.solution" in result.output
+    assert "q3.text" in result.output
+    assert draft_path.read_bytes() == built
+
+
+@pytest.mark.parametrize(
+    ("arguments", "named"),
+    [
+        (["draft", "question", "add", "--text", "s99:100"], "s99:100"),
+        (["draft", "question", "add", "--text", "s6:5"], "s6:5"),
+        (["draft", "question", "add", "--text", "sixteen"], "sixteen"),
+        (["draft", "question", "add", "--text", "s8", "--literal", "Words."], "both"),
+        (["draft", "question", "add"], "neither"),
+        (["draft", "part", "add", "q9", "--text", "s8"], "q9"),
+        (["draft", "split", "block", "b3", "5"], "b3 is lines 5-6"),
+        (["draft", "split", "block", "b3", "7"], "b3 is lines 5-6"),
+    ],
+    ids=[
+        "lines the source has not got",
+        "a range that runs backwards",
+        "a text that is no kind of address",
+        "a text and a literal",
+        "no text and no literal",
+        "a question nothing has written",
+        "a split at the line the block starts on",
+        "a split past the line it ends on",
+    ],
+)
+def test_a_command_naming_what_the_draft_has_not_got_is_refused(
+    arguments: list[str], named: str, tmp_path: Path, monkeypatch
+) -> None:
+    """Every one of these is a typo, and a typo is a message rather than a field."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    draft_path = _built(TWO_QUESTIONS, tmp_path)
+    built = draft_path.read_bytes()
+
+    result = CliRunner().invoke(cli, arguments)
+
+    assert result.exit_code != 0, result.output
+    assert named in result.output
+    assert draft_path.read_bytes() == built
+
+
+def test_the_halves_of_a_split_block_are_blocks_like_any_other(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Splitting is only worth anything if what it leaves can be quoted by its id."""
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+
+    result = CliRunner().invoke(cli, ["source", "show"])
+
+    assert result.exit_code == 0, result.output
+    # In the margin against the first line of each half, which is where the ids are.
+    assert "b5a  10" in result.output
+    assert "b5b  12" in result.output

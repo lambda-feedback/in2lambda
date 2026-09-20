@@ -1,0 +1,77 @@
+[
+  {
+    "args": {
+      "block": "b1"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "block": "b2"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "text": "b3"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "literal": "State the continuity equation for the pipe.",
+      "question": "q1"
+    },
+    "by": "tests",
+    "command": "part add"
+  },
+  {
+    "args": {
+      "at": 12,
+      "block": "b5"
+    },
+    "by": "tests",
+    "command": "split block"
+  },
+  {
+    "args": {
+      "text": "b5a"
+    },
+    "by": "tests",
+    "command": "question add"
+  },
+  {
+    "args": {
+      "question": "q2",
+      "text": "b5b"
+    },
+    "by": "tests",
+    "command": "part add"
+  },
+  {
+    "args": {
+      "block": "b6"
+    },
+    "by": "tests",
+    "command": "mark ignore"
+  },
+  {
+    "args": {
+      "question": "q1",
+      "text": "s16"
+    },
+    "by": "tests",
+    "command": "question solution"
+  },
+  {
+    "args": {
+      "question": "q2",
+      "text": "s18"
+    },
+    "by": "tests",
+    "command": "question solution"
+  }
+]

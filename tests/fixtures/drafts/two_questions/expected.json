@@ -1,0 +1,105 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "b2.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": true
+  },
+  "b6.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        14,
+        14
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": true,
+    "layer": 4,
+    "ranges": [],
+    "value": "State the continuity equation for the pipe."
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        16,
+        16
+      ]
+    ],
+    "value": "The flow rate is $Q = \\pi d^2 v / 4$."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        5,
+        6
+      ]
+    ],
+    "value": "Water flows through a horizontal pipe of diameter $d$ at speed $v$.\nFind the volume flow rate."
+  },
+  "q2.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        12,
+        12
+      ]
+    ],
+    "value": "(a) Give the drag coefficient you used."
+  },
+  "q2.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        18,
+        18
+      ]
+    ],
+    "value": "This one is $F = \\tfrac12 \\rho U^2 A C_d$."
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 3,
+    "ranges": [
+      [
+        10,
+        11
+      ]
+    ],
+    "value": "A submarine is towed at speed $U$ through still water.\nFind the drag force on it."
+  }
+}
