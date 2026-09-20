@@ -137,7 +137,12 @@ def test_a_second_source_is_frozen_beside_the_first(
     assert runner.invoke(cli, ["source", "add", "source.md"]).exit_code == 0
 
     # A file the draft beside it has not got is the next source, not a second freezing.
-    assert runner.invoke(cli, ["source", "add", "solutions.md", "--draft", "source.md"]).exit_code == 0
+    assert (
+        runner.invoke(
+            cli, ["source", "add", "solutions.md", "--draft", "source.md"]
+        ).exit_code
+        == 0
+    )
 
     draft = json.loads((tmp_path / "source.draft.json").read_text())
     assert [source["source"] for source in draft["sources"]] == [

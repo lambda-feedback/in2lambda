@@ -683,7 +683,12 @@ def test_freezing_another_source_leaves_no_report_behind(
     (tmp_path / "solutions.md").write_text("# Solutions\n\n1. The load is $F = pA$.\n")
     runner = CliRunner()
 
-    assert runner.invoke(cli, ["source", "add", "solutions.md", "--draft", "source.md"]).exit_code == 0
+    assert (
+        runner.invoke(
+            cli, ["source", "add", "solutions.md", "--draft", "source.md"]
+        ).exit_code
+        == 0
+    )
 
     # Every block of the new source is in no field, so a report written before it was
     # frozen is not a report of this draft - which a replay, running the checks again
@@ -694,7 +699,12 @@ def test_freezing_another_source_leaves_no_report_behind(
     # Naming a file the draft has got already does leave it: nothing has changed, so
     # what the checks found still holds.
     in2lambda.draft.report.validate(draft_path)
-    assert runner.invoke(cli, ["source", "add", "solutions.md", "--draft", "source.md"]).exit_code == 0
+    assert (
+        runner.invoke(
+            cli, ["source", "add", "solutions.md", "--draft", "source.md"]
+        ).exit_code
+        == 0
+    )
     assert json.loads(draft_path.read_text())["report"]
 
 
