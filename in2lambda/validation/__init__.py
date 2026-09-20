@@ -5,8 +5,8 @@ an answer that does not fit the box marking it, an image the export will not con
 maths KaTeX cannot render. An author otherwise finds this out by uploading the set and
 reading it.
 
-The checks report and never refuse: :func:`validate` returns what it found, and the export
-goes ahead, because an author may have intended a problem.
+The checks report and never refuse: :func:`validate` returns the problems it found, and
+in2lambda writes the export, because an author may have intended a problem.
 
 KaTeX renders the maths, which needs Node.js, and the set is compiled as the PDF generator
 compiles it, which needs pandoc and xelatex. Both are optional. Without Node.js,

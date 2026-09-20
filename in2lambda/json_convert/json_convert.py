@@ -65,7 +65,7 @@ def _templates() -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def _zip(files: list[Path], root: Path, zip_path: str) -> None:
-    """Zips the given files, keeping where they sit relative to a folder.
+    """Zips the given files, keeping each file's path relative to a folder.
 
     The archive lists only the files this run wrote, so whatever else the folder holds is
     left out of the upload and left on disk.
@@ -420,9 +420,9 @@ def main(set_questions: Set, output_dir: str) -> None:
 
 
 def load(path: str) -> Set:
-    """Reads a Lambda Feedback export into a Set, keeping only what the model holds.
+    """Reads a Lambda Feedback export into a Set, keeping the fields a Set holds.
 
-    That is the set's name, description and visibilities, and each question's title,
+    A Set holds the set's name, description and visibilities, and each question's title,
     main text, parts, worked solutions, images and settings.
 
     A zip is extracted into a new temporary directory, which the operating system clears:

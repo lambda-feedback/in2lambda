@@ -94,8 +94,8 @@ The example also shows the following:
   {meth}`~in2lambda.api.question.Question.add_part_text` and
   {meth}`~in2lambda.api.question.Question.add_solution`, which fill in whichever part comes next.
   A `Part` object gives a part a final answer and an answer box, which those two methods do not.
-- **A line holding only `---` (or `***`) splits a worked solution** into the steps students go
-  through one at a time in the structured tutorial.
+- **A line holding only `---` (or `***`) splits a worked solution** into the steps the
+  structured tutorial shows students one at a time.
 - **Unset question settings are left out of the JSON**, so `skill`, `guidance` and the two
   durations appear only when set. `publish` and the four `display_*` settings always appear, and
   default to `True`.

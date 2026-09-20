@@ -2,6 +2,7 @@
 
 import getpass
 import importlib
+import os
 import shlex
 import warnings
 from collections.abc import Callable  # Rather than typing's, which beartype warns on.
@@ -50,7 +51,7 @@ def _warnings_said():  # Unannotated for the same reason as _message_not_traceba
 
     `build` and `render` warn about a question they wrote out all the same - a question
     nothing answers, a question xelatex gave up on - so each warning is printed beside
-    what the command wrote, and is printed where the command goes on to refuse for
+    the paths the command printed, and is printed where the command then refuses for
     another reason.
     """
     with warnings.catch_warnings(record=True) as said:
@@ -167,10 +168,10 @@ def runner(
 
 
 class _Cli(click.RichGroup):
-    """The in2lambda group, which names the command to run for a pre-2.0 command line."""
+    """The in2lambda group, which runs ``convert`` for the older command line."""
 
     def resolve_command(self, ctx, args):  # type: ignore[no-untyped-def]
-        """Refuses an unknown command by naming the command to run.
+        """Runs ``convert`` where the first argument is a file, and refuses any other.
 
         Click resolves a first argument starting with ``/`` or ``.`` by printing the
         group's help and exiting 0, so `in2lambda /path/to/questions.tex PartsSepSol`
@@ -178,6 +179,12 @@ class _Cli(click.RichGroup):
         """
         # Shell completion resolves partial command lines, and must not raise.
         if not ctx.resilient_parsing and self.get_command(ctx, args[0]) is None:
+            if os.path.isfile(args[0]):
+                click.echo(
+                    f"in2lambda FILE FILTER is the old form. Run: in2lambda convert {shlex.join(args)}",
+                    err=True,
+                )
+                return super().resolve_command(ctx, ["convert", *args])
             raise click.UsageError(
                 f"in2lambda no longer takes a file directly. Run: in2lambda convert {shlex.join(args)}"
             )
@@ -315,7 +322,7 @@ def _text_or_literal(command: Callable[..., None]) -> Callable[..., None]:
 
 
 def _run(command: str, args: dict[str, Any], by: str, draft: Optional[str]) -> None:
-    """Runs one draft command against the draft named, and prints what it wrote.
+    """Runs one draft command against the draft named, and prints the field it wrote.
 
     An argument the reader did not give is left out of the log, and is not recorded as
     null: a replay runs the log, and an option nobody passed is not an argument of the

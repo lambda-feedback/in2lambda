@@ -275,7 +275,7 @@ def _selector(text: Any, line: int) -> Selector:
 
 
 def load(text: "str | bytes") -> Spec:
-    r"""Reads a spec, where the text says what a spec says.
+    r"""Reads a spec from the YAML text of a spec file.
 
     Args:
         text: The contents of the spec file, as text or as the bytes it was read as. The
@@ -407,8 +407,8 @@ def predicates(spec: Spec, code: bytes, name: str) -> dict[str, Callable[[Any], 
         BadSpec: the file holds no function of a name a selector calls, or holds
             something of that name that cannot be called.
     """
-    # Run as a module of its own and not imported by path, so that nothing about where
-    # the file sits - a name already imported, a stale .pyc - decides what runs.
+    # Run as a module of its own and not imported by path, so that nothing about the
+    # file's location - a name already imported, a stale .pyc - decides what runs.
     module = types.ModuleType("in2lambda_predicates")
     exec(compile(code, name, "exec"), module.__dict__)
     found = {}
@@ -469,7 +469,7 @@ def _slots(roles: list[Optional[str]], stems: list[Optional[str]]) -> list[list[
 
 
 def _keys(layout: str, roles: list[list[Optional[str]]]) -> list[list[Optional[str]]]:
-    """The field each block's text goes in, source by source.
+    """The field key each block's text is written to, source by source.
 
     The first source is the sheet, and the layout says which solution written in it
     answers what. Every source after it is a document of solutions written separately
@@ -488,7 +488,7 @@ def _laid_out(
     stems: list[Optional[str]],
     slots: list[list[str]],
 ) -> list[Optional[str]]:
-    """The field each block of the sheet goes in, or None where the layout assigns none."""
+    """The field key each block of the sheet is written to, or None for no field."""
     separate = iter([slot for question in slots for slot in question])
     keys: list[Optional[str]] = [None] * len(roles)
     question: Optional[str] = None
@@ -520,7 +520,7 @@ def _laid_out(
 
 
 def _answers(roles: list[Optional[str]], slots: list[list[str]]) -> list[Optional[str]]:
-    """The field each block of a separate document of solutions goes in.
+    """The field key each block of a separate document of solutions is written to.
 
     `in2lambda convert -a` pairs an answers file this way. A block the ``question``
     selector matches is a marker - the ``Q2.`` written above the solutions to the second
@@ -559,7 +559,7 @@ def _roles(
     pf: Any,
     functions: Optional[dict[str, Callable[[Any], Any]]],
 ) -> list[Optional[str]]:
-    """What the spec makes of each block of one source, or None where it matches none.
+    """The role each block of one source matches: question, part, solution, or None.
 
     A selector matches within the source it is run over - ``after Header text=Solutions``
     names a position in one document - so each source is classified on its own, whatever
@@ -585,7 +585,7 @@ def fields(
     documents: list[tuple[list[tuple[Block, Any]], str]],
     functions: Optional[dict[str, Callable[[Any], Any]]] = None,
 ) -> tuple[list[Field], list[str]]:
-    """What a spec makes of a draft's sources: its fields, and the blocks to ignore.
+    """The fields a spec writes from a draft's sources, and the blocks to ignore.
 
     Args:
         spec: The spec to run, as :func:`load` read it.

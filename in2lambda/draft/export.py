@@ -12,7 +12,7 @@ still a sheet. No timestamp records the check: every command that changes a draf
 its report, so a draft holding a report has been checked since it last changed, and
 `in2lambda.source.frozen` refuses a draft whose source has changed since. :func:`render`
 runs whether or not the report holds findings, because reading a draft is how an author
-fixes what the checks found.
+fixes the faults the checks found.
 """
 
 import re
@@ -52,7 +52,7 @@ def as_set(draft: dict[str, Any], directory: str = ".") -> Set:
 
     Args:
         draft: A draft, as `in2lambda.source.frozen` reads one.
-        directory: Where the draft is, and so where the images it names sit.
+        directory: The directory the draft is in, which holds the images it names.
 
     Returns:
         One question per ``qN.text``, holding one part per ``qN.pM.text`` with the worked
@@ -211,7 +211,7 @@ def build(draft: str | Path, output_dir: str = "out") -> Path:
     if "report" not in found:
         raise NotValidated(
             f"{path.name} has not been validated since it last changed, so its export "
-            "would hold what nothing has checked. Run in2lambda validate."
+            "would hold wording nothing has checked. Run in2lambda validate."
         )
     if refusing := errors(found["report"]):
         raise NotValidated(
@@ -248,7 +248,7 @@ def render(draft: str | Path, output_dir: str = "out") -> list[Path]:
     The questions are compiled as Lambda Feedback's own PDF generator compiles them,
     under a heading naming each question, so that the PDF shows what a student is shown.
     :func:`render` does not run the checks first, because reading a draft is how an
-    author fixes what the checks found. A figure that is not beside the draft does not
+    author fixes the faults the checks found. A figure that is not beside the draft does not
     stop a question being rendered - the compiler drops the reference and typesets the
     rest - and a question the compiler gives up on does not stop the rest of the draft
     being written.

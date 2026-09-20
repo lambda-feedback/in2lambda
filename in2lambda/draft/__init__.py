@@ -38,10 +38,10 @@ Handler = Callable[[dict[str, Any], list[str], dict[str, Any], str, str], str]
 
 The caller passes the frozen markdown of every source in, in the order the draft froze
 them, so that a handler quoting a source by line range quotes the same text on a replay
-as it did on the first run. `directory` is where the draft is, and so where a file a
-command names sits. A handler returns the name of what it wrote: the key of the field, or
-the block ids a split made. The caller needs that name for the next command, and a
-command that writes a draft's worth of fields returns what it left out.
+as it did on the first run. `directory` is the directory the draft is in, which holds any
+file the command names. A handler returns the key of the field it wrote, or the block ids
+a split made. The caller needs that name for the next command, and a spec run, which
+writes a draft's worth of fields, returns the blocks it matched to no field.
 """
 
 _HANDLERS: dict[str, Handler] = {}
@@ -143,7 +143,7 @@ def record(
         ranges: The line ranges of the frozen source the value was copied from, as
             ``[[start, end], ...]``, and empty where the value was copied from none.
         by: Who ran the command, as a person's name or a model.
-        edited: Whether the value differs from what the source says. A literal is the one
+        edited: Whether the value differs from the source's wording. A literal is the one
             value a command writes that arrives edited; every other field is edited when
             a later command replaces the wording.
         source: Which of the draft's frozen sources the ranges are lines of, numbered
@@ -237,13 +237,15 @@ def _argument(args: dict[str, Any], name: str, command: str, kind: type = str) -
     if name not in args:
         raise MalformedCommand(
             f"{args!r} in the log is not a command {command} can run: it has no "
-            f'"{name}" argument.'
+            f'"{name}" argument. Add that argument to the log entry, or start the draft '
+            "again with in2lambda source add --start-over."
         )
     if not isinstance(args[name], kind):
         wanted = {int: "a line number", bool: "true or false"}.get(kind, "a name")
         raise MalformedCommand(
             f"{args!r} in the log is not a command {command} can run: its "
-            f'"{name}" is {args[name]!r} rather than {wanted}.'
+            f'"{name}" is {args[name]!r} rather than {wanted}. Write {wanted} in the log '
+            "entry, or start the draft again with in2lambda source add --start-over."
         )
     return args[name]
 
@@ -259,10 +261,10 @@ def apply(
         entry: The command, as the log writes it. Typed as Any and not as `Command`,
             because a log is read from a file a reader can edit, so this function
             reports the entry's shape instead of assuming it.
-        directory: Where the draft is, and so where a file the command names sits.
+        directory: The directory the draft is in, which holds any file the command names.
 
     Returns:
-        What the command wrote, as the handler names it.
+        The field key the handler wrote, or the block ids a split made.
 
     Raises:
         MalformedCommand: the entry is not a command.
@@ -272,7 +274,8 @@ def apply(
     if (handler := _HANDLERS.get(entry["command"])) is None:
         raise UnknownCommand(
             f"{entry['command']} is not a command this version of in2lambda has, so "
-            "the draft cannot be built from its log. It was written by a newer one."
+            "the draft cannot be built from its log. Upgrade in2lambda, or correct the "
+            "command name in the log."
         )
     written = handler(draft, sources, entry["args"], entry["by"], directory)
     # After the handler, so a command that was refused is not recorded as having run.
@@ -291,8 +294,8 @@ def execute(entry: Command, draft: str | Path) -> str:
         draft: The path of the draft to change.
 
     Returns:
-        What the command wrote, as the handler names it: the key of a field, the block
-        ids a split made, or the blocks a spec run matched to no field.
+        The field key the handler wrote, the block ids a split made, or the blocks a
+        spec run matched to no field.
 
     Raises:
         SourceError: the draft is missing, is not a draft in2lambda wrote, or was
@@ -465,7 +468,7 @@ def _fill(
     ``text`` copies the field out of a frozen source. ``literal`` types the field out
     where no source holds the wording in a form the field takes.
     A literal quotes nothing: it is layer 4, it records no range, and it arrives edited,
-    because its value is not what any source says.
+    because no source holds its value.
 
     Raises:
         MalformedCommand: the command gives both arguments, or neither, or gives one of
@@ -478,12 +481,13 @@ def _fill(
         raise MalformedCommand(
             f"{args!r} in the log is not a command {command} can run: it gives both a "
             '"text" and a "literal", and a field is either copied from the source or '
-            "typed out, not both."
+            "typed out, not both. Remove one of the two from the log entry."
         )
     if text is None and literal is None:
         raise MalformedCommand(
             f"{args!r} in the log is not a command {command} can run: it gives neither "
-            'a "text" nor a "literal", so there is nothing for it to write.'
+            'a "text" nor a "literal", so it names no wording. Add a "text" or a '
+            '"literal" to the log entry.'
         )
     # Back through `_argument` now that the choice is settled, so that an argument given
     # as a number is reported by name.
@@ -698,8 +702,9 @@ def _field_replace(
         )
     except re.error as error:
         raise MalformedCommand(
-            f"{args!r} in the log is not a command field replace can run: it is not a "
-            f"regular expression - {error}."
+            f"{args!r} in the log is not a command field replace can run: its OLD is "
+            f"not a regular expression - {error}. Correct the pattern in the log entry, "
+            "or drop --regex to replace OLD as it is written."
         ) from None
     if found != 1:
         raise NotOnce(
@@ -752,7 +757,7 @@ def _file_as_run(directory: str, name: str, digest: str) -> bytes:
     """A file the log says a spec run used, where that file still holds what it held.
 
     Args:
-        directory: Where the draft is, and so where the file sits.
+        directory: The directory the draft is in, which holds the file.
         name: The name the log gives the file: the spec, or the predicates it names.
         digest: The hash the log records for the file at the time it ran.
 
@@ -760,8 +765,8 @@ def _file_as_run(directory: str, name: str, digest: str) -> bytes:
         The contents of the file, for the caller about to run it.
 
     Raises:
-        SpecChanged: no such file sits beside the draft, or the file is not the one the
-            log records running. The fields the spec wrote are then fields no file on
+        SpecChanged: no file of that name is beside the draft, or the file is not the one
+            the log records running. The fields the spec wrote are then fields no file on
             disk would write again, so neither a replay nor another run can check them.
     """
     try:
@@ -815,7 +820,7 @@ def spec_command(name: str, by: str, draft: str | Path) -> Command:
     Args:
         name: The spec to run, as the log is to name it: beside the draft.
         by: Who runs it, as a person's name or a model.
-        draft: The path of the draft the spec fills in, which the spec sits beside.
+        draft: The path of the draft the spec fills in. The spec is beside that draft.
 
     Returns:
         The command, for :func:`execute` to run.
@@ -836,7 +841,7 @@ def spec_command(name: str, by: str, draft: str | Path) -> Command:
     args: dict[str, Any] = {"spec": name, "hash": _digest(raw)}
     spec = in2lambda.spec.load(raw)
     if spec.predicates is not None:
-        # The predicates file sits beside the spec, which is the only place `load`
+        # The predicates file is beside the spec, which is the only place `load`
         # accepts, and the log names it from the draft's directory.
         beside = (Path(name).parent / spec.predicates).as_posix()
         try:
@@ -862,7 +867,7 @@ def _spec_run(
     _require_conversion_tools()
     # Every file every spec run in the log used, and not only the files this entry
     # names: a spec edited since leaves fields the log can no longer reproduce, whatever
-    # name it goes under now. On a replay this re-reads files that their own entries
+    # name that file has now. On a replay this re-reads files that their own entries
     # checked, at one file read each.
     for entry in map(_checked, draft["log"]):
         if entry["command"] == "spec run":
@@ -917,7 +922,7 @@ def _spec_run(
             source=source,
         )
     # A spec writes a draft's worth of fields, so it returns the blocks it matched to no
-    # field, and a reader acts on those. The wording is `in2lambda validate`'s, because
+    # field, for the reader to account for. The wording is `in2lambda validate`'s, because
     # the check is the same.
     if left_out := uncovered(draft):
         return "\n".join(finding["message"] for finding in left_out)

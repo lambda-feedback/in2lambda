@@ -1,10 +1,10 @@
 """Checks a draft as a whole, and writes what the checks find into the draft.
 
-A draft is written one command at a time, and no one command sees what a run of them left
-out: a block nobody quoted, two fields taken from the same lines, a question numbered 3
+A draft is written one command at a time, and no one command sees the faults a run of them
+leaves: a block nobody quoted, two fields taken from the same lines, a question numbered 3
 where there is no 2, a part nothing answers. So the checks read the finished draft and
 write what they find into it as its ``report``, which the agent or the person writing the
-draft reads to find what is left to do, without reading the draft itself.
+draft reads for the faults to fix, without reading the draft itself.
 
 The checks report and never refuse, because the author may have intended what a check
 found. The checks themselves read only the draft - its blocks, its field keys, their
@@ -42,7 +42,7 @@ of the report can be acted on by itself.
 """
 
 ERROR = "error"
-"""A finding that stops an export: the draft says what its source does not say."""
+"""A finding that stops an export: the draft holds wording no source of it holds."""
 
 WARNING = "warning"
 """A finding the export prints before writing the set, because the sheet may be right."""
@@ -331,7 +331,7 @@ def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
 
     Args:
         draft: A draft, as `in2lambda.source.frozen` reads one.
-        directory: Where the draft is, and so where the images it names sit.
+        directory: The directory the draft is in, which holds the images it names.
 
     Returns:
         One :data:`Finding` per problem, named by the field of the draft holding it and
@@ -371,7 +371,7 @@ def problems(draft: dict[str, Any], directory: str = ".") -> list[Finding]:
             key = where[location]
             ranges = fields[key]["ranges"]
             # Whatever the location says past the field: KaTeX names the characters it
-            # stopped at, and those are characters of the field.
+            # stopped at, and the field holds those characters.
             rest = problem.location[len(location) :]
             finding = {
                 "check": "problem",
@@ -408,7 +408,8 @@ def validate(draft: str | Path) -> list[Finding]:
         draft: The path of the draft to check.
 
     Returns:
-        What the checks and `in2lambda.validation` found, as written into the draft.
+        Every :data:`Finding` the checks and `in2lambda.validation` made, as written
+        into the draft.
 
     Raises:
         DraftMissing: there is no draft at that path.

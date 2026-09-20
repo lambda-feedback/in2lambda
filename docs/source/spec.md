@@ -124,8 +124,8 @@ spec.
 
 ## Layouts
 
-The layout says where the solutions sit and which question or part each one answers. Problem
-sheets that are otherwise alike differ in their layout.
+The layout says where the solutions are written and which question or part each one
+answers. Problem sheets that are otherwise alike differ in their layout.
 
 | Layout | Which solution answers what |
 |--------|-----------------------------|

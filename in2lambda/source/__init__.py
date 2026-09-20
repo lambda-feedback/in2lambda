@@ -15,9 +15,10 @@ they were frozen, and a block id or a line range of any source after the first c
 that source's number: ``2/b3``, ``2/s10:14``. The first source's ids and ranges are
 written plain.
 
-Every function here needs pandoc, and the parsing needs panflute, which only the
-``convert`` extra installs. :func:`add` raises :class:`ConversionToolsMissing` naming what
-to install.
+:func:`add` needs pandoc to convert a document to markdown, and :func:`blocks` needs
+panflute to parse that markdown, which only the ``convert`` extra installs. :func:`add`
+raises :class:`ConversionToolsMissing` naming what to install. The other functions here
+read a draft that is already written, and need neither.
 """
 
 import hashlib
@@ -37,8 +38,8 @@ DRAFT_SUFFIX = ".draft.json"
 def _field_fault(field: Any) -> str:
     """What is wrong with the shape of one field of a draft, or "" if nothing is wrong.
 
-    A field is checked for ``ranges``, ``source`` and ``value``, because those are the
-    parts of a field this package reads: `in2lambda.draft.record` compares the lines a
+    A field is checked for ``ranges``, ``source`` and ``value``, because this package
+    reads those three parts of a field: `in2lambda.draft.record` compares the lines a
     command is quoting against the lines every field of that source was taken from, and
     `in2lambda.draft.report.checks` reports a field holding an empty value. The check
     asks only whether a value is present, because the checks read a value as a string or
@@ -122,7 +123,7 @@ class ManyDrafts(SourceError):
 
 
 class DraftUnreadable(SourceError):
-    """A file is where the draft goes, and that file is not a draft."""
+    """A file is at the draft's path, and that file is not a draft."""
 
 
 class SourceUnreadable(SourceError):
@@ -130,7 +131,7 @@ class SourceUnreadable(SourceError):
 
 
 def draft_of(source: str | Path) -> Path:
-    """Where the draft of a document goes, which is beside it and named after it.
+    """The path of a document's draft, which is beside the document and named after it.
 
     Args:
         source: The document that was or would be frozen, in any format :func:`add`
@@ -623,8 +624,8 @@ def add(
 
     Raises:
         ConversionToolsMissing: pandoc or panflute is not installed.
-        SourceError: the files are not all in one directory, so no one draft sits
-            beside them.
+        SourceError: the files are not all in one directory, so no one draft is beside
+            them all.
         SourceUnreadable: a file is markdown, and is not UTF-8 text.
         DraftUnreadable: a draft beside the files is not a draft in2lambda wrote, so
             this function neither reads a hash out of it nor writes over it.
@@ -635,8 +636,9 @@ def add(
     paths = [Path(file) for file in files]
     if len({path.parent for path in paths}) != 1:
         raise SourceError(
-            "A draft sits beside the documents it was frozen from, so the files frozen "
-            f"into one draft are all in the same directory: {', '.join(files)}."
+            "A draft is written beside the documents it was frozen from, so the files "
+            f"frozen into one draft are in the same directory: {', '.join(files)}. Move "
+            "them into one directory, or run in2lambda source add once per directory."
         )
     draft = draft_of(paths[0] if into is None else into)
 

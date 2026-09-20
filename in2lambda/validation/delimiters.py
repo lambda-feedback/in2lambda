@@ -1,8 +1,8 @@
 """Checks that ``$ ... $`` and ``$$ ... $$`` math delimiters are balanced and placed correctly.
 
 KaTeX, and so Lambda Feedback, reads inline maths wrapped in single dollar signs
-on one line, and display maths wrapped in ``$$``, each of which sits alone on its
-own line. :func:`math_delimiter_checker` reads markdown character by character and
+on one line, and display maths wrapped in ``$$``, with each ``$$`` alone on a line
+of its own. :func:`math_delimiter_checker` reads markdown character by character and
 reports the first delimiter mistake it finds.
 """
 
@@ -72,7 +72,7 @@ def math_delimiter_checker(md_content: str) -> MathDelimiterError:
                     next_next_character = (
                         md_content[idx + 2] if idx + 2 < len(md_content) else None
                     )
-                    # "$$" must sit alone on its own line.
+                    # "$$" must be alone on a line of its own.
                     if prev_character != "\n" and prev_character is not None:
                         return MathDelimiterError.MISSING_NEWLINE_BEFORE_OPENING_DISPLAY
                     if next_next_character != "\n":
