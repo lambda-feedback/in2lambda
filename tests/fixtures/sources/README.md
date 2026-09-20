@@ -27,7 +27,7 @@ an inline `$ ... $` is never broken over two, and each `$$ ... $$` the writer pu
 moved onto lines of its own afterwards - indented to the item's width where it is in a list, so
 the item still holds it. Both are habits of pandoc's writer rather than anything the author did,
 and both are maths that Lambda Feedback will not render, so a field quoted out of a freeze that
-kept them would fail `in2lambda draft validate`.
+kept them would fail `in2lambda validate`.
 
 `docx/source.docx` was made from `markdown/source.md` with `pandoc source.md -o source.docx`,
 run beside a `figure.png` so that the image is embedded rather than dropped, and with the

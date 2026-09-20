@@ -274,7 +274,9 @@ def _display_maths_blocked(markdown: str) -> str:
 
     The inserted lines take the indent of the line the maths began on - a list item's
     marker width included, so maths in an item stays in the item - and whatever stood
-    either side of it on that line becomes a paragraph of its own.
+    either side of it on that line becomes a paragraph of its own. A pipe table's row
+    and a block quote's line are left as pandoc wrote them, so the maths in one of those
+    is still reported by ``in2lambda validate``.
 
     Examples:
         >>> from in2lambda.source import _display_maths_blocked
@@ -284,6 +286,8 @@ def _display_maths_blocked(markdown: str) -> str:
         '1.  Find\n\n    $$\n    F = pA\n    $$\n'
         >>> _display_maths_blocked("A load $$F = pA$$\r\n")
         'A load\r\n\r\n$$\r\nF = pA\r\n$$\r\n'
+        >>> _display_maths_blocked("> The load is $$F = pA$$ here.\n")
+        '> The load is $$F = pA$$ here.\n'
     """
     if "\r\n" in markdown:
         # Pandoc writes the line endings of whoever is running it, and the file on disk
@@ -295,8 +299,11 @@ def _display_maths_blocked(markdown: str) -> str:
     end = 0
     for match in _DISPLAY_MATHS.finditer(markdown):
         before = markdown[markdown.rfind("\n", 0, match.start()) + 1 : match.start()]
-        if before.lstrip().startswith("|"):
-            continue  # A pipe table's cell cannot hold a block, so leave the row alone.
+        if before.lstrip()[:1] in ("|", ">"):
+            # A pipe table's cell cannot hold a block, and an inserted line carries the
+            # indent of the line the maths began on but not a block quote's `> `, so the
+            # rewrite would put the maths and the words after it outside the quote.
+            continue
         marker = _MARKER.match(before)
         indent = " " * (
             marker.end() if marker else len(before) - len(before.lstrip(" "))
