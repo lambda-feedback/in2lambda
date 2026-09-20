@@ -2,8 +2,8 @@
 
 Each folder in ``fixtures/sources`` is one document beside the block list freezing it
 should produce, so covering another construct means adding a folder rather than a test.
-The rest is what the command line does - refusing a draft whose source has moved on,
-and printing one - which is not something a fixture can say.
+The rest is what the command line does - printing a draft, and refusing one whose source
+has moved on or which nothing here wrote - which is not something a fixture can say.
 """
 
 import hashlib
@@ -105,3 +105,77 @@ def test_source_show_without_a_draft_says_so(tmp_path: Path, monkeypatch) -> Non
     assert result.exit_code != 0
     assert "in2lambda source add" in result.output
     assert isinstance(result.exception, SystemExit)
+
+
+def test_source_show_refuses_once_the_source_has_changed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Ids printed against lines they are not the ids of would look right and be wrong."""
+    monkeypatch.setenv("COLUMNS", "200")
+    shutil.copytree(MARKDOWN, tmp_path, dirs_exist_ok=True)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    assert runner.invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+
+    source = tmp_path / "source.md"
+    source.write_text(f"An afterthought.\n\n{source.read_text()}")
+    result = runner.invoke(cli, ["source", "show"])
+
+    assert result.exit_code != 0
+    assert "--start-over" in result.output
+    assert isinstance(result.exception, SystemExit)
+
+
+@pytest.mark.parametrize(
+    "content", ["{ not json at all", '{"blocks": []}'], ids=["not-json", "foreign"]
+)
+@pytest.mark.parametrize(
+    "arguments",
+    [["source", "add", "source.md"], ["source", "show"]],
+    ids=["add", "show"],
+)
+def test_a_draft_from_somewhere_else_is_refused(
+    content: str, arguments: list[str], tmp_path: Path, monkeypatch
+) -> None:
+    """A draft.json nothing here wrote is neither read from nor written over."""
+    monkeypatch.setenv("COLUMNS", "200")
+    shutil.copy(_frozen(MARKDOWN), tmp_path / "source.md")
+    (tmp_path / "draft.json").write_text(content)
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(cli, arguments)
+
+    assert result.exit_code != 0
+    assert "--start-over" in result.output
+    assert isinstance(result.exception, SystemExit)
+    assert (tmp_path / "draft.json").read_text() == content
+
+
+def test_a_frozen_file_that_has_gone_is_a_message(tmp_path: Path, monkeypatch) -> None:
+    """The draft names the markdown, and someone may well have moved it since."""
+    monkeypatch.setenv("COLUMNS", "200")
+    shutil.copytree(MARKDOWN, tmp_path, dirs_exist_ok=True)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    assert runner.invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+    (tmp_path / "source.md").unlink()
+
+    result = runner.invoke(cli, ["source", "show"])
+
+    assert result.exit_code != 0
+    assert "source.md" in result.output
+    assert isinstance(result.exception, SystemExit)
+
+
+def test_a_source_that_is_not_text_is_a_message(tmp_path: Path, monkeypatch) -> None:
+    """A .md saved in some other encoding cannot be read as markdown, and says so."""
+    monkeypatch.setenv("COLUMNS", "200")
+    source = tmp_path / "source.md"
+    source.write_bytes(b"\xff\xfe# Hydraulic scale\n")
+
+    result = CliRunner().invoke(cli, ["source", "add", str(source)])
+
+    assert result.exit_code != 0
+    assert "UTF-8" in result.output
+    assert isinstance(result.exception, SystemExit)
+    assert not (tmp_path / "draft.json").exists()

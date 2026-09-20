@@ -20,8 +20,7 @@ from in2lambda.api.set import Set
 # people's scripts as in2lambda.main names.
 from in2lambda.source import (
     ConversionToolsMissing,
-    DraftExists,
-    DraftMissing,
+    SourceError,
     _pandoc,
     _require_conversion_tools,
     file_type,
@@ -212,7 +211,7 @@ def source_add(file: str, start_over: bool) -> None:
     """Converts FILE to markdown and records its blocks in draft.json beside it."""
     try:
         draft = in2lambda.source.add(file, start_over)
-    except (ConversionToolsMissing, DraftExists) as error:
+    except SourceError as error:
         # Exit with what to do about it rather than a traceback.
         raise click.ClickException(str(error)) from None
     click.echo(f"Wrote {draft}")
@@ -223,7 +222,7 @@ def source_show() -> None:
     """Prints the frozen markdown of the draft in this directory, numbered."""
     try:
         click.echo(in2lambda.source.show())
-    except DraftMissing as error:
+    except SourceError as error:
         raise click.ClickException(str(error)) from None
 
 

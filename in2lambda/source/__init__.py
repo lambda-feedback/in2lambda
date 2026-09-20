@@ -18,9 +18,13 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 DRAFT = "draft.json"
 """What a frozen source is written to, beside the source itself."""
+
+_FIELDS = ("source", "hash", "blocks")
+"""What a draft has in it, and so what one has to have for anything here to read it."""
 
 _MARKDOWN = "commonmark_x"
 """The dialect the frozen markdown is written in, and read back as.
@@ -35,16 +39,34 @@ _POSITION = re.compile(r"(?:[^@;]*@)?(\d+):\d+-(\d+):(\d+)")
 """One ``line:column-line:column`` of a ``data-pos``, which may name a file and repeat."""
 
 
-class ConversionToolsMissing(RuntimeError):
+class SourceError(RuntimeError):
+    """Freezing or printing a source could not be done, for a reason worth printing.
+
+    The command line turns any of these into a message and a non-zero exit, so
+    anything a reader could do something about - a draft from somewhere else, a file
+    that has moved - is raised as one of these rather than left as whatever the
+    standard library raised on the way past.
+    """
+
+
+class ConversionToolsMissing(SourceError):
     """Document conversion was asked for without pandoc or panflute installed."""
 
 
-class DraftExists(RuntimeError):
+class DraftExists(SourceError):
     """A draft is already there and was not made from this version of the source."""
 
 
-class DraftMissing(RuntimeError):
+class DraftMissing(SourceError):
     """There is no draft to show in the directory asked about."""
+
+
+class DraftUnreadable(SourceError):
+    """There is a file where the draft goes, but it is not a draft."""
+
+
+class SourceUnreadable(SourceError):
+    """The markdown to read has moved, or is not text."""
 
 
 def _require_conversion_tools() -> None:
@@ -110,6 +132,64 @@ def _pandoc(file: str, to: str) -> str:
     return output.decode("utf-8")
 
 
+def _digest(markdown: str) -> str:
+    """How a frozen markdown is named in its draft, so that a change to it shows up."""
+    return f"sha256:{hashlib.sha256(markdown.encode('utf-8')).hexdigest()}"
+
+
+def _text(path: Path) -> str:
+    """A markdown file, given it is still where it was and is still text.
+
+    Both freezing and showing read one, and someone who has moved the file or saved it
+    in some other encoding wants telling which it was, not a traceback.
+    """
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise SourceUnreadable(
+            f"There is no {path}. Put it back, or freeze the document it came from "
+            "again with in2lambda source add --start-over."
+        ) from None
+    except UnicodeDecodeError:
+        raise SourceUnreadable(
+            f"{path} is not UTF-8 text, so it cannot be read as markdown. Save it as "
+            "UTF-8 and try again."
+        ) from None
+
+
+def _draft(path: Path) -> dict[str, Any]:
+    """The draft at the given path, given that something here wrote it.
+
+    Raises:
+        DraftMissing: nothing is there at all.
+        DraftUnreadable: something is, but it is not JSON or it is not a draft. Either
+            way it is not this package's to read from or write over.
+    """
+    if not path.is_file():
+        raise DraftMissing(
+            f"There is no {DRAFT} in {path.parent.resolve()}. "
+            "Run in2lambda source add FILE first."
+        )
+    advice = (
+        "Move it aside and run in2lambda source add FILE, or pass --start-over to "
+        "write over it."
+    )
+    try:
+        draft = json.loads(path.read_text(encoding="utf-8"))
+        fields = draft.keys()
+    except (ValueError, AttributeError) as error:
+        # AttributeError: valid JSON, but a list or a number rather than an object.
+        raise DraftUnreadable(
+            f"{path} cannot be read as a draft: {error}. {advice}"
+        ) from None
+    if missing := [field for field in _FIELDS if field not in fields]:
+        raise DraftUnreadable(
+            f"{path} is not a draft anything here wrote: it has no "
+            f"{' or '.join(missing)} in it. {advice}"
+        )
+    return draft
+
+
 @dataclass
 class Block:
     """One top-level block of a frozen source, and the lines it spans.
@@ -151,9 +231,14 @@ def blocks(markdown: str) -> list[Block]:
         markdown, input_format=f"{_MARKDOWN}+sourcepos", standalone=True
     )
     found = [span for element in document.content for span in _spans(element, pf)]
+    # Where no blank line separates one block from the next - a list straight after a
+    # paragraph, a definition list - pandoc reports the first as running on into the
+    # second's first line, so no block is allowed to reach where the next one starts,
+    # nor past the end of the document.
+    limits = [start - 1 for _, start, _ in found[1:]] + [len(markdown.splitlines())]
     return [
-        Block(f"b{number}", kind, start, end)
-        for number, (kind, start, end) in enumerate(found, start=1)
+        Block(f"b{number}", kind, start, min(end, limit))
+        for number, ((kind, start, end), limit) in enumerate(zip(found, limits), 1)
     ]
 
 
@@ -241,23 +326,24 @@ def add(file: str, start_over: bool = False) -> Path:
 
     Raises:
         ConversionToolsMissing: pandoc or panflute is not installed.
+        SourceUnreadable: the file is markdown, but not UTF-8 text.
+        DraftUnreadable: there is a draft.json beside the file that nothing here wrote,
+            so it is not ours to read a hash out of or to write over.
         DraftExists: the source has changed since it was frozen, or the markdown would
             overwrite a file that no draft claims. Neither happens with `start_over`.
     """
     _require_conversion_tools()
     source = Path(file)
     markdown = (
-        source.read_bytes()
-        if file_type(file) == "markdown"
-        else _pandoc(file, _MARKDOWN).encode("utf-8")
+        _text(source) if file_type(file) == "markdown" else _pandoc(file, _MARKDOWN)
     )
     frozen = source if file_type(file) == "markdown" else source.with_suffix(".md")
     draft = source.parent / DRAFT
-    digest = f"sha256:{hashlib.sha256(markdown).hexdigest()}"
+    digest = _digest(markdown)
 
     if not start_over:
         if draft.is_file():
-            if json.loads(draft.read_text(encoding="utf-8"))["hash"] != digest:
+            if _draft(draft)["hash"] != digest:
                 raise DraftExists(
                     f"{source.name} has changed since {DRAFT} was written from it. "
                     "Run in2lambda source add --start-over to freeze it again, which "
@@ -273,10 +359,10 @@ def add(file: str, start_over: bool = False) -> Path:
     # Before either file is written: a parse that fails half way through would
     # otherwise leave the markdown there with no draft claiming it, and the next run
     # would refuse to touch a file this one wrote.
-    found = [block.to_dict() for block in blocks(markdown.decode("utf-8"))]
+    found = [block.to_dict() for block in blocks(markdown)]
 
     if frozen != source:
-        frozen.write_bytes(markdown)
+        frozen.write_text(markdown, encoding="utf-8")
     draft.write_text(
         json.dumps(
             {"source": frozen.name, "hash": digest, "blocks": found},
@@ -300,19 +386,26 @@ def show(directory: str = ".") -> str:
 
     Raises:
         DraftMissing: there is no draft in that directory.
+        DraftUnreadable: what is there is not a draft anything here wrote.
+        SourceUnreadable: the markdown the draft names has moved, or is not text.
+        DraftExists: the markdown has changed since the draft was written from it, so
+            the ids would be printed against lines they are not the ids of.
     """
     draft_path = Path(directory) / DRAFT
-    if not draft_path.is_file():
-        raise DraftMissing(
-            f"There is no {DRAFT} in {draft_path.parent.resolve()}. "
-            "Run in2lambda source add FILE first."
+    draft = _draft(draft_path)
+    markdown = _text(draft_path.parent / draft["source"])
+    # A line range is only an address while the lines have not moved: printing ids
+    # against markdown the draft was not written from would be worse than printing
+    # nothing, because it would look right.
+    if _digest(markdown) != draft["hash"]:
+        raise DraftExists(
+            f"{draft['source']} has changed since {DRAFT} was written from it, so its "
+            "block ids no longer name the lines they were written against. Run "
+            "in2lambda source add --start-over to freeze the file as it now is."
         )
-    draft = json.loads(draft_path.read_text(encoding="utf-8"))
 
     ids = {block["start"]: block["id"] for block in draft["blocks"]}
-    lines = (
-        (draft_path.parent / draft["source"]).read_text(encoding="utf-8").splitlines()
-    )
+    lines = markdown.splitlines()
     margin = max((len(block_id) for block_id in ids.values()), default=0)
     numbers = len(str(len(lines)))
     return "\n".join(
