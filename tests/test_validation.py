@@ -20,18 +20,12 @@ import sys
 from pathlib import Path
 
 import pytest
-from conftest import EXPORTS, PROBLEM_SETS, PROBLEMS_DIR
+from conftest import EXPORTS, PROBLEM_SETS, PROBLEMS_DIR, needs_compiler
 
 from in2lambda.api.set import Set
-from in2lambda.validation import MathDelimiterError, _node, pdf, validate
+from in2lambda.validation import MathDelimiterError, _node, validate
 
 E = MathDelimiterError
-
-needs_compiler = pytest.mark.skipif(
-    bool(pdf.missing_tools()),
-    reason="compiling the set as the PDF generator does needs pandoc and xelatex",
-)
-"""The fixtures are reported with the PDF generator's toolchain installed; CI has it."""
 
 VALID = [
     "This is an inline math expression: $x = y$.",

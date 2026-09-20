@@ -8,7 +8,13 @@ from pathlib import Path
 import pytest
 
 import in2lambda
-from in2lambda.validation import _node
+from in2lambda.validation import _node, pdf
+
+needs_compiler = pytest.mark.skipif(
+    bool(pdf.missing_tools()),
+    reason="compiling the set as the PDF generator does needs pandoc and xelatex",
+)
+"""The fixtures are reported with the PDF generator's toolchain installed; CI has it."""
 
 EXPORTS_DIR = Path(__file__).parent / "fixtures" / "exports"
 """Real Lambda Feedback exports, one set per folder, exactly as the platform wrote them."""

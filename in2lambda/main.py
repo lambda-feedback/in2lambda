@@ -21,6 +21,7 @@ from typing import Any, Optional
 import rich_click as click
 
 import in2lambda.draft
+import in2lambda.draft.export
 import in2lambda.draft.report
 import in2lambda.filters
 import in2lambda.source
@@ -442,6 +443,52 @@ def validate() -> None:
         click.echo(finding["message"])
     if not report:
         click.echo("Nothing to report.")
+
+
+_out = click.option(
+    "--out",
+    "-o",
+    "output_dir",
+    default="./out",
+    show_default=True,
+    help="Directory to write the files to.",
+    type=click.Path(resolve_path=True),
+)
+"""Where what a command makes is written, as `convert` has always taken it."""
+
+
+@cli.command("build")
+@_out
+def build(output_dir: str) -> None:
+    """Writes the draft in this directory out as a Lambda Feedback set.
+
+    Refused unless in2lambda validate has been run since the draft last changed and
+    found nothing, so that what is uploaded is what the checks have been over.
+    """
+    with _message_not_traceback():
+        written = in2lambda.draft.export.build(output_dir=output_dir)
+    click.echo(f"Wrote {written}")
+
+
+@cli.command("render")
+@_out
+def render(output_dir: str) -> None:
+    """Writes each question of the draft in this directory as a PDF, for review.
+
+    The questions are compiled as Lambda Feedback's PDF generator compiles them, which
+    needs pandoc and xelatex. What the checks have to say about the draft is not asked:
+    a draft is rendered to look at, including one there is something to fix in.
+    """
+    with _message_not_traceback():
+        # As `runner` does: a question xelatex complains about is still written out, and
+        # what it refused is a line to read rather than a traceback.
+        with warnings.catch_warnings(record=True) as refused:
+            warnings.simplefilter("always")
+            written = in2lambda.draft.export.render(output_dir=output_dir)
+    for warning in refused:
+        click.echo(f"Warning: {warning.message}")
+    for pdf in written:
+        click.echo(f"Wrote {pdf}")
 
 
 if __name__ == "__main__":

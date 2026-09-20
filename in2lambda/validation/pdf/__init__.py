@@ -12,6 +12,9 @@ through untouched. ``xelatex -file-line-error`` then reports every error as
 
 pandoc and xelatex are both optional, as they are everywhere else in in2lambda: without
 them this reports what to install rather than raising.
+
+The same pipeline writes the PDF itself - :func:`render` - since what a reviewer wants
+to look at is the document the errors were traced out of.
 """
 
 import re
@@ -21,6 +24,7 @@ import tempfile
 from pathlib import Path
 
 from in2lambda.api.problem import Problem
+from in2lambda.source import SourceError
 
 _TEMPLATE = Path(__file__).with_name("template.latex")
 """The PDF generator's own pandoc template - see the README beside it."""
@@ -49,6 +53,15 @@ _IMAGE = re.compile(r"(!\[[^\]]*\]\()([^)]*)(\))")
 
 _TIMEOUT = 120
 """Seconds for pandoc or xelatex. A set that takes longer is reported, not waited for."""
+
+
+class CompileFailed(SourceError):
+    """The pipeline produced nothing: pandoc refused the set, or xelatex wrote no PDF.
+
+    Not a problem in one field, since there is no generated LaTeX to trace an error back
+    through, so it is raised rather than reported - as a `SourceError`, which is what
+    the command line turns into a message rather than a traceback.
+    """
 
 
 def missing_tools() -> list[str]:
@@ -86,6 +99,8 @@ def problems(fields: list[tuple[str, str]], images: list[str]) -> list[Problem]:
 
     try:
         return _compiled(fields, images)
+    except CompileFailed as failed:
+        return [Problem(_SET, str(failed))]
     except subprocess.TimeoutExpired as expired:
         # TeX can be made to loop forever, which is itself a fault in the set.
         return [
@@ -97,57 +112,111 @@ def problems(fields: list[tuple[str, str]], images: list[str]) -> list[Problem]:
         ]
 
 
-def _compiled(fields: list[tuple[str, str]], images: list[str]) -> list[Problem]:
-    """The set run through pandoc and then xelatex in a directory of its own."""
+def render(
+    fields: list[tuple[str, str]], images: list[str], output: Path
+) -> list[Problem]:
+    """Writes the PDF Lambda Feedback's generator would make of these fields.
+
+    Args:
+        fields: Every markdown field to render, each with the location to report an
+            error in it against, as :func:`problems` takes them.
+        images: Every image path the fields refer to, as :func:`problems` takes them.
+        output: The PDF file to write. Its directory is made if it is not there, and a
+            file of that name is overwritten.
+
+    Returns:
+        One :class:`~in2lambda.api.problem.Problem` per LaTeX error, as
+        :func:`problems` reports them. xelatex typesets what it can whatever it
+        refuses, so these say what to look at in the PDF rather than that there is none.
+
+    Raises:
+        CompileFailed: pandoc refused the fields, or xelatex wrote no PDF at all.
+    """
     with tempfile.TemporaryDirectory() as directory:
         work = Path(directory)
-        available = set()
-        for image in images:
-            if Path(image).is_file():
-                shutil.copy(image, work / Path(image).name)
-                available.add(Path(image).name)
+        latex, log = _compile(fields, images, work)
+        problems = _reported(log, _locations(latex))
+        if not (compiled := work / "set.pdf").is_file():
+            raise CompileFailed(
+                f"xelatex produced no PDF of {output.name}"
+                + (
+                    ": " + "; ".join(str(problem) for problem in problems)
+                    if problems
+                    else "."
+                )
+            )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(compiled, output)
+        return problems
 
-        run = subprocess.run(
-            [
-                "pandoc",
-                "-f",
-                "markdown-implicit_figures",
-                "-t",
-                "latex",
-                "-s",
-                f"--template={_TEMPLATE}",
-                "-o",
-                "set.tex",
-            ],
-            input=_marked_document(fields, available),
-            capture_output=True,
-            text=True,
-            # Not the locale's encoding: a set holding any non-ASCII character would
-            # then fail to even be handed over under, say, LC_ALL=C.
-            encoding="utf-8",
-            cwd=work,
-            timeout=_TIMEOUT,
-        )
-        if run.returncode:
-            return [Problem(_SET, f"pandoc cannot read the set: {run.stderr.strip()}")]
 
-        latex = (work / "set.tex").read_text(encoding="utf-8")
-        run = subprocess.run(
-            [
-                "xelatex",
-                "-interaction=nonstopmode",
-                "-file-line-error",
-                "-no-shell-escape",
-                "set.tex",
-            ],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            cwd=work,
-            timeout=_TIMEOUT,
-        )
-        return _reported(run.stdout, _locations(latex))
+def _compiled(fields: list[tuple[str, str]], images: list[str]) -> list[Problem]:
+    """The set's errors, compiled in a directory of its own and thrown away again."""
+    with tempfile.TemporaryDirectory() as directory:
+        latex, log = _compile(fields, images, Path(directory))
+        return _reported(log, _locations(latex))
+
+
+def _compile(
+    fields: list[tuple[str, str]], images: list[str], work: Path
+) -> tuple[str, str]:
+    """The set run through pandoc and then xelatex in `work`.
+
+    Returns:
+        The LaTeX pandoc generated, whose markers say which field each line came from,
+        and the xelatex log. Whatever xelatex managed to typeset is left in `work` as
+        ``set.pdf``.
+
+    Raises:
+        CompileFailed: pandoc would not read the set, so there is no LaTeX to run.
+    """
+    available = set()
+    for image in images:
+        if Path(image).is_file():
+            shutil.copy(image, work / Path(image).name)
+            available.add(Path(image).name)
+
+    run = subprocess.run(
+        [
+            "pandoc",
+            "-f",
+            "markdown-implicit_figures",
+            "-t",
+            "latex",
+            "-s",
+            f"--template={_TEMPLATE}",
+            "-o",
+            "set.tex",
+        ],
+        input=_marked_document(fields, available),
+        capture_output=True,
+        text=True,
+        # Not the locale's encoding: a set holding any non-ASCII character would
+        # then fail to even be handed over under, say, LC_ALL=C.
+        encoding="utf-8",
+        cwd=work,
+        timeout=_TIMEOUT,
+    )
+    if run.returncode:
+        raise CompileFailed(f"pandoc cannot read the set: {run.stderr.strip()}")
+
+    latex = (work / "set.tex").read_text(encoding="utf-8")
+    run = subprocess.run(
+        [
+            "xelatex",
+            "-interaction=nonstopmode",
+            "-file-line-error",
+            "-no-shell-escape",
+            "set.tex",
+        ],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        cwd=work,
+        timeout=_TIMEOUT,
+    )
+    return latex, run.stdout
 
 
 def _marked_document(fields: list[tuple[str, str]], available: set[str]) -> str:

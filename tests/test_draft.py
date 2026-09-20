@@ -2,23 +2,30 @@
 
 Each folder in ``fixtures/drafts`` is a document, the commands to run against its draft
 and the fields they should write, so covering another command means adding a folder
-rather than a test. The rest is what the command line does when a replay cannot be
-trusted - a source that has moved on, a log naming a command nothing has, a draft edited
-by hand - which is not something a fixture can say.
+rather than a test. Each is also what `in2lambda build` and `in2lambda render` make of
+it: the one with no ``report.json`` is exported, the rest are refused. The remainder is
+what the command line does when a replay cannot be trusted - a source that has moved on,
+a log naming a command nothing has, a draft edited by hand - which is not something a
+fixture can say.
 """
 
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any
 
 import pytest
 from click.testing import CliRunner
-from conftest import DRAFTS, DRAFTS_DIR
+from conftest import DRAFTS, DRAFTS_DIR, needs_compiler
 
 import in2lambda.draft
 import in2lambda.draft.report
+from in2lambda.api.set import Set
 from in2lambda.main import cli
+
+QUESTION = re.compile(r"q(\d+)\.text")
+"""A question's text among a folder's fields, which is one question of the export."""
 
 MARK_IGNORE = DRAFTS_DIR / "mark_ignore"
 """The case the tests below happen to use; what they check holds for any of them."""
@@ -485,3 +492,95 @@ def test_the_halves_of_a_split_block_are_blocks_like_any_other(
     # In the margin against the first line of each half, which is where the ids are.
     assert "b5a  10" in result.output
     assert "b5b  12" in result.output
+
+
+def test_build_refuses_a_draft_that_has_not_been_validated(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Every command that changes a draft drops its report, so this is every draft."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    shutil.copytree(TWO_QUESTIONS, tmp_path, dirs_exist_ok=True)
+    assert CliRunner().invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+    for entry in json.loads((TWO_QUESTIONS / "commands.json").read_text()):
+        in2lambda.draft.execute(entry)
+
+    result = CliRunner().invoke(cli, ["build"])
+
+    assert result.exit_code != 0
+    assert "in2lambda validate" in result.output
+    assert not (tmp_path / "out").exists()
+
+
+@pytest.mark.parametrize("folder", DRAFTS, ids=lambda path: path.name)
+def test_build_follows_the_report(folder: Path, tmp_path: Path, monkeypatch) -> None:
+    """A draft is exported once the checks have been over it and found nothing."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(folder, tmp_path)
+    fields = json.loads((folder / "expected.json").read_text())
+
+    result = CliRunner().invoke(cli, ["build"])
+
+    if report := _reported(folder):
+        assert result.exit_code != 0, result.output
+        # Every finding, so that what is left to do can be read off the refusal itself.
+        for finding in report:
+            assert finding["message"] in result.output
+        assert not (tmp_path / "out").exists()
+        return
+
+    assert result.exit_code == 0, result.output
+    exported = tmp_path / "out" / "set.zip"
+    assert exported.is_file()
+
+    questions = Set.from_json(str(exported)).questions
+    assert len(questions) == len([key for key in fields if QUESTION.fullmatch(key)])
+    for number, question in enumerate(questions, start=1):
+        assert question.main_text == fields[f"q{number}.text"]["value"]
+        for index, part in enumerate(question.parts, start=1):
+            assert part.text == fields[f"q{number}.p{index}.text"]["value"]
+            # A part's own solution, or the question's where it has none of its own.
+            solution = fields.get(
+                f"q{number}.p{index}.solution", fields.get(f"q{number}.solution")
+            )
+            assert part.worked_solution == (solution["value"] if solution else "")
+
+
+@needs_compiler
+@pytest.mark.parametrize("folder", DRAFTS, ids=lambda path: path.name)
+def test_render_writes_one_pdf_per_question(
+    folder: Path, tmp_path: Path, monkeypatch
+) -> None:
+    """Rendering is for looking at a draft, so a draft with a report renders too."""
+    monkeypatch.chdir(tmp_path)
+    _built(folder, tmp_path)
+    fields = json.loads((folder / "expected.json").read_text())
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code == 0, result.output
+    written = sorted((tmp_path / "out").glob("*.pdf"))
+    assert len(written) == len([key for key in fields if QUESTION.fullmatch(key)])
+    assert all(pdf.stat().st_size for pdf in written)
+
+
+def test_render_says_what_to_install_without_the_compiler(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The PDF generator's toolchain is optional, as it is everywhere else here."""
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.chdir(tmp_path)
+    _built(TWO_QUESTIONS, tmp_path)
+    which = shutil.which
+    monkeypatch.setattr(
+        shutil,
+        "which",
+        lambda command: None if command == "xelatex" else which(command),
+    )
+
+    result = CliRunner().invoke(cli, ["render"])
+
+    assert result.exit_code != 0
+    assert "texlive-xetex" in result.output
+    assert not (tmp_path / "out").exists()
