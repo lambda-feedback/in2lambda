@@ -46,3 +46,15 @@ def test_cli_exits_with_message(filters_dir: str, monkeypatch, tmp_path) -> None
     assert result.exit_code != 0
     assert PANFLUTE_HINT in result.output
     assert isinstance(result.exception, SystemExit)
+
+
+def test_source_add_exits_with_message(filters_dir: str, monkeypatch) -> None:
+    """Freezing a document needs the same tools, and says so the same way."""
+    monkeypatch.setitem(sys.modules, "panflute", None)
+    example = os.path.join(filters_dir, "PartsSepSol", "example.tex")
+
+    result = CliRunner().invoke(cli, ["source", "add", example])
+
+    assert result.exit_code != 0
+    assert PANFLUTE_HINT in result.output
+    assert isinstance(result.exception, SystemExit)

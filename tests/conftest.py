@@ -19,6 +19,12 @@ PROBLEMS_DIR = Path(__file__).parent / "fixtures" / "problems"
 PROBLEM_SETS = sorted(path for path in PROBLEMS_DIR.iterdir() if path.is_dir())
 """Every folder of the above, found the same way: covering a check means adding one."""
 
+SOURCES_DIR = Path(__file__).parent / "fixtures" / "sources"
+"""One document per folder for `in2lambda source add`, beside the blocks it should find."""
+
+SOURCES = sorted(path for path in SOURCES_DIR.iterdir() if path.is_dir())
+"""Every source folder, so that covering another construct is a folder and no code."""
+
 
 @pytest.fixture(scope="session")
 def filters_dir() -> str:

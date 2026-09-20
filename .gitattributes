@@ -1,0 +1,2 @@
+# The fixture is CRLF because that is the thing it is for; nothing may rewrite it.
+tests/fixtures/sources/crlf/source.md -text

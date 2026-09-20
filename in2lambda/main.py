@@ -7,32 +7,24 @@
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import importlib
-import importlib.util
 import shlex
-import shutil
-import subprocess
 from typing import Optional
 
 import rich_click as click
 
 import in2lambda.filters
+import in2lambda.source
 from in2lambda.api.set import Set
 
-
-class ConversionToolsMissing(RuntimeError):
-    """Document conversion was asked for without pandoc or panflute installed."""
-
-
-def _require_conversion_tools() -> None:
-    missing = []
-    if shutil.which("pandoc") is None:
-        missing.append("pandoc (see https://pandoc.org/installing.html)")
-    if importlib.util.find_spec("panflute") is None:
-        missing.append("panflute (pip install 'in2lambda[convert]')")
-    if missing:
-        raise ConversionToolsMissing(
-            f"Converting documents needs {' and '.join(missing)}."
-        )
+# Both were defined here before there was an in2lambda.source, and are in other
+# people's scripts as in2lambda.main names.
+from in2lambda.source import (
+    ConversionToolsMissing,
+    SourceError,
+    _pandoc,
+    _require_conversion_tools,
+    file_type,
+)
 
 
 def docx_to_md(docx_file: str) -> str:
@@ -44,53 +36,7 @@ def docx_to_md(docx_file: str) -> str:
     Returns:
         the contents of the .docx file in markdown formatting
     """
-    md_output = subprocess.check_output(["pandoc", docx_file, "-t", "markdown"])
-    return md_output.decode("utf-8")
-
-
-def file_type(file: str) -> str:
-    """Determines which pandoc file format to use for a given file.
-
-    See https://github.com/jgm/pandoc/blob/bad922a69236e22b20d51c4ec0b90c5a6c038433/src/Text/Pandoc/Format.hs#L171
-    (or any newer commit) for pandoc's supported file extensions.
-
-    Args:
-        file: A file path with the file extension included.
-
-    Returns:
-        An option in `pandoc --list-input-formats` that matches the given file type
-
-    Examples:
-        >>> from in2lambda.main import file_type
-        >>> file_type("example.tex")
-        'latex'
-        >>> file_type("/some/random/path/demo.md")
-        'markdown'
-        >>> file_type("no_extension")
-        Traceback (most recent call last):
-        RuntimeError: Unsupported file extension: .no_extension
-        >>> file_type("demo.unknown_extension")
-        Traceback (most recent call last):
-        RuntimeError: Unsupported file extension: .unknown_extension
-    """
-    match (extension := file.split(".")[-1].lower()):
-        case "tex" | "latex" | "ltx":
-            return "latex"
-        case (
-            "md"
-            | "rmd"
-            | "markdown"
-            | "mdown"
-            | "mdwn"
-            | "mkd"
-            | "mkdn"
-            | "text"
-            | "txt"
-        ):
-            return "markdown"
-        case "docx":
-            return "docx"  # Pandoc doesn't seem to support .doc, and panflute doesn't like .docx.
-    raise RuntimeError(f"Unsupported file extension: .{extension}")
+    return _pandoc(docx_file, "markdown").decode("utf-8")
 
 
 def runner(
@@ -154,9 +100,7 @@ def runner(
 
     # If separate answer TeX file provided, parse that as well.
     if answer_file:
-
         if file_type(answer_file) == "docx":
-
             answer_text = docx_to_md(answer_file)
             answer_format = "markdown"
         else:
@@ -248,6 +192,37 @@ def convert(
         runner(question_file, chosen_filter, output_dir, answer_file)
     except ConversionToolsMissing as error:
         # Exit with the install instructions rather than a traceback.
+        raise click.ClickException(str(error)) from None
+
+
+@cli.group("source")
+def source_group() -> None:
+    """Freezes a source document, so its text can be quoted by line range."""
+
+
+@source_group.command("add")
+@click.argument("file", type=click.Path(exists=True, dir_okay=False, resolve_path=True))
+@click.option(
+    "--start-over",
+    is_flag=True,
+    help="Freeze FILE again, discarding the draft already there.",
+)
+def source_add(file: str, start_over: bool) -> None:
+    """Converts FILE to markdown and records its blocks in draft.json beside it."""
+    try:
+        draft = in2lambda.source.add(file, start_over)
+    except SourceError as error:
+        # Exit with what to do about it rather than a traceback.
+        raise click.ClickException(str(error)) from None
+    click.echo(f"Wrote {draft}")
+
+
+@source_group.command("show")
+def source_show() -> None:
+    """Prints the frozen markdown of the draft in this directory, numbered."""
+    try:
+        click.echo(in2lambda.source.show())
+    except SourceError as error:
         raise click.ClickException(str(error)) from None
 
 

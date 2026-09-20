@@ -1,0 +1,2 @@
+-
+- The large piston has area $A$.
