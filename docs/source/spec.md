@@ -52,6 +52,16 @@ A spec must set `question` and `layout`. A spec may set `part`, `solution`, `str
 `solution` that matches it. That order is fixed, whatever order the keys are written in. A spec
 whose selectors overlap must tell them apart by what they match.
 
+`question`, `part`, `solution` and `ignore` each take one selector, or a list of selectors
+written under the key. A block has that role where any one of those selectors matches the block,
+so one spec selects the questions of a document that writes its questions two ways:
+
+```yaml
+ignore:
+  - Header level=1
+  - Para text~'^Marks'
+```
+
 ## Selectors
 
 A selector is a block type followed by any number of constraints:
@@ -82,6 +92,7 @@ reads `(a)` as a list marker. Its value is dedented as pandoc reads the item: th
 the first line, and the same width of indentation off every line below it. Use `strip` for the
 labels pandoc does not read as a marker, such as `Q1. ` and `Solution: `.
 
+(predicates)=
 ## Predicates
 
 Some documents cannot be classified by their text. If the questions are the paragraphs written in
@@ -122,6 +133,7 @@ run` runs the file from the bytes that hash was taken of. `in2lambda draft repla
 `in2lambda spec run` refuse a predicate file edited since the first run, as they refuse an edited
 spec.
 
+(layouts)=
 ## Layouts
 
 The layout says where the solutions are written and which question or part each one
@@ -133,6 +145,10 @@ answers. Problem sheets that are otherwise alike differ in their layout.
 | `PartSolPartSol` | Each solution answers the part before it, or the question where no part precedes it. |
 | `PartPartSolSol` | The parts come together and their solutions follow, in the same order. |
 | `PartsSepSol` | Every solution is at the end. The first answers the first part of the first question, and so on. |
+
+A sheet holding more solutions than the layout has questions and parts to answer sends two of
+them to the one field. The second is left in no field and reported, naming the field and the
+block that holds it. The section below says the same of a document of solutions.
 
 ## A separate solutions document
 
@@ -166,10 +182,17 @@ selectors mean something different in a document of solutions, the document `in2
   the sheet uses.
 
 `in2lambda spec run` reports a solution past the last slot as being in no field, like any other
-unmatched block. A solution assigned to a question that an earlier solution has answered is
-refused, naming the field — `q2.solution`, say — as already written. No command writes a field
-twice. `in2lambda draft field replace` changes the wording of a written field, and `in2lambda
-source add --start-over` begins the draft again.
+unmatched block. `in2lambda spec run` reports a solution assigned to a question that an earlier
+solution has answered in the same way, and adds a second line naming the field the solution
+would have been written to and the block already written there:
+
+```
+b7 (lines 14-15) is in no field and not marked ignore.
+b7 (lines 14-15) would be q2.solution, which b5 (lines 10-11) already holds.
+```
+
+`in2lambda spec run` writes every other field, so a spec that sends two solutions to one field
+fills the draft in and names the block to read.
 
 ## What a spec writes
 

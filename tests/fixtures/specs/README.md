@@ -5,7 +5,8 @@ run over it, the `expected.json` the spec should leave in the draft's `fields`, 
 `uncovered.txt` of the blocks the command should report as being in no field. The test freezes
 the source, runs the spec, compares both, and then replays the draft from its log and checks the
 file is unchanged byte for byte - so a folder covers what a spec makes of a document and that it
-can be rebuilt from what was recorded.
+can be rebuilt from what was recorded. A folder whose layout sends two blocks to the same field
+has a `doubled.txt` as well, naming the blocks reported as doubled; the rest have no such file.
 
 To cover another kind of document, add a folder. There is one per layout, since a layout is
 only a rule about which solution answers which question or part: `parts_one_sol` has one
@@ -22,6 +23,12 @@ would pin no rule, and a layout given the wrong rule would go on passing.
 calls functions from it, because what tells its questions from the paragraph about marks is the
 bold each of them starts with, which is markup rather than text. Its log entry names that file
 and hashes it as it does the spec, which is what makes a changed predicate refuse to replay.
+
+`ignore_as_a_list` writes its `ignore` as two selectors under the key rather than one beside it -
+the title of the sheet, and the paragraph about marks - and pins that a block either of them
+matches is ignored. `solutions_only` is a document of nothing but solutions, which every layout
+runs out of questions to answer: its second paragraph goes to the `q1.solution` its first
+paragraph already holds, so that block is left in no field and reported as doubled.
 
 A selector matches what pandoc parses, and a field holds the markdown of the lines it was taken
 from, dedented where those lines are a list item's: `numbered_questions` is the sheet whose

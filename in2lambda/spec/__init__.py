@@ -10,6 +10,13 @@ parts and which are solutions, and which layout the document is written in::
     ignore:   Header level=1
     layout:   PartsSepSol
 
+A role holds one selector, or a list of selectors written under it. A block has that role
+where any one of those selectors matches it::
+
+    ignore:
+      - Header level=1
+      - Para text~'^Marks'
+
 Where no selector can classify a block, a spec names a Python file beside it and calls
 functions from that file: ``predicates: predicates.py``, and then ``question: Para
 bold_lead()``, where ``bold_lead`` takes the panflute element and returns whether the
@@ -49,12 +56,12 @@ _ATTRIBUTES = ("level", "text", "label")
 """What a constraint can be about: a heading's level, a block's text, its first word."""
 
 _ROLES = ("ignore", "question", "part", "solution")
-"""The selectors a spec holds, in the order a block is tried against them.
+"""The roles a spec holds selectors for, in the order each role is matched against a block.
 
-The first selector to match a block classifies it. The order is this one whatever order a
-spec writes its keys in: ignore before the rest, so that a page of instructions is out of
-the way, and question before part, so that a question numbered like one of its own parts
-is read as the question.
+The first selector to match a block classifies that block. This order holds whatever order
+a spec writes its keys in: ignore before the other three roles, so that a page of
+instructions is classified first, and question before part, so that a question numbered
+like one of its own parts is read as a question.
 """
 
 _TOKEN = re.compile(
@@ -144,13 +151,17 @@ class Selector:
 
 @dataclass
 class Spec:
-    """The keys a spec file holds, once :func:`load` has read them."""
+    """The keys a spec file holds, once :func:`load` has read them.
 
-    question: Selector
+    Each role holds one selector or several, and a block has that role where any one of
+    those selectors matches the block. A role a spec omits holds no selector.
+    """
+
+    question: list[Selector]
     layout: str
-    part: Optional[Selector] = None
-    solution: Optional[Selector] = None
-    ignore: Optional[Selector] = None
+    part: list[Selector] = field(default_factory=list)
+    solution: list[Selector] = field(default_factory=list)
+    ignore: list[Selector] = field(default_factory=list)
     strip: "list[re.Pattern[str]]" = field(default_factory=list)
     predicates: Optional[str] = None
     """The Python file its selectors call functions from, where any selector does."""
@@ -164,6 +175,17 @@ class Field(NamedTuple):
     ranges: list[list[int]]
     source: int
     """Which of the draft's frozen sources the ranges are lines of, numbered from 1."""
+
+
+class Doubled(NamedTuple):
+    """A block the layout assigns to a field an earlier block of the sources filled in."""
+
+    block: str
+    ranges: list[list[int]]
+    key: str
+    by_block: str
+    by_ranges: list[list[int]]
+    """Which block the field holds, and the lines that block was taken from."""
 
 
 def _attribute(name: str, element: Any, pf: Any) -> Optional[str]:
@@ -274,6 +296,28 @@ def _selector(text: Any, line: int) -> Selector:
     return _clause(head.strip(), line)
 
 
+def _selectors(value: Any, line: int, item_lines: list[int]) -> list[Selector]:
+    """The selectors of one role: the selector written after the key, or the list under it.
+
+    Args:
+        value: The role's value, as YAML built it.
+        line: Which line the role's key is written on.
+        item_lines: Which line each item of the value is written on, where the value is
+            a list, so that a refusal names the item and not the key.
+    """
+    if not isinstance(value, list):
+        return [_selector(value, line)]
+    if not value:
+        raise _refuse(
+            line,
+            "A role is a selector or a list of selectors, which an empty list is not.",
+        )
+    return [
+        _selector(item, item_lines[index] if index < len(item_lines) else line)
+        for index, item in enumerate(value)
+    ]
+
+
 def load(text: "str | bytes") -> Spec:
     r"""Reads a spec from the YAML text of a spec file.
 
@@ -320,6 +364,14 @@ def load(text: "str | bytes") -> Spec:
         for key, _ in node.value
         if isinstance(key, yaml.ScalarNode)
     }
+    # Where a value is a list - a role written as several selectors, a strip of several
+    # patterns - a refusal about one item names the line that item is written on. The
+    # key's own line is up to two lines away from the fault in a list of three.
+    items = {
+        key.value: [item.start_mark.line + 1 for item in value.value]
+        for key, value in node.value
+        if isinstance(key, yaml.ScalarNode) and isinstance(value, yaml.SequenceNode)
+    }
 
     # Sorted by str, because a key a reader wrote need not be one: `1: Header` is YAML.
     if unknown := sorted(set(given) - set(_KEYS), key=str):
@@ -359,26 +411,38 @@ def load(text: "str | bytes") -> Spec:
             f"predicates names a Python file beside the spec, which {file!r} is not. "
             "The name holds no directory: the file is in the spec's own folder.",
         )
-    question = _selector(given["question"], lines["question"])
+    question = _selectors(
+        given["question"], lines["question"], items.get("question", [])
+    )
     rest = {
-        role: _optional(given, role, lines) for role in _ROLES if role != "question"
+        role: _optional(given, role, lines, items)
+        for role in _ROLES
+        if role != "question"
     }
     if file is None:
-        for role, selector in {"question": question, **rest}.items():
-            if selector is not None and (called := _called(selector)):
-                raise _refuse(
-                    lines[role],
-                    f"{called[0]}() is a function, and the spec does not name the Python "
-                    "file holding its functions. Put the file beside the spec and name "
-                    "it with a predicates: line.",
-                )
+        for role, selectors in {"question": question, **rest}.items():
+            for selector in selectors:
+                if called := _called(selector):
+                    raise _refuse(
+                        lines[role],
+                        f"{called[0]}() is a function, and the spec does not name the "
+                        "Python file holding its functions. Put the file beside the "
+                        "spec and name it with a predicates: line.",
+                    )
+    strip_lines = items.get("strip", [])
     return Spec(
         question=question,
         layout=layout,
         part=rest["part"],
         solution=rest["solution"],
         ignore=rest["ignore"],
-        strip=[_pattern(pattern, lines["strip"]) for pattern in strip],
+        strip=[
+            _pattern(
+                pattern,
+                strip_lines[index] if index < len(strip_lines) else lines["strip"],
+            )
+            for index, pattern in enumerate(strip)
+        ],
         predicates=file,
     )
 
@@ -413,25 +477,29 @@ def predicates(spec: Spec, code: bytes, name: str) -> dict[str, Callable[[Any], 
     exec(compile(code, name, "exec"), module.__dict__)
     found = {}
     for role in _ROLES:
-        if (selector := getattr(spec, role)) is None:
-            continue
-        for called in _called(selector):
-            function = getattr(module, called, None)
-            if not callable(function):
-                raise BadSpec(
-                    f"{name} holds no function {called}, and the spec calls "
-                    f"{called}(). A predicate is a function of one argument, the "
-                    "panflute element, that returns whether the selector matches."
-                )
-            found[called] = function
+        for selector in getattr(spec, role):
+            for called in _called(selector):
+                function = getattr(module, called, None)
+                if not callable(function):
+                    raise BadSpec(
+                        f"{name} holds no function {called}, and the spec calls "
+                        f"{called}(). A predicate is a function of one argument, the "
+                        "panflute element, that returns whether the selector matches."
+                    )
+                found[called] = function
     return found
 
 
 def _optional(
-    given: dict[str, Any], name: str, lines: dict[str, int]
-) -> Optional[Selector]:
-    """One of the selectors a spec need not hold."""
-    return _selector(given[name], lines[name]) if name in given else None
+    given: dict[str, Any],
+    name: str,
+    lines: dict[str, int],
+    items: dict[str, list[int]],
+) -> list[Selector]:
+    """The selectors of a role a spec need not hold, and none for a role it omits."""
+    if name not in given:
+        return []
+    return _selectors(given[name], lines[name], items.get(name, []))
 
 
 def _stems(roles: list[Optional[str]]) -> list[Optional[str]]:
@@ -529,7 +597,7 @@ def _answers(roles: list[Optional[str]], slots: list[list[str]]) -> list[Optiona
     ``solution`` selector, is a solution, and the solutions take the slots in order: each
     question's parts, or the question itself where it has no parts. A solution past the
     last slot is in no field. A solution assigned to a question that an earlier solution
-    answered is refused by `in2lambda.draft.record`, which names both fields.
+    answered is reported by :func:`fields` as doubled.
     """
     ordered = [
         (number, slot) for number, question in enumerate(slots) for slot in question
@@ -561,9 +629,10 @@ def _roles(
 ) -> list[Optional[str]]:
     """The role each block of one source matches: question, part, solution, or None.
 
-    A selector matches within the source it is run over - ``after Header text=Solutions``
-    names a position in one document - so each source is classified on its own, whatever
-    the sources before it hold.
+    A block has a role where any one of that role's selectors matches it. A selector
+    matches within the source it is run over - ``after Header text=Solutions`` names a
+    position in one document - so each source is classified on its own, whatever the
+    sources before it hold.
     """
     found = [element for _, element in elements]
     return [
@@ -571,8 +640,10 @@ def _roles(
             (
                 role
                 for role in _ROLES
-                if (selector := getattr(spec, role)) is not None
-                and selector.matches(found, index, pf, functions)
+                if any(
+                    selector.matches(found, index, pf, functions)
+                    for selector in getattr(spec, role)
+                )
             ),
             None,
         )
@@ -584,8 +655,8 @@ def fields(
     spec: Spec,
     documents: list[tuple[list[tuple[Block, Any]], str]],
     functions: Optional[dict[str, Callable[[Any], Any]]] = None,
-) -> tuple[list[Field], list[str]]:
-    """The fields a spec writes from a draft's sources, and the blocks to ignore.
+) -> tuple[list[Field], list[str], list[Doubled]]:
+    """The fields a spec writes from a draft's sources, and the blocks in no field.
 
     Args:
         spec: The spec to run, as :func:`load` read it.
@@ -598,26 +669,37 @@ def fields(
 
     Returns:
         One :class:`Field` per question, part and solution the spec matched, each naming
-        the source it came from, and the ids of the blocks to mark as ignored: the blocks
-        the ``ignore`` selector matched, and the markers of a separate document of
-        solutions, which name the question the solutions under them answer. A block in
-        neither list is in no field, which `in2lambda.draft.report.uncovered` reports.
+        the source it came from; the ids of the blocks to mark as ignored, which are the
+        blocks the ``ignore`` selector matched and the markers of a separate document of
+        solutions, which name the question the solutions under them answer; and one
+        :class:`Doubled` per block the layout sent to a field an earlier block had filled
+        in. A doubled block is in no field, and so is a block in neither of the first two
+        lists. `in2lambda.draft.report.uncovered` reports both.
     """
     import panflute as pf
 
     roles = [_roles(spec, elements, pf, functions) for elements, _ in documents]
     written = []
+    doubled = []
+    # Which block each field was taken from. A layout can assign two blocks to one field
+    # - a document of nothing but solutions holds more solutions than the layout has
+    # questions to answer - and the second block is left in no field, so that the run
+    # reports that block instead of `in2lambda.draft.record` refusing the whole run.
+    holders: dict[str, tuple[str, list[list[int]]]] = {}
     for number, ((elements, markdown), keys) in enumerate(
         zip(documents, _keys(spec.layout, roles)), start=1
     ):
         lines = markdown.splitlines()
-        written += [
-            Field(
-                key, _stripped(spec, lines, block), [[block.start, block.end]], number
-            )
-            for (block, _), key in zip(elements, keys)
-            if key is not None
-        ]
+        for (block, _), key in zip(elements, keys):
+            if key is None:
+                continue
+            ranges = [[block.start, block.end]]
+            if key in holders:
+                by_block, by_ranges = holders[key]
+                doubled.append(Doubled(block.id, ranges, key, by_block, by_ranges))
+                continue
+            holders[key] = (block.id, ranges)
+            written.append(Field(key, _stripped(spec, lines, block), ranges, number))
     ignored = [
         block.id
         for number, ((elements, _), found) in enumerate(zip(documents, roles), start=1)
@@ -626,7 +708,7 @@ def fields(
         # it answer, and that question's text was copied from the sheet.
         if role == "ignore" or (number > 1 and role == "question")
     ]
-    return written, ignored
+    return written, ignored, doubled
 
 
 def _stripped(spec: Spec, lines: list[str], block: Block) -> str:

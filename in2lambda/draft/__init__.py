@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import in2lambda.spec
-from in2lambda.draft.report import _order, checks, overlapping, uncovered
+from in2lambda.draft.report import _order, _where, checks, overlapping, uncovered
 from in2lambda.source import (
     SourceError,
     _digest,
@@ -314,8 +314,9 @@ def execute(entry: Command, draft: str | Path) -> str:
 def replay(draft: str | Path) -> None:
     """Rebuilds a draft from its sources and its log, and checks the result matches.
 
-    :func:`replay` writes nothing. It reports whether the draft on disk is the draft its
-    commands build, and a replay that wrote its result could report no difference.
+    :func:`replay` writes nothing. :func:`replay` reports whether the draft on disk is the
+    draft its commands build, and a replay that wrote its result could report no
+    difference.
 
     Args:
         draft: The path of the draft to replay.
@@ -892,7 +893,7 @@ def _spec_run(
         (_elements(markdown, number), markdown)
         for number, markdown in enumerate(sources, start=1)
     ]
-    fields, ignored = in2lambda.spec.fields(spec, documents, functions)
+    fields, ignored, doubled = in2lambda.spec.fields(spec, documents, functions)
     for found in fields:
         record(
             draft,
@@ -924,6 +925,15 @@ def _spec_run(
     # A spec writes a draft's worth of fields, so it returns the blocks it matched to no
     # field, for the reader to account for. The wording is `in2lambda validate`'s, because
     # the check is the same.
-    if left_out := uncovered(draft):
-        return "\n".join(finding["message"] for finding in left_out)
+    reported = [finding["message"] for finding in uncovered(draft)]
+    # A doubled block is in no field as well. The message below names the field the block
+    # would have been written to and the block already written there, which the coverage
+    # report does not name.
+    reported += [
+        f"{block}{_where(ranges)} would be {key}, which {by_block}"
+        f"{_where(by_ranges)} already holds."
+        for block, ranges, key, by_block, by_ranges in doubled
+    ]
+    if reported:
+        return "\n".join(reported)
     return "Every block is in a field or ignored."

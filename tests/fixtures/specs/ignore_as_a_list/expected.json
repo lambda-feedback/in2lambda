@@ -1,0 +1,50 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "b2.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": true
+  },
+  "q1.solution": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        7,
+        7
+      ]
+    ],
+    "value": "$F = \\tau A$."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        5,
+        5
+      ]
+    ],
+    "value": "Find the drag force on the flat plate."
+  }
+}

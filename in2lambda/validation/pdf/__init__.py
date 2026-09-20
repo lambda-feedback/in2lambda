@@ -75,8 +75,8 @@ class CompileFailed(SourceError):
 
     pandoc refused the set, or xelatex wrote no PDF, or one of the two did not finish.
     No generated LaTeX is left to trace an error through, so this is raised and not
-    reported as a problem in one field. It is a `SourceError`, which the command line
-    prints as a message and not as a traceback.
+    reported as a problem in one field. `CompileFailed` subclasses `SourceError`, which
+    the command line prints as a message and not as a traceback.
     """
 
 
