@@ -18,7 +18,9 @@ import pytest
 from click.testing import CliRunner
 from conftest import SPECS, SPECS_DIR
 
+import in2lambda.draft
 from in2lambda.main import cli
+from in2lambda.source import SourceError
 
 WORKED_EXAMPLE = SPECS_DIR / "parts_sep_sol"
 """The case the tests below happen to use; what they check holds for any of them."""
@@ -257,6 +259,11 @@ def test_a_replay_is_refused_once_the_spec_has_gone(
             "line 2",
             "predicates names a Python file",
         ),
+        (
+            "question: Para lead()\npredicates: ../shared.py\nlayout: PartsOneSol\n",
+            "line 2",
+            "../shared.py",
+        ),
     ],
     ids=[
         "not yaml",
@@ -268,6 +275,7 @@ def test_a_replay_is_refused_once_the_spec_has_gone(
         "typo",
         "a function with no file to find it in",
         "predicates that is not a file name",
+        "predicates somewhere other than beside the spec",
     ],
 )
 def test_a_spec_that_cannot_be_read_says_which_line_to_look_at(
@@ -321,6 +329,15 @@ def test_a_spec_calling_a_predicate_nothing_holds_is_refused(
         assert name in result.output
     assert isinstance(result.exception, SystemExit)
     assert (tmp_path / "draft.json").read_bytes() == written
+
+
+def test_a_spec_that_is_not_there_is_refused_rather_than_left_to_the_file_system(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The command line checks the path; a script calling this straight does not."""
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SourceError, match="nowhere.yaml"):
+        in2lambda.draft.spec_command("nowhere.yaml", "tests")
 
 
 def test_a_spec_saved_as_utf_16_is_read_like_any_other(

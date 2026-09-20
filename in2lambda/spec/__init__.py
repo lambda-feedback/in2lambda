@@ -30,6 +30,7 @@ import re
 import types
 from collections.abc import Callable  # Rather than typing's, which beartype warns on.
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
 from in2lambda.filters import builtin_filters
@@ -280,8 +281,9 @@ def load(text: "str | bytes") -> Spec:
     Raises:
         BadSpec: the text is not YAML, is in an encoding YAML cannot read, is not a
             mapping, says something a spec does not, holds a selector, pattern or layout
-            that cannot be read, or calls a function without naming the file its
-            functions are in. Every one of them says which line to look at.
+            that cannot be read, names a file of predicates that is not beside it, or
+            calls a function without naming the file its functions are in. Every one of
+            them says which line to look at.
 
     Examples:
         >>> from in2lambda.spec import load
@@ -341,10 +343,14 @@ def load(text: "str | bytes") -> Spec:
         )
 
     file = given.get("predicates")
-    if file is not None and not isinstance(file, str):
+    # Beside the spec, and so a name with nothing of a path in it. A spec that could
+    # name a file anywhere would run and log one the folder it is in does not hold, and
+    # the draft would then only replay where that file still sat outside the folder.
+    if file is not None and (not isinstance(file, str) or Path(file).name != file):
         raise _refuse(
             lines["predicates"],
-            f"predicates names a Python file beside the spec, which {file!r} is not.",
+            f"predicates names a Python file beside the spec, which {file!r} is not. "
+            "The name has no directory in it: the file is in the spec's own folder.",
         )
     question = _selector(given["question"], lines["question"])
     rest = {

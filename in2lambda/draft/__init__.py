@@ -706,12 +706,19 @@ def spec_command(name: str, by: str, directory: str = ".") -> Command:
             it names a file of predicates that is not beside it.
     """
     _require_conversion_tools()
-    raw = (Path(directory) / name).read_bytes()
+    try:
+        raw = (Path(directory) / name).read_bytes()
+    except OSError:
+        raise in2lambda.spec.BadSpec(
+            f"There is no {name} to read a spec from. A spec is the file of selectors "
+            "the draft's fields are filled in from."
+        ) from None
     args: dict[str, Any] = {"spec": name, "hash": _digest(raw)}
     spec = in2lambda.spec.load(raw)
     if spec.predicates is not None:
-        # Beside the spec, which is what a spec naming a file next to it means, and
-        # recorded from the draft's directory, which is what the log names things from.
+        # Beside the spec, which is what a spec naming a file next to it means and all
+        # that load lets one name, and recorded from the draft's directory, which is
+        # what the log names things from.
         beside = (Path(name).parent / spec.predicates).as_posix()
         try:
             code = (Path(directory) / beside).read_bytes()
