@@ -1,2 +1,0 @@
-Question 1 "", part (a), worked solution: the draft says '' and convert says '$1+1=2$'  # t53: no command writes qN.pM.solution
-Question 1 "", part (b), worked solution: the draft says '' and convert says '$2+2=4$'  # t53: no command writes qN.pM.solution
