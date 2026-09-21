@@ -135,7 +135,37 @@ def test_source_show_numbers_the_lines_and_names_the_blocks(
     ]
     for block in blocks:
         assert lines[block["start"] - 1].split()[0] == block["id"]
-    assert sum(bool(re.match(r" *b\d+ ", line)) for line in lines) == len(blocks)
+    assert sum(bool(re.match(r" *b[\d.]+ ", line)) for line in lines) == len(blocks)
+
+
+def test_source_show_indents_the_ids_of_nested_blocks(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A spec names a part by the depth it sits at, so the printing has to show it."""
+    shutil.copytree(SOURCES_DIR / "nested_list", tmp_path, dirs_exist_ok=True)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    assert runner.invoke(cli, ["source", "add", "source.md"]).exit_code == 0
+
+    result = runner.invoke(cli, ["source", "show"])
+
+    assert result.exit_code == 0, result.output
+    lines = result.output.splitlines()
+    blocks = json.loads((tmp_path / "source.draft.json").read_text())["sources"][0][
+        "blocks"
+    ]
+    for block in blocks:
+        assert block["id"] in lines[block["start"] - 1].split()
+    # A block and the first block inside it start on the same line, so both ids are
+    # printed against it, and the margin is indented two spaces per level below the top.
+    assert [lines[number - 1] for number in (1, 3, 6, 8, 10, 14)] == [
+        "b1              1  # Problem sheet 9",
+        "b2 b2.1         3  1.  A person walks from the centre",
+        "  b2.2 b2.2.1   6      1.  Find the angular speed afterwards.",
+        "    b2.2.2      8          Give the units.",
+        "  b2.3         10      2.  Find the energy lost.",
+        "b3             14  2.  Find the pressure at the bottom of a tank.",
+    ]
 
 
 def test_a_second_source_is_frozen_beside_the_first(

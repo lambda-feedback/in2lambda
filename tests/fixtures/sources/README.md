@@ -16,6 +16,17 @@ Windows line endings, which is what a document off a teacher's machine usually h
 freeze to the same blocks and to a hash that `sha256sum source.md` reproduces. The `.gitattributes`
 at the top of the repository is what stops a checkout rewriting those endings away.
 
+Three of the documents nest blocks inside blocks. `nested_list` is a question written as a list
+item holding a paragraph, a list of two parts and a heading, and pins the dotted ids, the `depth`
+each carries and that `b2` spans `b2.1` to `b2.4` while `b2.2` spans `b2.2.1` and `b2.2.2`. Its
+last item holds one paragraph and stays one block, which is what keeps a document with no nesting
+in it freezing to the blocks it always did. `fenced_div` is a `.tex` whose `solution` environment
+pandoc writes as `::: {.solution}`, once inside a list item and once holding a list of its own, and
+pins that a div's range is the lines its content stands on rather than the `:::` lines around it.
+`display_maths`, described above, is the one that pins that an item nesting no list splits as
+well: each of its two items holds a paragraph, display maths and a paragraph, and so holds the
+three blocks `b7.1` to `b7.3` and `b8.1` to `b8.3`.
+
 To cover another construct, add a folder: one `source.md`, `source.tex` or `source.docx`, and
 the `expected.json` the test compares the draft's `blocks` against.
 

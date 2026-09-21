@@ -105,8 +105,10 @@ $ cat sheet.draft.json
 }
 ```
 
-A block is one top-level element pandoc found - a heading, a paragraph, a list item - with the
-lines it spans and an id to quote it by. `fields` holds the questions, parts and solutions
+A block is one element pandoc found - a heading, a paragraph, a list item - with the lines it
+spans and an id to quote it by. A list item, or a `\begin{solution}` environment, holds elements
+of its own, and each of those is a block too: `b3` holds `b3.1` and `b3.2`, and `b3` spans them.
+[Specs](spec.md) says more about the nested ones. `fields` holds the questions, parts and solutions
 written from the sheet, and `log` holds the commands that wrote them. Both are empty until a spec
 or a command fills them in.
 
@@ -143,8 +145,9 @@ b8  15  The flow rate is $Q = \pi d^2 v / 4$.
 ```
 
 `in2lambda source show` prints the frozen markdown numbered, with the id of each block against
-the line it starts on. A command names a block by its id, `b3`, a line of the source, `s5`, or a
-range of lines, `s15:16`.
+the line it starts on. A block and the first block nested inside it start on the same line, so a
+line may carry several ids, and the margin is indented two spaces for each level of nesting. A
+command names a block by its id, `b3`, a line of the source, `s5`, or a range of lines, `s15:16`.
 
 ## Fill the draft in from a spec
 

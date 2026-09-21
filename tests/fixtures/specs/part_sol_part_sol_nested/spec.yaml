@@ -1,0 +1,5 @@
+question: Para depth=2
+part:     Para depth=3
+solution: Div
+ignore:   Header
+layout:   PartSolPartSol

@@ -71,13 +71,14 @@ A selector is a block type followed by any number of constraints:
 ```
 
 The type is a pandoc element: `Header`, `Para`, `ListItem`. A selector that omits the type matches
-any block. A constraint names one of three attributes:
+any block. A constraint names one of four attributes:
 
 | Attribute | Meaning |
 |-----------|---------|
 | `level`   | A heading's level. `level=2` matches `##`. |
 | `text`    | The whole block as text, with the markup removed. |
 | `label`   | The first word of that text, which usually numbers a question. |
+| `depth`   | How deep the block sits. `depth=1` matches a top-level element of the document, `depth=2` a block nested inside one. See [Nested blocks](#nested-blocks). |
 
 `=` matches the whole value. `~` matches a regular expression anywhere in the value. `after
 SELECTOR,` requires the block to follow the first block that the named selector matches, which is
@@ -91,6 +92,45 @@ lines the block came from. A part written `(a) Find the load.` is a `ListItem`, 
 reads `(a)` as a list marker. Its value is dedented as pandoc reads the item: the marker comes off
 the first line, and the same width of indentation off every line below it. Use `strip` for the
 labels pandoc does not read as a marker, such as `Q1. ` and `Solution: `.
+
+(nested-blocks)=
+## Nested blocks
+
+Many sheets are written as one list: each question is an item, and the parts of a question are a
+list nested inside that item. `in2lambda source add` records the blocks inside a block as well as
+the top-level blocks, so that a selector reaches a part.
+
+A list item and a fenced div, which is what pandoc writes a `\begin{solution}` environment as, are
+the two blocks that hold blocks of their own. A list item or div holding a single element other
+than a list is that element, and stays one block. A nested block's id is the id of the block
+holding it and a number: `b3` holds `b3.1` and `b3.2`, and `b3.2` holds `b3.2.1`. `in2lambda source
+show` prints the ids against the line each block starts on, indented two spaces for each level
+below the top.
+
+A block spans the blocks nested inside it, so `depth` distinguishes a question from its parts:
+
+```yaml
+question: Para depth=2
+part:     Para depth=3
+solution: Div
+layout:   PartSolPartSol
+```
+
+That spec reads a sheet whose questions are top-level list items. The question is the item's own
+paragraph `b3.1`, and not the whole item `b3`. The `PartSolPartSol` layout pairs each solution
+with the part written above it.
+
+A block whose children hold a role holds no role itself. Writing `b3` into `q1.text` and `b3.2`
+into `q1.p1.text` would be two fields quoted from the same lines, which no command writes. A spec
+quotes the item's own paragraphs into the question and the nested items into the parts. So one
+selector may match a block and its children, and in2lambda assigns the role to the children.
+
+A fenced div spans the lines its content is written on. The `:::` lines pandoc wrote around the
+content are pandoc's, as a list marker is, and no field quotes them.
+
+`in2lambda validate` reports the children of a block with children, in place of the block itself,
+as being in no field. A block with children spans the blank lines and the fences between those
+children, and no field can quote those lines.
 
 (predicates)=
 ## Predicates

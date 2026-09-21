@@ -1,0 +1,86 @@
+{
+  "b1.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        1,
+        1
+      ]
+    ],
+    "value": true
+  },
+  "b3.2.ignore": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        13,
+        13
+      ]
+    ],
+    "value": true
+  },
+  "q1.p1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        5,
+        7
+      ]
+    ],
+    "value": "Here is the first subquestion. This would map onto (a),(b),(c) etc in Lambda Feedback.\n\nIt might have multiple paragraphs."
+  },
+  "q1.p2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        9,
+        9
+      ]
+    ],
+    "value": "Here is a second subquestion."
+  },
+  "q1.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        3,
+        3
+      ]
+    ],
+    "value": "This is a sample question"
+  },
+  "q2.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        11,
+        11
+      ]
+    ],
+    "value": "This is a second question."
+  },
+  "q3.text": {
+    "by": "tests",
+    "edited": false,
+    "layer": 1,
+    "ranges": [
+      [
+        15,
+        15
+      ]
+    ],
+    "value": "This is a third question. A separate solution file (if provided) should follow the same format."
+  }
+}

@@ -2,7 +2,9 @@
 
 Each folder here is one run of `in2lambda spec run`: a `source.md` to freeze, the `spec.yaml` to
 run over it, the `expected.json` the spec should leave in the draft's `fields`, and the
-`uncovered.txt` of the blocks the command should report as being in no field. The test freezes
+`uncovered.txt` of the blocks the command should report as being in no field. A folder holding
+no document of its own is a spec for the `example.tex` the filter its `layout` names ships, which
+the test copies in as `source.tex`. The test freezes
 the source, runs the spec, compares both, and then replays the draft from its log and checks the
 file is unchanged byte for byte - so a folder covers what a spec makes of a document and that it
 can be rebuilt from what was recorded. A folder whose layout sends two blocks to the same field
@@ -23,6 +25,14 @@ would pin no rule, and a layout given the wrong rule would go on passing.
 calls functions from it, because what tells its questions from the paragraph about marks is the
 bold each of them starts with, which is markup rather than text. Its log entry names that file
 and hashes it as it does the spec, which is what makes a changed predicate refuse to replay.
+
+`parts_sep_sol_nested`, `part_part_sol_sol_nested` and `part_sol_part_sol_nested` are the three
+layouts whose example nests the parts of a question inside the question's own list item. Each
+runs over the example its filter ships, so the one sheet covers the filter route and the spec
+route, and each pins that a `depth` constraint reaches a nested block and that a block whose
+children hold a role holds none itself. `part_part_sol_sol_nested` is the one whose solutions are
+a list inside a `solution` environment, so its `solution` selector names both a nested item and
+the div a solution written without parts is.
 
 `ignore_as_a_list` writes its `ignore` as two selectors under the key rather than one beside it -
 the title of the sheet, and the paragraph about marks - and pins that a block either of them
