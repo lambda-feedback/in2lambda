@@ -97,6 +97,12 @@ _MARKDOWN = "commonmark_x"
 The writer and the reader must agree. Pandoc's ``markdown`` writer emits fenced divs and
 bracketed spans that a commonmark reader reads as ordinary text. ``commonmark_x`` also
 covers the ``$...$`` maths and the ``{width=...}`` attributes a converted document holds.
+
+``commonmark_x`` does write the bracketed spans a .docx holds, which
+:func:`_spans_unwrapped` unwraps afterwards. The ``-bracketed_spans`` the writer takes
+does not help: with ``raw_html`` on, which ``commonmark_x`` keeps, the writer falls back
+to ``<u>Question 2:</u>`` and ``<span class="mark">oil</span>``, and turning ``raw_html``
+off as well changes how a figure is written.
 """
 
 _POSITION = re.compile(r"(?:[^@;]*@)?(\d+):\d+-(\d+):(\d+)")
@@ -420,6 +426,73 @@ def _display_maths_blocked(markdown: str) -> str:
             end += len(rest) - len(rest.lstrip(" "))
     written.append(markdown[end:])
     return "".join(written)
+
+
+_SPAN = re.compile(r"\[([^\[\]\n]*)\]\{[^{}\n]*\}")
+"""A bracketed span as ``commonmark_x`` writes one, opened and closed on the one line.
+
+The ``]{`` is what tells one from a link's ``](`` and from an image's ``){width=...}``.
+"""
+
+
+def _spans_unwrapped(markdown: str) -> str:
+    r"""Markdown pandoc wrote, with the attributes of its bracketed spans dropped.
+
+    Pandoc's docx reader turns Word's underline into ``[Question 2:]{.underline}``, its
+    highlight into ``[oil]{.mark}`` and its small capitals into ``[Note:]{.smallcaps}``.
+    A field quoted out of markdown holding one of those is read back by the PDF
+    generator's pandoc as underline, highlight or small capitals, and written to LaTeX as
+    a command the generator's template does not define, so the set fails to compile.
+    Lambda Feedback's markdown renders none of the three, so the attribute is dropped and
+    the text it marked is kept. The reader emits a ``[text]{custom-style=...}`` span only
+    with its ``+styles`` extension, which the freeze does not enable; a document holding
+    one is unwrapped the same way.
+
+    Every rewrite stays within the line it began on, so no line range moves. A span
+    pandoc broke over two lines is left as written, and ``in2lambda validate`` reports the
+    field quoting it. A span in a code block or in inline code is left as written as well:
+    those are characters the document shows.
+
+    Examples:
+        >>> from in2lambda.source import _spans_unwrapped
+        >>> _spans_unwrapped("# [Hydraulic scale]{.underline}\n")
+        '# Hydraulic scale\n'
+        >>> _spans_unwrapped("**[Question 2:]{.underline}** joined by [oil]{.mark}.\n")
+        '**Question 2:** joined by oil.\n'
+        >>> _spans_unwrapped("[**[a]{.mark}**]{.underline}\n")
+        '**a**\n'
+        >>> _spans_unwrapped("[Note:]{.smallcaps} the oil is incompressible.\r\n")
+        'Note: the oil is incompressible.\r\n'
+        >>> _spans_unwrapped("Type `[a]{.mark}` first.\n")
+        'Type `[a]{.mark}` first.\n'
+        >>> _spans_unwrapped("Type this:\n\n    [a]{.mark}\n")
+        'Type this:\n\n    [a]{.mark}\n'
+        >>> _spans_unwrapped("::: {.solution}\nThe load is $F = pA$.\n:::\n")
+        '::: {.solution}\nThe load is $F = pA$.\n:::\n'
+        >>> _spans_unwrapped('![](figure.png){width="1in"}\n')
+        '![](figure.png){width="1in"}\n'
+    """
+    if "\r\n" in markdown:
+        # Pandoc writes the line endings of whoever is running it, and the file on disk
+        # is hashed as it is written, so a Windows freeze stays a Windows file.
+        return _spans_unwrapped(markdown.replace("\r\n", "\n")).replace("\n", "\r\n")
+
+    verbatim = _verbatim_lines(markdown)
+
+    def unwrapped(match: re.Match[str]) -> str:
+        before = markdown[markdown.rfind("\n", 0, match.start()) + 1 : match.start()]
+        if markdown.count("\n", 0, match.start()) + 1 in verbatim or (
+            before.count("`") % 2
+        ):
+            return match.group()
+        return match.group(1)
+
+    rewritten = _SPAN.sub(unwrapped, markdown)
+    if rewritten == markdown:
+        return markdown
+    # A span holding a span - `[**[a]{.mark}**]{.underline}` - unwraps from the inside,
+    # because the brackets of the outer one hold the brackets of the inner one.
+    return _spans_unwrapped(rewritten)
 
 
 def _digest(data: bytes) -> str:
@@ -870,7 +943,9 @@ def add(
     are written to ``FILE.draft.json``, so that code quoting a source by line range can
     check that those lines still hold the text they held. A converted file is written
     unwrapped: a paragraph is one line, however long, and each ``$$ ... $$`` is written
-    on lines of its own. Lambda Feedback renders display maths written that way.
+    on lines of its own. Lambda Feedback renders display maths written that way. The
+    underline, highlight and small capitals a .docx holds are dropped and the text they
+    marked is kept, because Lambda Feedback renders none of the three.
 
     The files are numbered in the order they are given. A file already frozen into the
     draft beside them is checked against the hash it was frozen at, and is not frozen
@@ -929,11 +1004,14 @@ def add(
             raw, markdown = _source(path)
             frozen_path = path
         else:
-            # Unwrapped, and with the display maths blocked out, before anything is
-            # hashed: both are habits of pandoc's writer rather than anything the author
-            # did, and both are what a field quoting these lines would have to render.
+            # Unwrapped, with the display maths blocked out and the bracketed spans
+            # dropped, before anything is hashed: all three are habits of pandoc's writer
+            # rather than anything the author did, and all three are what a field quoting
+            # these lines would have to render.
             markdown = _display_maths_blocked(
-                _pandoc(str(path), _MARKDOWN, "--wrap=none").decode("utf-8")
+                _spans_unwrapped(
+                    _pandoc(str(path), _MARKDOWN, "--wrap=none").decode("utf-8")
+                )
             )
             raw = markdown.encode("utf-8")
             frozen_path = path.with_suffix(".md")
