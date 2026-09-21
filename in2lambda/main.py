@@ -607,6 +607,21 @@ def render(output_dir: str, draft: Optional[str]) -> None:
         click.echo(f"Wrote {pdf}")
 
 
+def _set_at(path: str) -> Set:
+    """The set at `path`, or a message naming `path` where it holds no set.
+
+    `Set.from_json` raises `ValueError` where a folder or a zip holds no ``set_*.json``,
+    and `compare` reads two paths, so the message names which of the two is at fault.
+    """
+    try:
+        return Set.from_json(path)
+    except ValueError:
+        raise click.ClickException(
+            f"{path} is not a Lambda Feedback set. A set is a folder or a zip holding "
+            "one set_*.json file beside a question_*.json file per question."
+        ) from None
+
+
 @cli.command("compare")
 @click.argument("built_zip", type=click.Path(exists=True))
 @click.argument("export_dir", type=click.Path(exists=True))
@@ -630,8 +645,8 @@ def compare(built_zip: str, export_dir: str, known_path: Optional[str]) -> None:
     """
     with _message_not_traceback():
         found = in2lambda.compare.differences(
-            Set.from_json(built_zip),
-            Set.from_json(export_dir),
+            _set_at(built_zip),
+            _set_at(export_dir),
             left_name=built_zip,
             right_name=export_dir,
         )
