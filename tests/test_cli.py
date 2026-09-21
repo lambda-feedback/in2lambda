@@ -129,6 +129,7 @@ def test_completing_the_old_form_offers_the_subcommand() -> None:
 
     assert [candidate.value for candidate in completions] == [
         "build",
+        "compare",
         "convert",
         "draft",
         "render",

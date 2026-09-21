@@ -16,9 +16,7 @@ as what it says.
 import json
 import shutil
 import warnings
-from itertools import zip_longest
 from pathlib import Path
-from typing import Any, Optional
 
 import pytest
 from click.testing import CliRunner
@@ -33,12 +31,10 @@ from conftest import (
 
 import in2lambda.draft
 import in2lambda.draft.report
-from in2lambda.api.question import Question
 from in2lambda.api.set import Set
+from in2lambda.compare import differences, known
 from in2lambda.filters import builtin_filters
-from in2lambda.json_convert.json_convert import _IMAGE
 from in2lambda.main import cli, runner
-from in2lambda.validation import _location
 
 # Both routes compile the set and render its maths, which is what the two are being
 # compared over, so a machine without the toolchain runs none of this.
@@ -47,9 +43,6 @@ pytestmark = needs_compiler
 each_folder = pytest.mark.parametrize(
     "folder", AGAINST_CONVERT, ids=lambda path: path.name
 )
-
-_TICKET = "  # "
-"""What a line of a folder's ``differs.txt`` names the ticket closing it after."""
 
 
 def _document(folder: Path, tmp_path: Path, filters_dir: str) -> tuple[Path, str]:
@@ -104,118 +97,6 @@ def _built(folder: Path, tmp_path: Path, filters_dir: str) -> tuple[Path, Path, 
     return draft_path, source, layout
 
 
-def _text(markdown: str) -> str:
-    """A field as both routes say it, with the two differences in wording taken off.
-
-    An image reference is compared by the file's name: convert writes the alt text
-    ``pictureTag`` where the draft keeps the alt text the document wrote, and the
-    exported set names the file as it sits in ``media/`` where the set convert returns
-    still holds the path the document wrote. The draft also quotes the lines pandoc
-    wrapped where convert writes a paragraph on one line. The folder's README says both.
-    """
-    named = _IMAGE.sub(lambda reference: f"![]({Path(reference[1]).name})", markdown)
-    return " ".join(named.split())
-
-
-def _parts(question: Question) -> list[tuple[str, str]]:
-    """Each part's text and worked solution, dropping a lone part holding neither.
-
-    A question the draft writes without parts or solution exports as one part holding
-    nothing, because Lambda Feedback's template fills a question holding no part with
-    placeholder wording. Convert writes no part at all. The empty part says nothing
-    either way.
-    """
-    parts = [(_text(part.text), _text(part.worked_solution)) for part in question.parts]
-    return [] if parts == [("", "")] else parts
-
-
-def _only(drafted: Optional[Any], thing: str) -> str:
-    """Which of the two routes wrote a question or a part the other one did not."""
-    if drafted is None:
-        return f"convert wrote this {thing} and the draft did not"
-    return f"the draft wrote this {thing} and convert did not"
-
-
-def _differing(where: str, drafted: str, converted: str) -> list[str]:
-    """The line naming a field the two routes write differently, or no line at all."""
-    if drafted == converted:
-        return []
-    return [f"{where}: the draft says {drafted!r} and convert says {converted!r}"]
-
-
-def _differences(drafted: Set, converted: Set) -> list[str]:
-    """Every place the two sets say something different, in question and part order.
-
-    Args:
-        drafted: The set built from a draft, as `Set.from_json` reads its zip.
-        converted: The set `in2lambda convert` made of the same document.
-
-    Returns:
-        One line per difference, naming the question, the part and the field as
-        `in2lambda.validation` names them and quoting what each route says there.
-    """
-    found = []
-    questions = zip_longest(drafted.questions, converted.questions)
-    for number, (draft_question, convert_question) in enumerate(questions, start=1):
-        if draft_question is None or convert_question is None:
-            found.append(
-                f"{_location(number, '')}: {_only(draft_question, 'question')}"
-            )
-            continue
-        found += _differing(
-            _location(number, "", field="main text"),
-            _text(draft_question.main_text),
-            _text(convert_question.main_text),
-        )
-        parts = zip_longest(_parts(draft_question), _parts(convert_question))
-        for index, (draft_part, convert_part) in enumerate(parts):
-            if draft_part is None or convert_part is None:
-                found.append(
-                    f"{_location(number, '', index)}: {_only(draft_part, 'part')}"
-                )
-                continue
-            for field, drafted_value, converted_value in zip(
-                ("text", "worked solution"), draft_part, convert_part
-            ):
-                found += _differing(
-                    _location(number, "", index, field), drafted_value, converted_value
-                )
-    return found
-
-
-def _known(folder: Path) -> list[str]:
-    """The differences the two routes have today, as a folder's ``differs.txt`` has them.
-
-    Each line is one difference as :func:`_differences` words it, with the ticket that
-    would close it written after ``  # ``. A folder with no such file is a document the
-    two routes say the same thing about.
-    """
-    path = folder / "differs.txt"
-    if not path.is_file():
-        return []
-    return [
-        line.split(_TICKET)[0] for line in path.read_text().splitlines() if line.strip()
-    ]
-
-
-def _same(drafted: Set, converted: Set, known: list[str]) -> None:
-    """Raises unless the two sets differ in exactly the places `known` names.
-
-    Args:
-        drafted: The set built from a draft, as `Set.from_json` reads its zip.
-        converted: The set `in2lambda convert` made of the same document.
-        known: The differences the two routes are known to have, as :func:`_known`
-            reads a folder's ``differs.txt``.
-
-    Raises:
-        AssertionError: the two differ somewhere `known` does not name, or agree
-            somewhere it does. The message names the question, the part and the field
-            of every difference, so that a line of ``differs.txt`` can be written from
-            it or found and deleted.
-    """
-    assert _differences(drafted, converted) == known
-
-
 @each_folder
 def test_the_draft_route_agrees_with_convert(
     folder: Path, tmp_path: Path, filters_dir: str, monkeypatch
@@ -224,11 +105,9 @@ def test_the_draft_route_agrees_with_convert(
     monkeypatch.chdir(tmp_path)
     _, source, layout = _built(folder, tmp_path, filters_dir)
 
-    _same(
-        Set.from_json(str(tmp_path / "out" / "set.zip")),
-        runner(str(source), layout),
-        _known(folder),
-    )
+    assert differences(
+        Set.from_json(str(tmp_path / "out" / "set.zip")), runner(str(source), layout)
+    ) == known(folder / "differs.txt")
 
 
 @each_folder
@@ -309,8 +188,10 @@ def test_a_spec_that_swaps_part_and_solution_is_caught(
     assert cli_runner.invoke(cli, ["build"]).exit_code == 0
 
     with pytest.raises(AssertionError, match='Question 1 "", part \\(a\\), text'):
-        _same(
-            Set.from_json(str(tmp_path / "out" / "set.zip")),
-            runner(str(source), "PartsOneSol"),
-            [],
+        assert (
+            differences(
+                Set.from_json(str(tmp_path / "out" / "set.zip")),
+                runner(str(source), "PartsOneSol"),
+            )
+            == []
         )

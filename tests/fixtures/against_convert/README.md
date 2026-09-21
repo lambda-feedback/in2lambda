@@ -23,6 +23,9 @@ document itself, as the ranges in `fixtures/sources` are. They were produced wit
 
 ## What the comparison ignores
 
+The comparison is `in2lambda.compare.differences`, whose docstring states these rules, so
+that this README and the code do not drift apart.
+
 Each question's main text is compared, and each part's text and worked solution. Three
 differences between the routes are not differences in what a question says, and are taken
 off both sides before comparing:

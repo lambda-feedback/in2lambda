@@ -5,12 +5,14 @@ import importlib
 import os
 import shlex
 import warnings
+import zipfile
 from collections.abc import Callable  # Rather than typing's, which beartype warns on.
 from contextlib import contextmanager
 from typing import Any, Optional
 
 import rich_click as click
 
+import in2lambda.compare
 import in2lambda.draft
 import in2lambda.draft.export
 import in2lambda.draft.report
@@ -604,6 +606,75 @@ def render(output_dir: str, draft: Optional[str]) -> None:
         )
     for pdf in written:
         click.echo(f"Wrote {pdf}")
+
+
+def _set_at(path: str) -> Set:
+    """The set at `path`, or a message naming `path` where it holds no set.
+
+    `Set.from_json` raises `ValueError` where a folder or a zip holds no ``set_*.json``,
+    and `zipfile.BadZipFile` where a path named ``.zip`` is not a zip at all. `compare`
+    reads two paths, so the message names which of the two is at fault.
+    """
+    try:
+        return Set.from_json(path)
+    except (ValueError, zipfile.BadZipFile):
+        raise click.ClickException(
+            f"{path} is not a Lambda Feedback set. A set is a folder or a zip holding "
+            "one set_*.json file beside a question_*.json file per question."
+        ) from None
+
+
+@cli.command("compare")
+@click.argument("built_zip", type=click.Path(exists=True))
+@click.argument("export_dir", type=click.Path(exists=True))
+@click.option(
+    "--known",
+    "known_path",
+    type=click.Path(exists=True, dir_okay=False),
+    help="File naming the differences the two sets are known to have, one per line.",
+)
+def compare(built_zip: str, export_dir: str, known_path: Optional[str]) -> None:
+    """Compares the set in BUILT_ZIP with the set in EXPORT_DIR, and prints each difference.
+
+    Each argument is a Lambda Feedback set, as a folder or as a zip. Each question's main
+    text is compared, and each part's text and worked solution, and every difference is
+    printed naming the question, the part and the field. Three differences in wording are
+    taken off both sides first: a run of whitespace is compared as one space, an image is
+    compared by the file's name, and a lone empty part is dropped. in2lambda.compare says
+    why. --known names a file of the differences the two sets are known to have, one per
+    line as this command prints it, with a ticket written after "  # ". in2lambda compare
+    exits 1 where the differences found are not the differences --known names.
+    """
+    with _message_not_traceback():
+        found = in2lambda.compare.differences(
+            _set_at(built_zip),
+            _set_at(export_dir),
+            left_name=built_zip,
+            right_name=export_dir,
+        )
+    for line in found:
+        click.echo(line)
+
+    expected = in2lambda.compare.known(known_path) if known_path else []
+    if found == expected:
+        if not found:
+            click.echo("Identical.")
+        return
+    # Echoed rather than put in the message, because a difference is a long line and
+    # the message is printed in a box that wraps it.
+    for line in expected:
+        if line not in found:
+            click.echo(f"Not found: {line}")
+    if not known_path:
+        raise click.ClickException(
+            "The two sets differ in the places printed above. Pass --known FILE to "
+            "name the differences the two sets are known to have."
+        )
+    raise click.ClickException(
+        f"The differences printed above are not the differences {known_path} names. "
+        f"Write one line of {known_path} per difference found, with the ticket that "
+        'would close it after "  # ".'
+    )
 
 
 if __name__ == "__main__":
