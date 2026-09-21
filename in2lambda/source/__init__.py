@@ -358,8 +358,15 @@ def _blocked(markdown: str, verbatim: set[int], position: int) -> bool:
     )
 
 
-_INLINE_MATHS = re.compile(r"(?<![\\$])\$(?!\$)((?:[^$\\]|\\.)+?)\$(?!\$)", re.DOTALL)
-"""Inline maths: a single ``$``, content holding no unescaped ``$``, a single ``$``."""
+_INLINE_MATHS = re.compile(
+    r"(?<![\\$])\$(?!\$)(?!\s)((?:[^$\\]|\\.)+?)(?<!\s)\$(?!\$)", re.DOTALL
+)
+"""Inline maths: a single ``$``, content holding no unescaped ``$``, a single ``$``.
+
+The content neither starts nor ends with whitespace, which is the rule pandoc's own
+``tex_math_dollars`` reader applies. Without it, the ``$`` pandoc writes unescaped
+inside a URL pairs with the opening ``$`` of the next maths in the document.
+"""
 
 
 def _inline_maths_joined(markdown: str) -> str:
@@ -381,6 +388,11 @@ def _inline_maths_joined(markdown: str) -> str:
     ``in2lambda validate`` reports the maths left in any of these. A ``$$`` opens no
     match here, so display maths is left to :func:`_display_maths_blocked`.
 
+    An unescaped ``$`` pandoc writes inside a URL joins nothing either: the text from
+    that ``$`` to the opening ``$`` of the next maths ends with the space before that
+    delimiter, and :data:`_INLINE_MATHS` matches no span whose content ends in
+    whitespace.
+
     Examples:
         >>> from in2lambda.source import _inline_maths_joined
         >>> _inline_maths_joined("A speed of $v =\n576$ here.\n")
@@ -397,6 +409,8 @@ def _inline_maths_joined(markdown: str) -> str:
         '``` sh\n$ ls and\n$ cd\n```\n'
         >>> _inline_maths_joined("> The energy is $U =\n> 5a$ here.\n")
         '> The energy is $U =\n> 5a$ here.\n'
+        >>> _inline_maths_joined("A fee at <http://x/$1>\\\nand $E = mc^2$ here.\n")
+        'A fee at <http://x/$1>\\\nand $E = mc^2$ here.\n'
     """
     verbatim = _verbatim_lines(markdown)
     written: list[str] = []
