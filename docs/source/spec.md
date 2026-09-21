@@ -117,7 +117,8 @@ layout:   PartSolPartSol
 ```
 
 That spec reads a sheet whose questions are top-level list items. The question is the item's own
-paragraph `b3.1`, and not the whole item `b3`, and `after` pairs a solution with the part above it.
+paragraph `b3.1`, and not the whole item `b3`. The `PartSolPartSol` layout pairs each solution
+with the part written above it.
 
 A block whose children hold a role holds no role itself. Writing `b3` into `q1.text` and `b3.2`
 into `q1.p1.text` would be two fields quoted from the same lines, which no command writes. A spec

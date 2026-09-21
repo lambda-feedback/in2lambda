@@ -49,11 +49,14 @@ def pandoc_filter(
             for item in elem.content:
                 set.current_question.add_part_text(item)
 
-        # Solution is in a Div with nested content being "Solution"
+        # Pandoc writes a LaTeX environment it has no block for as a Div whose classes
+        # hold the environment's name, so \begin{solution} becomes a Div classed
+        # "solution". Some documents instead write the word Solution as the first block
+        # of the Div; the filter accepts both.
         case pf.Div:
-            if pf.stringify(elem.content[0].content) == "Solution":
-                set.current_question.add_solution(
-                    pf.stringify(elem)  # [len("Solution") :] - For Jon Rackham
-                )
+            if "solution" in elem.classes or (
+                elem.content and pf.stringify(elem.content[0].content) == "Solution"
+            ):
+                set.current_question.add_solution(pf.stringify(elem))
 
     return None
