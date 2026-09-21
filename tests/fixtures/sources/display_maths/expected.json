@@ -88,5 +88,38 @@
     "id": "b8.3",
     "start": 31,
     "type": "paragraph"
+  },
+  {
+    "end": 40,
+    "id": "b9",
+    "start": 33,
+    "type": "list item"
+  },
+  {
+    "depth": 2,
+    "end": 33,
+    "id": "b9.1",
+    "start": 33,
+    "type": "paragraph"
+  },
+  {
+    "depth": 2,
+    "end": 38,
+    "id": "b9.2",
+    "start": 35,
+    "type": "display maths"
+  },
+  {
+    "depth": 2,
+    "end": 40,
+    "id": "b9.3",
+    "start": 40,
+    "type": "paragraph"
+  },
+  {
+    "end": 42,
+    "id": "b10",
+    "start": 42,
+    "type": "list item"
   }
 ]
