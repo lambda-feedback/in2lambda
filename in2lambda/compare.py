@@ -76,7 +76,7 @@ def differences(
     left_name: str = "the draft",
     right_name: str = "convert",
 ) -> list[str]:
-    """Every place the two sets say something different, in question and part order.
+    r"""Every place the two sets say something different, in question and part order.
 
     Args:
         built: The set being checked, such as the one `in2lambda build` wrote.
@@ -92,7 +92,7 @@ def differences(
         >>> from in2lambda.api.set import Set
         >>> from in2lambda.compare import differences
         >>> built, expected = Set(), Set()
-        >>> built.add_question(main_text="The rocket  is at\\n45 degrees.")
+        >>> built.add_question(main_text="The rocket  is at\n45 degrees.")
         >>> expected.add_question(main_text="The rocket is at 45 degrees.")
         >>> differences(built, expected)
         []

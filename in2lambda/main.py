@@ -5,6 +5,7 @@ import importlib
 import os
 import shlex
 import warnings
+import zipfile
 from collections.abc import Callable  # Rather than typing's, which beartype warns on.
 from contextlib import contextmanager
 from typing import Any, Optional
@@ -611,11 +612,12 @@ def _set_at(path: str) -> Set:
     """The set at `path`, or a message naming `path` where it holds no set.
 
     `Set.from_json` raises `ValueError` where a folder or a zip holds no ``set_*.json``,
-    and `compare` reads two paths, so the message names which of the two is at fault.
+    and `zipfile.BadZipFile` where a path named ``.zip`` is not a zip at all. `compare`
+    reads two paths, so the message names which of the two is at fault.
     """
     try:
         return Set.from_json(path)
-    except ValueError:
+    except (ValueError, zipfile.BadZipFile):
         raise click.ClickException(
             f"{path} is not a Lambda Feedback set. A set is a folder or a zip holding "
             "one set_*.json file beside a question_*.json file per question."

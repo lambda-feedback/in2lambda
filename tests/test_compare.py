@@ -4,6 +4,7 @@
 built in the test, one field apart, so that each normalisation is covered on its own.
 """
 
+import zipfile
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -143,18 +144,23 @@ def test_the_command_prints_each_difference_between_two_sets(tmp_path: Path) -> 
 def test_the_command_refuses_a_path_that_is_not_a_set(
     tmp_path: Path, monkeypatch
 ) -> None:
-    """A file, and a folder holding no set_*.json, are named in a message.
+    """A file, a folder holding no set_*.json, and a .zip that is not a zip.
 
-    `Set.from_json` raises `ValueError` for either, and the command names which of the
-    two paths it read is not a set instead of printing that traceback.
+    `Set.from_json` raises `ValueError` for the first two and `zipfile.BadZipFile` for
+    the third, and the command names which of the two paths it read is not a set
+    instead of printing either traceback.
     """
     monkeypatch.setenv("COLUMNS", "200")  # So the message is not wrapped mid-sentence.
     not_a_set = tmp_path / "README.md"
     not_a_set.write_text("A document, not an export.\n")
+    not_a_zip = tmp_path / "set.zip"
+    not_a_zip.write_text("A document named as a zip.\n")
 
-    for path in (str(not_a_set), str(tmp_path)):
+    for path in (str(not_a_set), str(tmp_path), str(not_a_zip)):
         result = CliRunner().invoke(cli, ["compare", _EXPORT, path])
 
         assert result.exit_code == 1
-        assert not isinstance(result.exception, ValueError), result.output
+        assert not isinstance(
+            result.exception, (ValueError, zipfile.BadZipFile)
+        ), result.output
         assert f"{path} is not a Lambda Feedback set" in result.output
