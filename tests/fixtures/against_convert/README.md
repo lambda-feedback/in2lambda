@@ -11,6 +11,12 @@ converted with `PartsOneSol`. A folder holding a `spec.yaml` fills the draft in 
 that spec; a folder holding a `commands.json` applies each command in it in order. To
 cover another document, add a folder: no test names any of them.
 
+The `spec.yaml` in `PartsSepSol`, `PartPartSolSol` and `PartSolPartSol` is a copy of the
+spec in the `fixtures/specs` folder of the same layout - `parts_sep_sol_nested`,
+`part_part_sol_sol_nested` and `part_sol_part_sol_nested` - each of which runs over the
+same `example.tex`. `docx` and `crlf` fill their drafts by commands, so that one run
+covers both ways of filling a draft in.
+
 The line ranges in a `commands.json` are lines of the markdown pandoc writes, not of the
 document itself, as the ranges in `fixtures/sources` are. They were produced with
 **pandoc 3.9.0.2**.
@@ -42,12 +48,6 @@ A folder with no such file is a document the two routes say the same thing about
 Finding a difference the file does not list fails the test, and so does agreeing where it
 lists one: closing a ticket below means deleting the lines it names.
 
-- **t53** - no draft command writes a `qN.pM.solution`, and no selector reaches inside the
-  top-level `\item` that `PartPartSolSol/example.tex` and `PartSolPartSol/example.tex`
-  nest each part's solution in, so those lines are marked ignore and the draft answers
-  neither part. `in2lambda.draft.export` already reads such a field, and
-  `fixtures/specs/part_part_sol_sol` shows a spec writing one where the source is not
-  nested.
 - **Smart quotes** - pandoc's LaTeX reader writes `’` where its `commonmark_x` writer
   writes `'`, so convert uploads `aren’t` for `PartsOneSol/example.tex` and the draft
   uploads `aren't`.

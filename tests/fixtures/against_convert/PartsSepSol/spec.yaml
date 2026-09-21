@@ -1,0 +1,6 @@
+question:
+  - Para depth=2
+  - ListItem depth=1
+part:     ListItem depth=2
+ignore:   Header
+layout:   PartsSepSol
