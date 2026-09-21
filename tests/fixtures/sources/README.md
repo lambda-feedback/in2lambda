@@ -52,7 +52,9 @@ line is left as pandoc wrote it: a table cell cannot hold a block, the inserted 
 no `> ` and so fall outside the quote, and a code block's `$$` is characters the document shows
 rather than maths it renders. A code block is a line indented four past the content column of the
 list item it stands in, which is how an item's own paragraph - indented four itself - is told from
-code nested inside the item.
+code nested inside the item. An inline `$ ... $` that opens or closes on one of those lines is
+left unjoined for the same reasons: the join keeps the first line as it stands and strips the
+rest, so it would carry the quote's `> ` or the next row's `|` into the maths.
 
 A `$$ ... $$` holding a backtick, or running across a blank line, is left as pandoc wrote it as
 well: display maths holds neither, so the two delimiters are an unpaired `$$` - one in inline

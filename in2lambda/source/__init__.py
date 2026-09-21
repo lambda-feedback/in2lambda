@@ -345,6 +345,19 @@ def _verbatim_lines(markdown: str) -> set[int]:
     return verbatim
 
 
+def _blocked(markdown: str, verbatim: set[int], position: int) -> bool:
+    """Whether the delimiter at this offset stands in a table row, a quote or code.
+
+    The rewrites below move a maths onto lines of their own or join the lines it stands
+    on, and neither can carry a pipe table's cell, a block quote's ``> `` or the meaning
+    of a code block's characters across the lines it changes.
+    """
+    opening = markdown[markdown.rfind("\n", 0, position) + 1 : position]
+    return opening.lstrip()[:1] in ("|", ">") or (
+        markdown.count("\n", 0, position) + 1 in verbatim
+    )
+
+
 _INLINE_MATHS = re.compile(r"(?<![\\$])\$(?!\$)((?:[^$\\]|\\.)+?)\$(?!\$)", re.DOTALL)
 """Inline maths: a single ``$``, content holding no unescaped ``$``, a single ``$``."""
 
@@ -362,8 +375,11 @@ def _inline_maths_joined(markdown: str) -> str:
     is one whose opening or closing ``$`` stands on a code block's line: such a match is
     an unpaired ``$`` - one in inline code or in a shell prompt - closed by the ``$`` of
     a later maths, and joining the two would run the lines between them together. A
-    ``$$`` opens no match here, so display maths is left to
-    :func:`_display_maths_blocked`.
+    match that opens or closes on a pipe table's row or on a block quote's line is left
+    as written too: the join keeps the first line as it stands and strips the rest, so
+    it would carry the quote's ``> `` or the next row's ``|`` into the maths.
+    ``in2lambda validate`` reports the maths left in any of these. A ``$$`` opens no
+    match here, so display maths is left to :func:`_display_maths_blocked`.
 
     Examples:
         >>> from in2lambda.source import _inline_maths_joined
@@ -379,6 +395,8 @@ def _inline_maths_joined(markdown: str) -> str:
         'Costs $5 today.\n\nAnd $6 tomorrow.\n'
         >>> _inline_maths_joined("``` sh\n$ ls and\n$ cd\n```\n")
         '``` sh\n$ ls and\n$ cd\n```\n'
+        >>> _inline_maths_joined("> The energy is $U =\n> 5a$ here.\n")
+        '> The energy is $U =\n> 5a$ here.\n'
     """
     verbatim = _verbatim_lines(markdown)
     written: list[str] = []
@@ -390,9 +408,8 @@ def _inline_maths_joined(markdown: str) -> str:
             not line.strip() for line in match.group().split("\n")
         ):
             continue
-        if any(
-            markdown.count("\n", 0, position) + 1 in verbatim
-            for position in (match.start(), match.end())
+        if _blocked(markdown, verbatim, match.start()) or _blocked(
+            markdown, verbatim, match.end()
         ):
             continue
         body = " ".join(line.strip() for line in match.group(1).split("\n"))
@@ -448,14 +465,6 @@ def _display_maths_blocked(markdown: str) -> str:
         'The load is $$F = pA\n> and $$ here.\n'
     """
     verbatim = _verbatim_lines(markdown)
-
-    def blocked(position: int) -> bool:
-        """Whether the `$$` at this offset stands in a table row, a quote or code."""
-        opening = markdown[markdown.rfind("\n", 0, position) + 1 : position]
-        return opening.lstrip()[:1] in ("|", ">") or (
-            markdown.count("\n", 0, position) + 1 in verbatim
-        )
-
     written: list[str] = []
     end = 0
     for match in _DISPLAY_MATHS.finditer(markdown):
@@ -467,7 +476,9 @@ def _display_maths_blocked(markdown: str) -> str:
             # the opening `$$` of a later maths. Rewriting it would make a maths block
             # of the words standing between the two.
             continue
-        if blocked(match.start()) or blocked(match.end()):
+        if _blocked(markdown, verbatim, match.start()) or _blocked(
+            markdown, verbatim, match.end()
+        ):
             # A pipe table's cell cannot hold a block; an inserted line carries the
             # indent of the line the maths began on but not a block quote's `> `, so the
             # rewrite would put the maths and the words after it outside the quote; and
