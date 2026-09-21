@@ -10,6 +10,8 @@ reader turns into a bracketed span, which `in2lambda source add` unwraps.
 """
 
 if __name__ == "__main__":
+    from pathlib import Path
+
     from docx import Document
     from docx.enum.text import WD_COLOR_INDEX
 
@@ -30,4 +32,5 @@ if __name__ == "__main__":
     note.add_run("Note: ").font.small_caps = True
     note.add_run("the oil is incompressible.")
 
-    document.save("source.docx")
+    # Beside this file, so that the fixture is written wherever the script is run from.
+    document.save(Path(__file__).with_name("source.docx"))

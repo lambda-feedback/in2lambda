@@ -428,10 +428,16 @@ def _display_maths_blocked(markdown: str) -> str:
     return "".join(written)
 
 
-_SPAN = re.compile(r"\[([^\[\]\n]*)\]\{[^{}\n]*\}")
+_ATTRIBUTE = r"""[.#][^\s{}]+|[\w-]+=(?:"[^"\n]*"|[^\s{}]+)"""
+"""One attribute of a pandoc attribute list: a class, an id, or a key and its value."""
+
+_SPAN = re.compile(rf"\[([^\[\]\n]*)\]\{{(?:{_ATTRIBUTE})(?: +(?:{_ATTRIBUTE}))*\}}")
 """A bracketed span as ``commonmark_x`` writes one, opened and closed on the one line.
 
 The ``]{`` is what tells one from a link's ``](`` and from an image's ``){width=...}``.
+The braces must hold an attribute list, because LaTeX writes brackets before braces as
+well: ``$\\sqrt[3]{x + 1}$`` is a cube root, and dropping its braces would leave
+``$\\sqrt3$``, which KaTeX renders and no check reports.
 """
 
 
@@ -471,6 +477,8 @@ def _spans_unwrapped(markdown: str) -> str:
         '::: {.solution}\nThe load is $F = pA$.\n:::\n'
         >>> _spans_unwrapped('![](figure.png){width="1in"}\n')
         '![](figure.png){width="1in"}\n'
+        >>> _spans_unwrapped("The root is $\\sqrt[3]{x + 1}$.\n")
+        'The root is $\\sqrt[3]{x + 1}$.\n'
     """
     if "\r\n" in markdown:
         # Pandoc writes the line endings of whoever is running it, and the file on disk
