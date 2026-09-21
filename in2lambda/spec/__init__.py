@@ -294,16 +294,18 @@ def _selector(text: Any, line: int) -> Selector:
     if not isinstance(text, str):
         raise _refuse(line, f"A selector is a line of text, which {text!r} is not.")
     head, tail = _split(text.strip())
-    if head.strip().startswith("after "):
-        after = _clause(head.strip()[len("after ") :], line)
+    head = head.strip()
+    if head.startswith("after "):
+        after = _clause(head[len("after ") :], line)
         return _clause(tail.strip() if tail else "", line, after)
     if tail is not None:
         raise _refuse(
             line,
-            "A selector's comma separates its `after` clause from the rest, and "
-            f"{text!r} holds no `after` clause.",
+            f"{text.strip()!r} names two selectors on one line; write them as a YAML "
+            f"list under the role:\n  - {head}\n  - {tail.strip()}\n"
+            "A selector's comma separates its `after` clause from the rest.",
         )
-    return _clause(head.strip(), line)
+    return _clause(head, line)
 
 
 def _selectors(value: Any, line: int, item_lines: list[int]) -> list[Selector]:

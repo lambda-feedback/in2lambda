@@ -21,6 +21,7 @@ from conftest import SPECS, SPECS_DIR, frozen_sources
 
 import in2lambda
 import in2lambda.draft
+import in2lambda.spec
 from in2lambda.main import cli
 from in2lambda.source import SourceError
 
@@ -384,6 +385,42 @@ def test_a_spec_calling_a_predicate_nothing_holds_is_refused(
         assert name in result.output
     assert isinstance(result.exception, SystemExit)
     assert (tmp_path / "source.draft.json").read_bytes() == written
+
+
+def test_a_comma_inside_a_quoted_pattern_is_part_of_the_pattern() -> None:
+    """A regex alternating over labels holds commas, which are not the after separator."""
+    spec = in2lambda.spec.load(
+        "ignore: Para text~'^(Sheet|Note),|^Marks'\n"
+        "question: Para\n"
+        "layout: PartsOneSol\n"
+    )
+
+    assert spec.ignore[0].constraints[0].wanted.pattern == "^(Sheet|Note),|^Marks"
+
+
+def test_two_selectors_written_on_one_line_are_refused_with_the_list_to_write() -> None:
+    """A comma outside quotes reads as an after clause, which two block types are not."""
+    with pytest.raises(in2lambda.spec.BadSpec) as refusal:
+        in2lambda.spec.load(
+            "ignore: Header, Table\nquestion: Para\nlayout: PartsOneSol\n"
+        )
+
+    assert "names two selectors on one line" in str(refusal.value)
+    assert "- Header" in str(refusal.value)
+    assert "- Table" in str(refusal.value)
+
+
+def test_a_comma_outside_quotes_still_separates_an_after_clause() -> None:
+    """The documented ``after SELECTOR, rest`` form, which the quotes must not break."""
+    spec = in2lambda.spec.load(
+        "question: Para\n"
+        "solution: after Header text=Solutions, Para\n"
+        "layout: PartsOneSol\n"
+    )
+
+    assert spec.solution[0].after.type == "Header"
+    assert spec.solution[0].after.constraints[0].wanted == "Solutions"
+    assert spec.solution[0].type == "Para"
 
 
 def test_a_spec_that_is_not_there_is_refused_rather_than_left_to_the_file_system(
