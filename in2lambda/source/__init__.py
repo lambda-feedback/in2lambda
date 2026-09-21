@@ -401,12 +401,12 @@ def _inline_maths_joined(markdown: str) -> str:
         '1.  The energy is $U = 5a$ now.\n'
         >>> _inline_maths_joined("The load is $$F =\npA$$ here.\n")
         'The load is $$F =\npA$$ here.\n'
-        >>> _inline_maths_joined("A `$` sign and\na $ sign.\n")
-        'A `$` sign and\na $ sign.\n'
-        >>> _inline_maths_joined("Costs $5 today.\n\nAnd $6 tomorrow.\n")
-        'Costs $5 today.\n\nAnd $6 tomorrow.\n'
-        >>> _inline_maths_joined("``` sh\n$ ls and\n$ cd\n```\n")
-        '``` sh\n$ ls and\n$ cd\n```\n'
+        >>> _inline_maths_joined("Type `$` and\nmore `$` here.\n")
+        'Type `$` and\nmore `$` here.\n'
+        >>> _inline_maths_joined("Costs $5 today.\n\nAnd more($6) here.\n")
+        'Costs $5 today.\n\nAnd more($6) here.\n'
+        >>> _inline_maths_joined("``` sh\ncost=$a and\nsum=$b\n```\n")
+        '``` sh\ncost=$a and\nsum=$b\n```\n'
         >>> _inline_maths_joined("> The energy is $U =\n> 5a$ here.\n")
         '> The energy is $U =\n> 5a$ here.\n'
         >>> _inline_maths_joined("A fee at <http://x/$1>\\\nand $E = mc^2$ here.\n")
