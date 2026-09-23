@@ -1,4 +1,4 @@
-"""Compares two sets question by question, naming every place they say something else.
+r"""Compares two sets question by question, naming every place they say something else.
 
 `in2lambda convert` writes a set, `in2lambda build` writes a set from a draft, and Lambda
 Feedback exports a set. :func:`differences` compares any two of them in question and part
@@ -6,12 +6,25 @@ order - each question's main text, and each part's text and worked solution - an
 one line per difference, naming the question, the part and the field as
 `in2lambda.validation` names them.
 
-Three differences in wording are not differences in what a question says, and are taken
+These differences in wording are not differences in what a question says, and are taken
 off both sides before comparing:
 
 - **Whitespace.** Every run of whitespace is compared as one space, because a draft
   quotes the lines pandoc wrapped where `in2lambda convert` writes a paragraph on one
   line.
+- **Separator lines.** A line holding nothing but three or more hyphens is dropped,
+  because Lambda Feedback writes one around a display maths block where a document
+  writes nothing.
+- **Quotes.** ``‘`` and ``’`` are compared as ``'``, and ``“`` and ``”`` as ``"``,
+  because pandoc's LaTeX reader writes the curly quote where its commonmark_x writer
+  writes the straight one.
+- **Maths notation.** Inside every ``$ ... $`` and ``$$ ... $$``, ``\left`` and
+  ``\right`` are removed, ``~``, ``\,`` and ``\space`` are compared as a space, and
+  every run of whitespace is dropped, except that a run between a control word and a
+  following letter is compared as one space. LaTeX renders ``$z=2+3 i$`` and
+  ``$z=2+3i$`` the same, and ``\mathrm{~m}`` and ``\mathrm{m}`` the same, where
+  ``\alpha x`` and ``\alphax`` are two different expressions. An export writes
+  ``$z = 2+3 i$`` where `in2lambda convert` writes ``$z=2+3i$``.
 - **Image references.** An image is compared by the file's name, because
   `in2lambda convert` writes every image as ``![pictureTag](path)`` where a draft keeps
   the alt text the document wrote, and an export names each file as ``media/`` holds it
@@ -25,6 +38,7 @@ difference as :func:`differences` words it, with the ticket that would close it 
 after ``  # ``.
 """
 
+import re
 from itertools import zip_longest
 from pathlib import Path
 from typing import Any, Optional
@@ -32,19 +46,64 @@ from typing import Any, Optional
 from in2lambda.api.question import Question
 from in2lambda.api.set import Set
 from in2lambda.json_convert.json_convert import _IMAGE
-from in2lambda.validation import _location
+from in2lambda.validation import _COMMAND, _MATHS, _location
 
 _TICKET = "  # "
 """What a line of a differs.txt names the ticket closing it after."""
+
+_RULE = re.compile(r"(?m)^[ \t]*-{3,}[ \t]*$")
+"""A line holding nothing but hyphens, which is the separator Lambda Feedback writes."""
+
+_QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
+"""Each curly quote and the straight quote it is compared as."""
+
+_SIZE = re.compile(r"\\(?:left|right)(?![a-zA-Z])")
+r"""``\left`` and ``\right``, which size a delimiter without changing which it is."""
+
+_LATEX_SPACE = re.compile(r"~|\\,|\\space(?![a-zA-Z])")
+"""The three ways of writing a space inside maths."""
+
+_SPACING = re.compile(rf"({_COMMAND.pattern})\s+(?=[a-zA-Z])|\s+")
+"""A run of whitespace inside maths, with the control word it ends where one precedes it
+and a letter follows it."""
+
+
+def _spacing(whitespace: re.Match[str]) -> str:
+    r"""One space where a run of whitespace ends a control word, and nothing elsewhere.
+
+    ``\alpha x`` is two symbols and ``\alphax`` is a control word nothing defines, so
+    the space between a control word and a letter is the only whitespace LaTeX renders.
+    """
+    return f"{whitespace[1]} " if whitespace[1] else ""
+
+
+def _maths(expression: re.Match[str]) -> str:
+    """One ``$ ... $`` or ``$$ ... $$`` with the notation that is not the maths folded.
+
+    Args:
+        expression: A match of `in2lambda.validation._MATHS`, holding the display maths
+            it found in its first group and the inline maths in its second.
+    """
+    display = expression[1] is not None
+    tex = expression[1] if display else expression[2]
+    delimiter = "$$" if display else "$"
+    folded = _LATEX_SPACE.sub(" ", _SIZE.sub("", tex))
+    return f"{delimiter}{_SPACING.sub(_spacing, folded)}{delimiter}"
 
 
 def _text(markdown: str) -> str:
     """A field with the differences in wording that are not differences taken off.
 
-    Every run of whitespace becomes one space, and every image reference is written as
-    the file's name alone. The module docstring says why.
+    A separator line is dropped, each curly quote becomes a straight quote, the maths
+    notation inside every ``$ ... $`` and ``$$ ... $$`` is folded, every image reference
+    is written as the file's name alone, and every run of whitespace becomes one space.
+    The module docstring says why.
     """
-    named = _IMAGE.sub(lambda reference: f"![]({Path(reference[1]).name})", markdown)
+    # Before the whitespace collapse below, which writes the field on one line and
+    # leaves no line for _RULE to match.
+    without_rules = _RULE.sub("", markdown)
+    folded = _MATHS.sub(_maths, without_rules.translate(_QUOTES))
+    named = _IMAGE.sub(lambda reference: f"![]({Path(reference[1]).name})", folded)
     return " ".join(named.split())
 
 

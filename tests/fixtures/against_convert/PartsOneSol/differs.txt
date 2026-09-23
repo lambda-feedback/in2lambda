@@ -1,2 +1,0 @@
-Question 1 "", part (b), text: the draft says "The filter still works even if there aren't any parts" and convert says 'The filter still works even if there aren’t any parts'  # smart quotes: pandoc's LaTeX reader writes ’ where its commonmark_x writer writes '
-Question 2 "", part (a), worked solution: the draft says "And here's the solution" and convert says 'And here’s the solution'  # smart quotes: pandoc's LaTeX reader writes ’ where its commonmark_x writer writes '
