@@ -638,12 +638,15 @@ def compare(built_zip: str, export_dir: str, known_path: Optional[str]) -> None:
 
     Each argument is a Lambda Feedback set, as a folder or as a zip. Each question's main
     text is compared, and each part's text and worked solution, and every difference is
-    printed naming the question, the part and the field. Three differences in wording are
-    taken off both sides first: a run of whitespace is compared as one space, an image is
+    printed naming the question, the part and the field. The differences in wording that
+    are not differences in what a question says are taken off both sides first: a run of
+    whitespace is compared as one space, a line of hyphens is dropped, a curly quote is
+    compared as a straight quote, the notation inside maths is folded, an image is
     compared by the file's name, and a lone empty part is dropped. in2lambda.compare says
-    why. --known names a file of the differences the two sets are known to have, one per
-    line as this command prints it, with a ticket written after "  # ". in2lambda compare
-    exits 1 where the differences found are not the differences --known names.
+    which notation and why. --known names a file of the differences the two sets are known to
+    have, one per line as this command prints it, with a ticket written after "  # ".
+    in2lambda compare exits 1 where the differences found are not the differences --known
+    names.
     """
     with _message_not_traceback():
         found = in2lambda.compare.differences(

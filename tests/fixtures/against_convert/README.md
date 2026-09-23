@@ -26,12 +26,24 @@ document itself, as the ranges in `fixtures/sources` are. They were produced wit
 The comparison is `in2lambda.compare.differences`, whose docstring states these rules, so
 that this README and the code do not drift apart.
 
-Each question's main text is compared, and each part's text and worked solution. Three
+Each question's main text is compared, and each part's text and worked solution. These
 differences between the routes are not differences in what a question says, and are taken
 off both sides before comparing:
 
 - **Line breaks.** The draft quotes the lines pandoc wrapped; convert writes a paragraph
   on one line. Every run of whitespace is compared as one space.
+- **Separator lines.** A line holding nothing but three or more hyphens is dropped,
+  because Lambda Feedback writes one around a display maths block where a document
+  writes nothing.
+- **Quotes.** Pandoc's LaTeX reader writes `’` where its `commonmark_x` writer writes
+  `'`, so `aren’t` and `aren't` are the same wording. Each curly quote is compared as
+  the straight quote.
+- **Maths notation.** Inside every `$ ... $` and `$$ ... $$`, `\left` and `\right` are
+  removed, `~`, `\,` and `\space` are compared as a space, and every run of whitespace
+  is dropped, except that a run between a control word and a following letter is
+  compared as one space. LaTeX renders `$z=2+3 i$` and `$z=2+3i$` the same, and
+  `\mathrm{~m}` and `\mathrm{m}` the same, where `\alpha x` and `\alphax` are two
+  different expressions.
 - **Image references.** Convert writes every image as `![pictureTag](path)`; the draft keeps
   the alt text the document wrote, which is empty for `\includegraphics`. The set read back
   from the zip names each file as it sits in the export's `media/`, where the set convert
@@ -50,7 +62,3 @@ A folder with no such file is a document the two routes say the same thing about
 
 Finding a difference the file does not list fails the test, and so does agreeing where it
 lists one: closing a ticket below means deleting the lines it names.
-
-- **Smart quotes** - pandoc's LaTeX reader writes `’` where its `commonmark_x` writer
-  writes `'`, so convert uploads `aren’t` for `PartsOneSol/example.tex` and the draft
-  uploads `aren't`.

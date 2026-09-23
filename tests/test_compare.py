@@ -37,6 +37,51 @@ def test_a_run_of_whitespace_is_one_space() -> None:
     )
 
 
+def test_a_separator_line_is_dropped() -> None:
+    """Lambda Feedback writes a `---` line where a document writes nothing."""
+    assert (
+        differences(
+            _set("The mass is\n\n---\n\n$$m = 1$$"), _set("The mass is\n$$m=1$$")
+        )
+        == []
+    )
+
+
+def test_a_curly_quote_is_a_straight_quote() -> None:
+    """Pandoc's LaTeX reader writes `’` where its commonmark_x writer writes `'`."""
+    assert differences(_set("It isn’t large."), _set("It isn't large.")) == []
+    assert differences(_set("The “load”."), _set('The "load".')) == []
+
+
+def test_whitespace_inside_maths_is_dropped() -> None:
+    """LaTeX renders `$z=2+3 i$` and `$z=2+3i$` the same."""
+    assert differences(_set("$z = 2+3 i$"), _set("$z=2+3i$")) == []
+    assert differences(_set("$$\nF = pA\n$$"), _set("$$F=pA$$")) == []
+
+
+def test_a_space_between_a_control_word_and_a_letter_is_kept() -> None:
+    r"""`\alpha x` is two symbols and `\alphax` is a control word nothing defines."""
+    assert differences(_set(r"$\alpha  x$"), _set(r"$\alpha x$")) == []
+
+    assert differences(_set(r"$\alpha x$"), _set(r"$\alphax$")) == [
+        'Question 1 "", main text: the draft says '
+        r"'$\\alpha x$' and convert says '$\\alphax$'"
+    ]
+
+
+def test_a_sized_delimiter_is_the_delimiter() -> None:
+    r"""`\left(` and `(` render the same bracket."""
+    assert differences(_set(r"$\left( x+1 \right)$"), _set("$(x+1)$")) == []
+
+
+def test_each_latex_space_is_a_space() -> None:
+    r"""`~`, `\,` and `\space` are the three ways of writing a space inside maths."""
+    assert differences(_set("$a~b$"), _set("$ab$")) == []
+    assert differences(_set(r"$a\,b$"), _set("$ab$")) == []
+    assert differences(_set(r"$a\space b$"), _set("$ab$")) == []
+    assert differences(_set(r"$5\mathrm{~m}$"), _set(r"$5\mathrm{m}$")) == []
+
+
 def test_an_image_is_compared_by_the_file_name() -> None:
     """The alt text and the directory differ between the routes; the file name does not."""
     assert (
@@ -67,12 +112,12 @@ def test_a_difference_names_the_question_the_part_and_the_field() -> None:
     expected = _set("Find the load.", ("State the pressure.", "$F = 2pA$"))
 
     assert differences(built, expected) == [
-        "Question 1 \"\", part (a), worked solution: the draft says '$F = pA$' and "
-        "convert says '$F = 2pA$'"
+        "Question 1 \"\", part (a), worked solution: the draft says '$F=pA$' and "
+        "convert says '$F=2pA$'"
     ]
     assert differences(built, expected, "set.zip", "the export") == [
-        "Question 1 \"\", part (a), worked solution: set.zip says '$F = pA$' and "
-        "the export says '$F = 2pA$'"
+        "Question 1 \"\", part (a), worked solution: set.zip says '$F=pA$' and "
+        "the export says '$F=2pA$'"
     ]
 
 
@@ -164,3 +209,21 @@ def test_the_command_refuses_a_path_that_is_not_a_set(
             result.exception, (ValueError, zipfile.BadZipFile)
         ), result.output
         assert f"{path} is not a Lambda Feedback set" in result.output
+
+
+def test_an_html_space_entity_is_a_space() -> None:
+    a = _set("$16y''-\\pi^2y=0$ (Use $A$ and $B$ for your constants.)")
+    b = _set("$16y''-\\pi^2y=0$&#x20; &#x20;&#x20; (Use $A$ and $B$ for your constants.)")
+    assert differences(a, b) == []
+
+
+def test_whitespace_touching_a_maths_delimiter_from_outside_is_ignored() -> None:
+    a = _set("equation of $y''+y'-6y=0$: then")
+    b = _set("equation of$y''+y'-6y=0$: then")
+    assert differences(a, b) == []
+
+
+def test_a_separator_of_asterisks_is_dropped_like_one_of_hyphens() -> None:
+    a = _set("Then:\n\n$$\nx=1\n$$\n\n***\n\nRecall the rule.")
+    b = _set("Then:\n\n$$\nx=1\n$$\n\nRecall the rule.")
+    assert differences(a, b) == []
