@@ -18,12 +18,6 @@ off both sides before comparing:
 - **Quotes.** ``‘`` and ``’`` are compared as ``'``, and ``“`` and ``”`` as ``"``,
   because pandoc's LaTeX reader writes the curly quote where its commonmark_x writer
   writes the straight one.
-- **HTML entities for a space.** ``&#x20;`` and ``&nbsp;`` are compared as a space,
-  because an export writes ``$y=0$&#x20; &#x20;(Use $A$`` where `in2lambda convert`
-  writes ``$y=0$ (Use $A$``.
-- **Whitespace beside maths.** The whitespace before and after each ``$ ... $`` and
-  ``$$ ... $$`` is dropped, because an export writes ``equation of $y'+y=0$:`` where
-  `in2lambda convert` writes ``equation of$y'+y=0$:``.
 - **Maths notation.** Inside every ``$ ... $`` and ``$$ ... $$``, ``\left`` and
   ``\right`` are removed, ``~``, ``\,`` and ``\space`` are compared as a space, and
   every run of whitespace is dropped, except that a run between a control word and a
@@ -63,14 +57,6 @@ _RULE = re.compile(r"(?m)^[ \t]*-{3,}[ \t]*$")
 _QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
 """Each curly quote and the straight quote it is compared as."""
 
-_ENTITY = re.compile(r"&#x20;|&nbsp;")
-"""The two HTML entities Lambda Feedback writes a space as."""
-
-_SPACED_MATHS = re.compile(rf"\s*(?:{_MATHS.pattern})\s*", re.DOTALL)
-"""One maths span with the whitespace touching it. Wrapping `in2lambda.validation._MATHS`
-in a group that captures nothing keeps the display maths it found in the first group and
-the inline maths in the second."""
-
 _SIZE = re.compile(r"\\(?:left|right)(?![a-zA-Z])")
 r"""``\left`` and ``\right``, which size a delimiter without changing which it is."""
 
@@ -94,11 +80,9 @@ def _spacing(whitespace: re.Match[str]) -> str:
 def _maths(expression: re.Match[str]) -> str:
     """One ``$ ... $`` or ``$$ ... $$`` with the notation that is not the maths folded.
 
-    The whitespace `_SPACED_MATHS` matched around the span is dropped with it.
-
     Args:
-        expression: A match of `_SPACED_MATHS`, holding the display maths it found in
-            its first group and the inline maths in its second.
+        expression: A match of `in2lambda.validation._MATHS`, holding the display maths
+            it found in its first group and the inline maths in its second.
     """
     display = expression[1] is not None
     tex = expression[1] if display else expression[2]
@@ -110,18 +94,15 @@ def _maths(expression: re.Match[str]) -> str:
 def _text(markdown: str) -> str:
     """A field with the differences in wording that are not differences taken off.
 
-    A separator line is dropped, each HTML entity for a space becomes a space, each
-    curly quote becomes a straight quote, the maths notation inside every ``$ ... $``
-    and ``$$ ... $$`` is folded with the whitespace touching the span, every image
-    reference is written as the file's name alone, and every run of whitespace becomes
-    one space. The module docstring says why.
+    A separator line is dropped, each curly quote becomes a straight quote, the maths
+    notation inside every ``$ ... $`` and ``$$ ... $$`` is folded, every image reference
+    is written as the file's name alone, and every run of whitespace becomes one space.
+    The module docstring says why.
     """
     # Before the whitespace collapse below, which writes the field on one line and
     # leaves no line for _RULE to match.
     without_rules = _RULE.sub("", markdown)
-    # Before the maths below, which drops the whitespace an entity has become.
-    spaces = _ENTITY.sub(" ", without_rules)
-    folded = _SPACED_MATHS.sub(_maths, spaces.translate(_QUOTES))
+    folded = _MATHS.sub(_maths, without_rules.translate(_QUOTES))
     named = _IMAGE.sub(lambda reference: f"![]({Path(reference[1]).name})", folded)
     return " ".join(named.split())
 
