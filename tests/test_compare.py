@@ -209,3 +209,21 @@ def test_the_command_refuses_a_path_that_is_not_a_set(
             result.exception, (ValueError, zipfile.BadZipFile)
         ), result.output
         assert f"{path} is not a Lambda Feedback set" in result.output
+
+
+def test_an_html_space_entity_is_a_space() -> None:
+    a = _set("$16y''-\\pi^2y=0$ (Use $A$ and $B$ for your constants.)")
+    b = _set("$16y''-\\pi^2y=0$&#x20; &#x20;&#x20; (Use $A$ and $B$ for your constants.)")
+    assert differences(a, b) == []
+
+
+def test_whitespace_touching_a_maths_delimiter_from_outside_is_ignored() -> None:
+    a = _set("equation of $y''+y'-6y=0$: then")
+    b = _set("equation of$y''+y'-6y=0$: then")
+    assert differences(a, b) == []
+
+
+def test_a_separator_of_asterisks_is_dropped_like_one_of_hyphens() -> None:
+    a = _set("Then:\n\n$$\nx=1\n$$\n\n***\n\nRecall the rule.")
+    b = _set("Then:\n\n$$\nx=1\n$$\n\nRecall the rule.")
+    assert differences(a, b) == []

@@ -51,8 +51,9 @@ from in2lambda.validation import _COMMAND, _MATHS, _location
 _TICKET = "  # "
 """What a line of a differs.txt names the ticket closing it after."""
 
-_RULE = re.compile(r"(?m)^[ \t]*-{3,}[ \t]*$")
-"""A line holding nothing but hyphens, which is the separator Lambda Feedback writes."""
+_RULE = re.compile(r"(?m)^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$")
+"""A line holding nothing but three or more hyphens, asterisks or underscores: a markdown
+separator, which Lambda Feedback writes around a display maths as `---` or `***`."""
 
 _QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
 """Each curly quote and the straight quote it is compared as."""
@@ -101,8 +102,12 @@ def _text(markdown: str) -> str:
     """
     # Before the whitespace collapse below, which writes the field on one line and
     # leaves no line for _RULE to match.
-    without_rules = _RULE.sub("", markdown)
+    # The platform writes a space as the entity `&#x20;` (and a hard one as `&nbsp;`).
+    without_rules = _RULE.sub("", markdown.replace("&#x20;", " ").replace("&nbsp;", " "))
     folded = _MATHS.sub(_maths, without_rules.translate(_QUOTES))
+    # A space touching a maths delimiter from outside renders the same either way:
+    # `of $y$` and `of$y$` are one expression, so the whitespace beside `$` is dropped.
+    folded = re.sub(r"\s*(\${1,2})\s*", r"\1", folded)
     named = _IMAGE.sub(lambda reference: f"![]({Path(reference[1]).name})", folded)
     return " ".join(named.split())
 
