@@ -53,32 +53,6 @@ def test_a_curly_quote_is_a_straight_quote() -> None:
     assert differences(_set("The “load”."), _set('The "load".')) == []
 
 
-def test_an_html_entity_for_a_space_is_a_space() -> None:
-    """Lambda Feedback writes `&#x20;` and `&nbsp;` where a document writes a space."""
-    assert (
-        differences(
-            _set(
-                r"$16y''-\pi^2y=0$&#x20; &#x20;&#x20; "
-                "(Use $A$ and $B$ for your constants.)"
-            ),
-            _set(r"$16y''-\pi^2y=0$ (Use $A$ and $B$ for your constants.)"),
-        )
-        == []
-    )
-    assert differences(_set("The&nbsp;load."), _set("The load.")) == []
-
-
-def test_whitespace_beside_maths_is_dropped() -> None:
-    """A space touching a `$` on the outside renders as no space."""
-    assert (
-        differences(
-            _set("equation of $y''+y'-6y=0$: then"),
-            _set("equation of$y''+y'-6y=0$: then"),
-        )
-        == []
-    )
-
-
 def test_whitespace_inside_maths_is_dropped() -> None:
     """LaTeX renders `$z=2+3 i$` and `$z=2+3i$` the same."""
     assert differences(_set("$z = 2+3 i$"), _set("$z=2+3i$")) == []

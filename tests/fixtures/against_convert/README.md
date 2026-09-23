@@ -38,11 +38,6 @@ off both sides before comparing:
 - **Quotes.** Pandoc's LaTeX reader writes `’` where its `commonmark_x` writer writes
   `'`, so `aren’t` and `aren't` are the same wording. Each curly quote is compared as
   the straight quote.
-- **HTML entities for a space.** Lambda Feedback writes `&#x20;` and `&nbsp;` where a
-  document writes a space. Each entity is compared as a space.
-- **Whitespace beside maths.** An export writes `equation of $y'+y=0$:` where convert
-  writes `equation of$y'+y=0$:`. The whitespace before and after each maths span is
-  dropped.
 - **Maths notation.** Inside every `$ ... $` and `$$ ... $$`, `\left` and `\right` are
   removed, `~`, `\,` and `\space` are compared as a space, and every run of whitespace
   is dropped, except that a run between a control word and a following letter is
