@@ -84,6 +84,10 @@ any block. A constraint names one of four attributes:
 SELECTOR,` requires the block to follow the first block that the named selector matches, which is
 how a spec tells the solutions at the end of a problem sheet from the questions at the front.
 
+A comma separates the `after` clause from the rest of the selector only outside quotes. A comma
+inside a quoted pattern, such as `Para text~'^(Sheet|Note),|^Marks'`, is part of the pattern. One
+line holds one selector: write two selectors as a list under the key, as above.
+
 Write a regular expression in single quotes. YAML reads `\(` inside double quotes as an escape
 sequence and reports an error, and single quotes pass the backslash through.
 
