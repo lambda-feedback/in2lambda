@@ -270,6 +270,9 @@ _DISPLAY_MATHS = re.compile(r"(?<!\\)\$\$(.+?)(?<!\\)\$\$", re.DOTALL)
 _MARKER = re.compile(r" *(?:[-+*]|\(?(?:\d+|[ivxlcdm]+|[IVXLCDM]+|[A-Za-z])[.)]) {1,4}")
 """A list item's marker on its first line, as `commonmark_x` reads one."""
 
+_DOUBLE_DOLLAR = re.compile(r"(?<!\\)\$\$")
+"""One delimiter of a display maths, wherever it stands on a line."""
+
 
 def _verbatim_lines(markdown: str) -> set[int]:
     r"""The lines of some markdown whose ``$$`` is code rather than maths.
@@ -283,6 +286,13 @@ def _verbatim_lines(markdown: str) -> set[int]:
     :func:`dedented` takes off again, so a line this leaves alone is a line the field
     quoting it reads as code too.
 
+    A line inside a ``$$ ... $$`` opened on an earlier line is maths however far it is
+    indented: pandoc writes the author's own indent inside the maths on top of the
+    item's, which puts the closing delimiter of maths in a list item past the column
+    code starts at. Such a line neither counts as code nor closes the item it stands
+    in. Maths does not cross a blank line, so a blank line ends the span, and an
+    unpaired ``$$`` - one in inline code, say - leaves the lines after it as they were.
+
     Examples:
         >>> from in2lambda.source import _verbatim_lines
         >>> sorted(_verbatim_lines("Text\n\n    $$x = y$$\n"))
@@ -293,9 +303,14 @@ def _verbatim_lines(markdown: str) -> set[int]:
         [3]
         >>> sorted(_verbatim_lines("``` python\n$$x = y$$\n```\n"))
         [1, 2, 3]
+        >>> sorted(_verbatim_lines("1.  Item $$x =\n        y$$ more\n"))
+        []
+        >>> sorted(_verbatim_lines("1.  Item\n\n        $$x =\n        y$$\n"))
+        [3, 4]
     """
     verbatim = set()
     fence = ""
+    maths = False  # Whether a `$$` opened on an earlier line is still open.
     items: list[int] = []  # The content column of each list item open at this line.
     for number, line in enumerate(markdown.split("\n"), start=1):
         stripped = line.lstrip(" ")
@@ -307,7 +322,11 @@ def _verbatim_lines(markdown: str) -> set[int]:
         elif not stripped:
             # Commonmark closes an item at the next non-blank line indented less than
             # its content column, not at the blank line before that one.
+            maths = False
             continue
+        elif maths:
+            if len(_DOUBLE_DOLLAR.findall(line)) % 2 == 1:
+                maths = False
         else:
             while items and indent < items[-1]:
                 items.pop()
@@ -317,9 +336,101 @@ def _verbatim_lines(markdown: str) -> set[int]:
                 verbatim.add(number)
             elif indent >= base + 4:
                 verbatim.add(number)
-            elif marker := _MARKER.match(line):
-                items.append(marker.end())
+            else:
+                if marker := _MARKER.match(line):
+                    items.append(marker.end())
+                # Only a line that is not code opens a span: a `$$` in a code block is
+                # characters the document shows rather than a delimiter.
+                maths = len(_DOUBLE_DOLLAR.findall(line)) % 2 == 1
     return verbatim
+
+
+def _blocked(markdown: str, verbatim: set[int], position: int) -> bool:
+    """Whether the delimiter at this offset stands in a table row, a quote or code.
+
+    The rewrites below move a maths onto lines of their own or join the lines it stands
+    on, and neither can carry a pipe table's cell, a block quote's ``> `` or the meaning
+    of a code block's characters across the lines it changes.
+    """
+    opening = markdown[markdown.rfind("\n", 0, position) + 1 : position]
+    return opening.lstrip()[:1] in ("|", ">") or (
+        markdown.count("\n", 0, position) + 1 in verbatim
+    )
+
+
+_INLINE_MATHS = re.compile(
+    r"(?<![\\$])\$(?!\$)(?!\s)((?:[^$\\]|\\.)+?)(?<!\s)\$(?!\$)", re.DOTALL
+)
+"""Inline maths: a single ``$``, content holding no unescaped ``$``, a single ``$``.
+
+The content neither starts nor ends with whitespace, which is the rule pandoc's own
+``tex_math_dollars`` reader applies. Without it, the ``$`` pandoc writes unescaped
+inside a URL pairs with the opening ``$`` of the next maths in the document.
+"""
+
+
+def _inline_maths_joined(markdown: str) -> str:
+    r"""Markdown pandoc wrote, with each inline ``$ ... $`` on one line.
+
+    An author who broke a line inside a ``$ ... $`` in the document has that newline
+    written back by ``commonmark_x``, and the delimiter checks refuse a newline inside
+    inline maths. The newline carries nothing the maths renders, so the lines of the
+    span are joined with a space. Pandoc escapes a dollar the document shows as ``\$``,
+    which is what makes an unescaped single ``$`` in its output a delimiter.
+
+    A match holding a backtick, or running across a blank line, is left as written, as
+    is one whose opening or closing ``$`` stands on a code block's line: such a match is
+    an unpaired ``$`` - one in inline code or in a shell prompt - closed by the ``$`` of
+    a later maths, and joining the two would run the lines between them together. A
+    match that opens or closes on a pipe table's row or on a block quote's line is left
+    as written too: the join keeps the first line as it stands and strips the rest, so
+    it would carry the quote's ``> `` or the next row's ``|`` into the maths.
+    ``in2lambda validate`` reports the maths left in any of these. A ``$$`` opens no
+    match here, so display maths is left to :func:`_display_maths_blocked`.
+
+    An unescaped ``$`` pandoc writes inside a URL joins nothing either: the text from
+    that ``$`` to the opening ``$`` of the next maths ends with the space before that
+    delimiter, and :data:`_INLINE_MATHS` matches no span whose content ends in
+    whitespace.
+
+    Examples:
+        >>> from in2lambda.source import _inline_maths_joined
+        >>> _inline_maths_joined("A speed of $v =\n576$ here.\n")
+        'A speed of $v = 576$ here.\n'
+        >>> _inline_maths_joined("1.  The energy is $U =\n      5a$ now.\n")
+        '1.  The energy is $U = 5a$ now.\n'
+        >>> _inline_maths_joined("The load is $$F =\npA$$ here.\n")
+        'The load is $$F =\npA$$ here.\n'
+        >>> _inline_maths_joined("Type `$` and\nmore `$` here.\n")
+        'Type `$` and\nmore `$` here.\n'
+        >>> _inline_maths_joined("Costs $5 today.\n\nAnd more($6) here.\n")
+        'Costs $5 today.\n\nAnd more($6) here.\n'
+        >>> _inline_maths_joined("``` sh\ncost=$a and\nsum=$b\n```\n")
+        '``` sh\ncost=$a and\nsum=$b\n```\n'
+        >>> _inline_maths_joined("> The energy is $U =\n> 5a$ here.\n")
+        '> The energy is $U =\n> 5a$ here.\n'
+        >>> _inline_maths_joined("A fee at <http://x/$1>\\\nand $E = mc^2$ here.\n")
+        'A fee at <http://x/$1>\\\nand $E = mc^2$ here.\n'
+    """
+    verbatim = _verbatim_lines(markdown)
+    written: list[str] = []
+    end = 0
+    for match in _INLINE_MATHS.finditer(markdown):
+        if "\n" not in match.group():
+            continue
+        if "`" in match.group(1) or any(
+            not line.strip() for line in match.group().split("\n")
+        ):
+            continue
+        if _blocked(markdown, verbatim, match.start()) or _blocked(
+            markdown, verbatim, match.end()
+        ):
+            continue
+        body = " ".join(line.strip() for line in match.group(1).split("\n"))
+        written.append(f"{markdown[end : match.start()]}${body}$")
+        end = match.end()
+    written.append(markdown[end:])
+    return "".join(written)
 
 
 def _display_maths_blocked(markdown: str) -> str:
@@ -332,7 +443,10 @@ def _display_maths_blocked(markdown: str) -> str:
 
     The inserted lines take the indent of the line the maths began on - a list item's
     marker width included, so maths in an item stays in the item - and whatever stood
-    either side of it on that line becomes a paragraph of its own.
+    either side of it on that line becomes a paragraph of its own. A maths the author
+    broke a line inside, which pandoc writes as an opening ``$$`` on one line and a
+    closing ``$$`` on a later one, is rewritten the same way, each of its lines becoming
+    a line of the block.
 
     A ``$$`` that opens or closes on a pipe table's row, on a block quote's line or on a
     code block's line is left as pandoc wrote it: a table cell cannot hold a block, an
@@ -349,8 +463,8 @@ def _display_maths_blocked(markdown: str) -> str:
         'The load is\n\n$$\nF = pA\n$$\n\nhere.\n'
         >>> _display_maths_blocked("1.  Find $$F = pA$$\n")
         '1.  Find\n\n    $$\n    F = pA\n    $$\n'
-        >>> _display_maths_blocked("A load $$F = pA$$\r\n")
-        'A load\r\n\r\n$$\r\nF = pA\r\n$$\r\n'
+        >>> _display_maths_blocked("1.  Given $$U = a\n        b$$ where r is.\n")
+        '1.  Given\n\n    $$\n    U = a\n    b\n    $$\n\n    where r is.\n'
         >>> _display_maths_blocked("> The load is $$F = pA$$ here.\n")
         '> The load is $$F = pA$$ here.\n'
         >>> _display_maths_blocked("Type this:\n\n    $$x = y$$\n")
@@ -364,21 +478,7 @@ def _display_maths_blocked(markdown: str) -> str:
         >>> _display_maths_blocked("The load is $$F = pA\n> and $$ here.\n")
         'The load is $$F = pA\n> and $$ here.\n'
     """
-    if "\r\n" in markdown:
-        # Pandoc writes the line endings of whoever is running it, and the file on disk
-        # is hashed as it is written, so a Windows freeze stays a Windows file.
-        blocked = _display_maths_blocked(markdown.replace("\r\n", "\n"))
-        return blocked.replace("\n", "\r\n")
-
     verbatim = _verbatim_lines(markdown)
-
-    def blocked(position: int) -> bool:
-        """Whether the `$$` at this offset stands in a table row, a quote or code."""
-        opening = markdown[markdown.rfind("\n", 0, position) + 1 : position]
-        return opening.lstrip()[:1] in ("|", ">") or (
-            markdown.count("\n", 0, position) + 1 in verbatim
-        )
-
     written: list[str] = []
     end = 0
     for match in _DISPLAY_MATHS.finditer(markdown):
@@ -390,7 +490,9 @@ def _display_maths_blocked(markdown: str) -> str:
             # the opening `$$` of a later maths. Rewriting it would make a maths block
             # of the words standing between the two.
             continue
-        if blocked(match.start()) or blocked(match.end()):
+        if _blocked(markdown, verbatim, match.start()) or _blocked(
+            markdown, verbatim, match.end()
+        ):
             # A pipe table's cell cannot hold a block; an inserted line carries the
             # indent of the line the maths began on but not a block quote's `> `, so the
             # rewrite would put the maths and the words after it outside the quote; and
@@ -420,6 +522,27 @@ def _display_maths_blocked(markdown: str) -> str:
             end += len(rest) - len(rest.lstrip(" "))
     written.append(markdown[end:])
     return "".join(written)
+
+
+def _maths_rewritten(markdown: str) -> str:
+    r"""Markdown pandoc wrote, with its maths written as the delimiter checks want it.
+
+    :func:`_inline_maths_joined` runs first: joining the lines of an inline maths moves
+    every line below it, and :func:`_display_maths_blocked` reads line numbers.
+
+    Examples:
+        >>> from in2lambda.source import _maths_rewritten
+        >>> _maths_rewritten("A load $$F = pA$$\r\n")
+        'A load\r\n\r\n$$\r\nF = pA\r\n$$\r\n'
+        >>> _maths_rewritten("A speed of $v =\n576$ here.\n")
+        'A speed of $v = 576$ here.\n'
+    """
+    if "\r\n" in markdown:
+        # Pandoc writes the line endings of whoever is running it, and the file on disk
+        # is hashed as it is written, so a Windows freeze stays a Windows file.
+        rewritten = _maths_rewritten(markdown.replace("\r\n", "\n"))
+        return rewritten.replace("\n", "\r\n")
+    return _display_maths_blocked(_inline_maths_joined(markdown))
 
 
 def _digest(data: bytes) -> str:
@@ -929,10 +1052,12 @@ def add(
             raw, markdown = _source(path)
             frozen_path = path
         else:
-            # Unwrapped, and with the display maths blocked out, before anything is
-            # hashed: both are habits of pandoc's writer rather than anything the author
-            # did, and both are what a field quoting these lines would have to render.
-            markdown = _display_maths_blocked(
+            # Unwrapped, with the display maths blocked out and the inline maths joined
+            # onto one line, before anything is hashed: the wrapping and the one-line
+            # `$$ ... $$` are habits of pandoc's writer rather than anything the author
+            # did, the newline inside an inline `$ ... $` carries nothing the maths
+            # renders, and all three are what a field quoting these lines would render.
+            markdown = _maths_rewritten(
                 _pandoc(str(path), _MARKDOWN, "--wrap=none").decode("utf-8")
             )
             raw = markdown.encode("utf-8")
