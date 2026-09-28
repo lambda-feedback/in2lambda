@@ -62,3 +62,12 @@ image usually has no alt text, so this is also the ordinary case.
 
 The image the docx embeds is referenced as `media/rId9.png`, which is not extracted - nothing
 here reads the image, only the lines around it.
+
+`bracketed_spans/source.docx` holds an underlined heading, a bold and underlined `Question 2:`
+beside a highlighted word, and a run in small capitals. `make_source.py` beside it wrote that
+document with python-docx, which is not a dependency of in2lambda: the document is committed and
+the script records what it holds. Pandoc's docx reader turns the three formats into the bracketed
+spans `[Hydraulic scale]{.underline}`, `[oil]{.mark}` and `[Note:]{.smallcaps}`, which the freeze
+unwraps to the text alone. The test asserting that no fixture's frozen markdown holds a `]{`
+looks for that rather than for `{.`, because `fenced_div` freezes to `::: {.solution}`, which is a
+div the freeze keeps.

@@ -14,14 +14,17 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-from conftest import SOURCES, SOURCES_DIR
+from conftest import SOURCES, SOURCES_DIR, needs_compiler
 
 from in2lambda.draft import _quoted
 from in2lambda.main import cli
-from in2lambda.validation import MathDelimiterError, math_delimiter_checker
+from in2lambda.validation import MathDelimiterError, math_delimiter_checker, pdf
 
 MARKDOWN = SOURCES_DIR / "markdown"
 """The case the tests below happen to use; what they check holds for any of them."""
+
+SPAN_ATTRIBUTE = re.compile(r"\]\{[^}]*\}")
+"""The attributes of a bracketed span, which no frozen markdown may hold."""
 
 
 def _frozen(directory: Path) -> Path:
@@ -52,6 +55,35 @@ def test_source_add_finds_the_expected_blocks(folder: Path, tmp_path: Path) -> N
     for block in source["blocks"]:
         quoted = _quoted(draft, markdown, 1, block["start"], block["end"])
         assert math_delimiter_checker(quoted) is MathDelimiterError.PASSED, quoted
+
+    # A bracketed span is underline, highlight or small capitals, which the PDF
+    # generator's pandoc writes as a LaTeX command its template does not define, so no
+    # freeze may leave one. A fenced div's `::: {.solution}` is not one of these.
+    assert not SPAN_ATTRIBUTE.search(markdown)
+
+
+@needs_compiler
+def test_a_frozen_docx_compiles_as_the_pdf_generator_does(tmp_path: Path) -> None:
+    """A .docx holding underline, highlight and small capitals is what faulted at build.
+
+    The three sheets that reported it are private, so the fixture stands for them: every
+    block of it is quoted as a field would be and compiled as Lambda Feedback compiles a
+    set.
+    """
+    shutil.copytree(SOURCES_DIR / "bracketed_spans", tmp_path, dirs_exist_ok=True)
+
+    result = CliRunner().invoke(cli, ["source", "add", str(tmp_path / "source.docx")])
+
+    assert result.exit_code == 0, result.output
+    draft = json.loads((tmp_path / "source.draft.json").read_text())
+    (source,) = draft["sources"]
+    markdown = (tmp_path / source["source"]).read_text()
+    fields = [
+        (block["id"], _quoted(draft, markdown, 1, block["start"], block["end"]))
+        for block in source["blocks"]
+    ]
+
+    assert pdf.problems(fields, []) == []
 
 
 def test_freezing_again_is_refused_once_the_source_has_changed(
