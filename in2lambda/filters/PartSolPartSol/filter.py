@@ -54,7 +54,7 @@ def pandoc_filter(
     if isinstance(elem, pf.Div):
         pandoc_filter.solutions.append(pf.stringify(elem))
         if pandoc_filter.question:
-            set.add_question(main_text="\n".join(pandoc_filter.question))
+            set.add_question(master_content="\n".join(pandoc_filter.question))
             set.current_question.add_solution(pf.stringify(elem))
             set.current_question._last_part["solution"] -= 1
         pandoc_filter.question = []

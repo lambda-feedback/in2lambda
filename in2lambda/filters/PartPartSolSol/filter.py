@@ -46,7 +46,7 @@ def pandoc_filter(
 
     # Solutions are in a Div
     if isinstance(elem, pf.Div):
-        set.add_question(main_text="\n".join(pandoc_filter.question))
+        set.add_question(master_content="\n".join(pandoc_filter.question))
         if hasattr(pandoc_filter, "parts"):
             for part in pandoc_filter.parts:
                 set.current_question.add_part_text(part)

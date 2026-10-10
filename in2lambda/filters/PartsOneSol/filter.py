@@ -42,7 +42,7 @@ def pandoc_filter(
                 isinstance(elem.prev, pf.Header)
                 and pf.stringify(elem.prev) != "Solution"
             ):
-                set.add_question(main_text=elem)
+                set.add_question(master_content=elem)
 
         # Parts are denoted via ordered lists
         case pf.OrderedList:

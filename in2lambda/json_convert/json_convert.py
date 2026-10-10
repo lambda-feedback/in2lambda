@@ -9,6 +9,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from in2lambda.api.part import Branch, Part
+from in2lambda.api.response_area import Case, ResponseArea
 from in2lambda.api.set import Set
 
 MINIMAL_QUESTION_TEMPLATE = "minimal_template_question.json"
@@ -29,6 +31,99 @@ def _zip_sorted_folder(folder_path, zip_path):
                 abs_path = os.path.join(root, file)
                 rel_path = os.path.relpath(abs_path, folder_path)
                 zf.write(abs_path, arcname=rel_path)
+
+
+def _case_to_json(case: Case) -> dict[str, Any]:
+    output = {
+        "id": case.id,
+        "answer": case.answer,
+        "feedback": case.feedback,
+        "isCorrect": case.is_correct,
+        "params": case.params,
+    }
+    if case.color is not None:
+        output["color"] = case.color.value
+    return output
+
+
+def _response_area_to_json(area: ResponseArea, order: int) -> dict[str, Any]:
+    output = {
+        "orderNumber": order,
+        "contentAfter": area.content_after,
+        "preResponseText": area.pre_text,
+        "postResponseText": area.post_text,
+        "inputSymbols": [
+            {
+                "symbol": symbol.symbol,
+                "code": symbol.code,
+                "aliases": symbol.aliases,
+                "isVisible": symbol.is_visible,
+            }
+            for symbol in area.input_symbols
+        ],
+        "displayInputSymbols": area.display_input_symbols,
+        "includeInPdf": area.include_in_pdf,
+        "saveAllowed": area.save_allowed,
+        "evaluationFunctionName": area.evaluation_function,
+        "livePreview": area.live_preview,
+        "gradeParams": area._grade_params(),
+        "separateFeedback": area.separate_feedback,
+        "commonFeedbackColor": area.common_feedback_color,
+        "correctFeedbackColor": area.correct_feedback_color,
+        "correctFeedbackPrefix": area.correct_feedback_prefix,
+        "incorrectFeedbackColor": area.incorrect_feedback_color,
+        "incorrectFeedbackPrefix": area.incorrect_feedback_prefix,
+        "tests": [
+            {
+                "id": test.id,
+                "payload": test.payload,
+                "expectedResponse": {"isCorrect": test.is_correct},
+            }
+            for test in area.tests
+        ],
+        "cases": [_case_to_json(case) for case in area.cases],
+        "response": {
+            "responseInput": {
+                "responseType": area.response_type,
+                "answer": area.answer,
+                "config": area._config(),
+            }
+        },
+    }
+    if area.check_button_text:
+        output["checkButtonText"] = area.check_button_text
+    return output
+
+
+def _branch_to_json(branch: Branch) -> dict[str, Any]:
+    return {
+        "title": branch.title,
+        "content": branch.content,
+        "children": [_branch_to_json(child) for child in branch.branches],
+    }
+
+
+def _part_to_json(part: Part, order: int) -> dict[str, Any]:
+    output = {
+        "orderNumber": order,
+        "content": part.content,
+        "answerContent": part.answer,
+        "responseAreas": [
+            _response_area_to_json(area, j)
+            for j, area in enumerate(part.response_areas)
+        ],
+    }
+    # Lambda Feedback leaves each key out of a part that has none.
+    for key, content, branches in (
+        ("tutorial", part.tutorial, part.tutorial_branches),
+        ("workedSolution", part.worked_solution, part.worked_solution_branches),
+    ):
+        if content or branches:
+            output[key] = {
+                "content": content,
+                "children": [_branch_to_json(branch) for branch in branches],
+            }
+    return output
 
 
 def converter(
@@ -65,6 +160,15 @@ def converter(
     set_template["structuredTutorialVisibility"] = str(
         SetQuestions._structuredTutorialVisibility.status
     )
+    set_template["chatbotVisibility"] = str(SetQuestions._chatbotVisibility.status)
+    set_template["isSurvey"] = SetQuestions.is_survey
+    set_template["manuallyHidden"] = SetQuestions.manually_hidden
+    for key, value in {
+        "releasedAt": SetQuestions.released_at,
+        "hiddenAt": SetQuestions.hidden_at,
+    }.items():
+        if value is not None:
+            set_template[key] = value
     # create the set file
     with open(f"{output_question}/set_{set_name}.json", "w") as file:
         json.dump(set_template, file)
@@ -80,21 +184,29 @@ def converter(
             output["title"] = "Question " + str(i + 1)
 
         # add main text to the question file
-        output["masterContent"] = ListQuestions[i].main_text
+        output["masterContent"] = ListQuestions[i].master_content
 
-        # add parts to the question file
-        if ListQuestions[i].parts:
-            output["parts"][0]["content"] = ListQuestions[i].parts[0].text
-            output["parts"][0]["workedSolution"]["content"] = (
-                ListQuestions[i].parts[0].worked_solution
-            )
-            for j in range(1, len(ListQuestions[i].parts)):
-                output["parts"].append(deepcopy(question_template["parts"][0]))
-                output["parts"][j]["content"] = ListQuestions[i].parts[j].text
-                output["parts"][j]["orderNumber"] = j
-                output["parts"][j]["workedSolution"]["content"] = (
-                    ListQuestions[i].parts[j].worked_solution
-                )
+        question = ListQuestions[i]
+        output["publish"] = question.publish
+        output["displayFinalAnswer"] = question.display_final_answer
+        output["displayWorkedSolution"] = question.display_worked_solution
+        output["displayStructuredTutorial"] = question.display_structured_tutorial
+        output["displayChatbot"] = question.display_chatbot
+        # An unset optional setting is left out of the JSON, so that in2lambda writes no
+        # value the author did not choose.
+        for key, value in {
+            "skill": question.skill,
+            "guidance": question.guidance,
+            "durationLowerBound": question.duration_lower_bound,
+            "durationUpperBound": question.duration_upper_bound,
+        }.items():
+            if value is not None:
+                output[key] = value
+
+        if question.parts:
+            output["parts"] = [
+                _part_to_json(part, j) for j, part in enumerate(question.parts)
+            ]
 
         # Output file
         filename = (
