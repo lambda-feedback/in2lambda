@@ -67,7 +67,7 @@ def pandoc_filter(
                 set.current_question.add_solution(spaced_blurb)
             # Add the main question text as the Lambda Feedback blurb
             elif not parsing_answers:
-                set.add_question(main_text=spaced_blurb)
+                set.add_question(master_content=spaced_blurb)
 
             # Add each part solution/text
             # For the solution, prepend any top level answer text to each part answer

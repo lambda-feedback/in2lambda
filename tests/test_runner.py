@@ -26,7 +26,7 @@ def test_runner_returns_populated_set(filter_name: str, filters_dir: str) -> Non
     assert result.questions, f"{filter_name} produced no questions"
     for question in result.questions:
         # A question is only useful if it has top-level text or at least one part.
-        assert question.main_text or question.parts
+        assert question.master_content or question.parts
 
 
 @pytest.mark.parametrize("filter_name", BUILTIN_FILTERS)
