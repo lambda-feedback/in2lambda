@@ -1,0 +1,65 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Poetry
+        run: pipx install poetry --python "$(which python)"
+      - name: Check release tag matches package version
+        run: |
+          version="$(poetry version --short)"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Release tag $GITHUB_REF_NAME does not match pyproject.toml version $version"
+            exit 1
+          fi
+      - name: Check version is newer than the latest on PyPI
+        run: |
+          python -m pip install packaging
+          python - "$(poetry version --short)" <<'EOF'
+          import json, sys, urllib.request
+          from packaging.version import Version
+
+          version = Version(sys.argv[1])
+          with urllib.request.urlopen("https://pypi.org/pypi/in2lambda/json") as resp:
+              releases = json.load(resp)["releases"]
+          latest = max(Version(v) for v in releases)
+          if version <= latest:
+              print(f"::error::pyproject.toml version {version} is not newer than {latest} on PyPI")
+              sys.exit(1)
+          print(f"Publishing {version} (latest on PyPI: {latest})")
+          EOF
+      - name: Build sdist and wheel
+        run: poetry build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/in2lambda/
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
