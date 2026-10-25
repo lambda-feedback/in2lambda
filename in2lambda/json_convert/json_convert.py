@@ -5,16 +5,11 @@ import os
 import re
 import shutil
 import zipfile
-from copy import deepcopy
-from pathlib import Path
 from typing import Any
 
 from in2lambda.api.part import Branch, Part
 from in2lambda.api.response_area import Case, ResponseArea
 from in2lambda.api.set import Set
-
-MINIMAL_QUESTION_TEMPLATE = "minimal_template_question.json"
-MINIMAL_SET_TEMPLATE = "minimal_template_set.json"
 
 
 def _zip_sorted_folder(folder_path, zip_path):
@@ -126,17 +121,10 @@ def _part_to_json(part: Part, order: int) -> dict[str, Any]:
     return output
 
 
-def converter(
-    question_template: dict[str, Any],
-    set_template: dict[str, Any],
-    SetQuestions: Set,
-    output_dir: str,
-) -> None:
+def converter(SetQuestions: Set, output_dir: str) -> None:
     """Turns a set of question objects into Lambda Feedback JSON.
 
     Args:
-        question_template: The loaded JSON from the minimal question template (it needs to be in sync).
-        set_template: The loaded JSON from the minimal set template (it needs to be in sync).
         SetQuestions: A Set object containing questions.
         output_dir: The absolute path for where to produced the final JSON/zip files.
     """
@@ -149,49 +137,38 @@ def converter(
     output_question = os.path.join(output_dir, set_name)
     os.makedirs(output_question, exist_ok=True)
 
-    set_template["name"] = set_name
-    set_template["description"] = set_description
-    set_template["finalAnswerVisibility"] = str(
-        SetQuestions._finalAnswerVisibility.status
-    )
-    set_template["workedSolutionVisibility"] = str(
-        SetQuestions._workedSolutionVisibility.status
-    )
-    set_template["structuredTutorialVisibility"] = str(
-        SetQuestions._structuredTutorialVisibility.status
-    )
-    set_template["chatbotVisibility"] = str(SetQuestions._chatbotVisibility.status)
-    set_template["isSurvey"] = SetQuestions.is_survey
-    set_template["manuallyHidden"] = SetQuestions.manually_hidden
+    set_json = {
+        "name": set_name,
+        "description": set_description,
+        "isSurvey": SetQuestions.is_survey,
+        "manuallyHidden": SetQuestions.manually_hidden,
+        "finalAnswerVisibility": str(SetQuestions._finalAnswerVisibility),
+        "workedSolutionVisibility": str(SetQuestions._workedSolutionVisibility),
+        "structuredTutorialVisibility": str(SetQuestions._structuredTutorialVisibility),
+        "chatbotVisibility": str(SetQuestions._chatbotVisibility),
+    }
     for key, value in {
         "releasedAt": SetQuestions.released_at,
         "hiddenAt": SetQuestions.hidden_at,
     }.items():
         if value is not None:
-            set_template[key] = value
+            set_json[key] = value
     # create the set file
     with open(f"{output_question}/set_{set_name}.json", "w") as file:
-        json.dump(set_template, file)
+        json.dump(set_json, file)
 
     for i in range(len(ListQuestions)):
-        output = deepcopy(question_template)
-
-        output["orderNumber"] = i  # order number starts at 0
-        # add title to the question file
-        if ListQuestions[i].title != "":
-            output["title"] = ListQuestions[i].title
-        else:
-            output["title"] = "Question " + str(i + 1)
-
-        # add main text to the question file
-        output["masterContent"] = ListQuestions[i].master_content
-
         question = ListQuestions[i]
-        output["publish"] = question.publish
-        output["displayFinalAnswer"] = question.display_final_answer
-        output["displayWorkedSolution"] = question.display_worked_solution
-        output["displayStructuredTutorial"] = question.display_structured_tutorial
-        output["displayChatbot"] = question.display_chatbot
+        output: dict[str, Any] = {
+            "orderNumber": i,
+            "title": question.title or f"Question {i + 1}",
+            "masterContent": question.master_content,
+            "publish": question.publish,
+            "displayFinalAnswer": question.display_final_answer,
+            "displayStructuredTutorial": question.display_structured_tutorial,
+            "displayWorkedSolution": question.display_worked_solution,
+            "displayChatbot": question.display_chatbot,
+        }
         # An unset optional setting is left out of the JSON, so that in2lambda writes no
         # value the author did not choose.
         for key, value in {
@@ -203,10 +180,9 @@ def converter(
             if value is not None:
                 output[key] = value
 
-        if question.parts:
-            output["parts"] = [
-                _part_to_json(part, j) for j, part in enumerate(question.parts)
-            ]
+        output["parts"] = [
+            _part_to_json(part, j) for j, part in enumerate(question.parts)
+        ]
 
         # Output file
         filename = (
@@ -243,17 +219,10 @@ def main(set_questions: Set, output_dir: str) -> None:
         set_questions: A Set object containing questions.
         output_dir: Where to output the final Lambda Feedback JSON/ZIP files.
     """
-    # Use path so minimal template can be found regardless of where the user is running python from.
-    with open(Path(__file__).with_name(MINIMAL_QUESTION_TEMPLATE), "r") as file:
-        question_template = json.load(file)
-
-    with open(Path(__file__).with_name(MINIMAL_SET_TEMPLATE), "r") as file:
-        set_template = json.load(file)
-
     # check if directory exists in file
     if os.path.isdir(output_dir):
         try:
             shutil.rmtree(output_dir)
         except OSError as e:
             print("Error: %s : %s" % (output_dir, e.strerror))
-    converter(question_template, set_template, set_questions, output_dir)
+    converter(set_questions, output_dir)
