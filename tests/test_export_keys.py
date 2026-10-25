@@ -9,10 +9,16 @@ type; those of ``gradeParams`` and a case's ``params`` belong to the evaluation 
 import json
 from pathlib import Path
 
-from in2lambda.api import response_area
 from in2lambda.api.part import Part
 from in2lambda.api.question import Question
-from in2lambda.api.response_area import Case, Color, InputSymbol, MathSingleLine, Test
+from in2lambda.api.response_area import (
+    RESPONSE_TYPES,
+    Case,
+    Color,
+    InputSymbol,
+    MathSingleLine,
+    Test,
+)
 from in2lambda.api.set import Set
 
 EXPORTS = sorted((Path(__file__).parent / "fixtures" / "exports").glob("*/"))
@@ -79,17 +85,11 @@ def test_a_set_using_every_field_writes_the_keys_of_a_real_export(tmp_path) -> N
 
 
 def test_each_response_type_writes_the_settings_of_a_real_export() -> None:
-    def subclasses(cls):
-        return [s for c in cls.__subclasses__() for s in [c, *subclasses(c)]]
-
-    types = {
-        cls.response_type: cls
-        for cls in subclasses(response_area.ResponseArea)
-        if "response_type" in vars(cls)
-    }
     for question in _exported("question_*.json"):
         for part in question["parts"]:
             for area in part["responseAreas"]:
                 response = area["response"]["responseInput"]
-                written = types[response["responseType"]](evaluation_function="")
+                written = RESPONSE_TYPES[response["responseType"]](
+                    evaluation_function=""
+                )
                 assert set(written._config() or {}) == set(response["config"] or {})

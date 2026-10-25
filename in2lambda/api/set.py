@@ -5,8 +5,10 @@ from typing import Optional, Union
 
 import panflute as pf
 
+from in2lambda import defaults
 from in2lambda.api.question import Question
-from in2lambda.api.visibility_status import VisibilityController, VisibilityStatus
+from in2lambda.api.visibility_status import VisibilityController
+from in2lambda.defaults import UNSET
 
 
 @dataclass
@@ -19,29 +21,22 @@ class Set:
 
     _name: str = field(default="set")
     _description: str = field(default="")
-    _finalAnswerVisibility: VisibilityController = field(
-        default_factory=lambda: VisibilityController(
-            VisibilityStatus.OPEN_WITH_WARNINGS
-        )
-    )
-    _workedSolutionVisibility: VisibilityController = field(
-        default_factory=lambda: VisibilityController(
-            VisibilityStatus.OPEN_WITH_WARNINGS
-        )
-    )
-    _structuredTutorialVisibility: VisibilityController = field(
-        default_factory=lambda: VisibilityController(VisibilityStatus.OPEN)
-    )
-    _chatbotVisibility: VisibilityController = field(
-        default_factory=lambda: VisibilityController(VisibilityStatus.HIDE)
-    )
-    is_survey: bool = False
+    # The settings below default to what in2lambda's defaults.toml gives them.
+    _finalAnswerVisibility: VisibilityController = UNSET
+    _workedSolutionVisibility: VisibilityController = UNSET
+    _structuredTutorialVisibility: VisibilityController = UNSET
+    _chatbotVisibility: VisibilityController = UNSET
+    is_survey: bool = UNSET
     released_at: Optional[str] = None
     hidden_at: Optional[str] = None
-    manually_hidden: bool = True
+    manually_hidden: bool = UNSET
 
     questions: list[Question] = field(default_factory=list)
     _current_question_index = -1
+
+    def __post_init__(self) -> None:
+        """Gives each setting left unset its default."""
+        defaults.fill(self, "set")
 
     @property
     def current_question(self) -> Question:

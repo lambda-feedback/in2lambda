@@ -5,6 +5,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, ClassVar, Optional, Union
 
+from in2lambda import defaults
+from in2lambda.defaults import UNSET
+
 
 def _new_id() -> str:
     return str(uuid.uuid4())
@@ -83,7 +86,7 @@ class ResponseArea:
 
     response_type: ClassVar[str]
     answer: Any = None
-    evaluation_function: str
+    evaluation_function: str = UNSET
     grade_params: Optional[dict[str, Any]] = None
     pre_text: str = ""
     post_text: str = ""
@@ -92,18 +95,22 @@ class ResponseArea:
     check_button_text: str = ""
     """Replaces the label of the check button; left out of the JSON when empty."""
     input_symbols: list[InputSymbol] = field(default_factory=list)
-    display_input_symbols: bool = False
-    live_preview: bool = False
-    include_in_pdf: bool = False
-    save_allowed: bool = False
-    separate_feedback: bool = True
-    common_feedback_color: str = "#C4CDD5"
-    correct_feedback_color: str = "#22C55E"
-    correct_feedback_prefix: str = "Correct"
-    incorrect_feedback_color: str = "#ff5630"
-    incorrect_feedback_prefix: str = "Incorrect"
+    display_input_symbols: bool = UNSET
+    live_preview: bool = UNSET
+    include_in_pdf: bool = UNSET
+    save_allowed: bool = UNSET
+    separate_feedback: bool = UNSET
+    common_feedback_color: str = UNSET
+    correct_feedback_color: str = UNSET
+    correct_feedback_prefix: str = UNSET
+    incorrect_feedback_color: str = UNSET
+    incorrect_feedback_prefix: str = UNSET
     tests: list[Test] = field(default_factory=list)
     cases: list[Case] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Gives each setting left unset its default."""
+        defaults.fill(self, "response_area", self.response_type)
 
     def _config(self) -> Optional[dict[str, Any]]:
         """The response type's settings, as Lambda Feedback writes them."""
@@ -117,9 +124,9 @@ class ResponseArea:
 @dataclass(kw_only=True)
 class _Maths(ResponseArea):
     answer: str = ""
-    allow_handwrite: bool = True
-    allow_photo: bool = True
-    enable_refinement: bool = True
+    allow_handwrite: bool = UNSET
+    allow_photo: bool = UNSET
+    enable_refinement: bool = UNSET
 
     def _config(self) -> Optional[dict[str, Any]]:
         return {
@@ -134,7 +141,6 @@ class MathSingleLine(_Maths):
     """A single symbolic expression."""
 
     response_type: ClassVar[str] = "MATH_SINGLE_LINE"
-    evaluation_function: str = "compareExpressions"
 
 
 @dataclass(kw_only=True)
@@ -150,7 +156,6 @@ class Number(ResponseArea):
 
     response_type: ClassVar[str] = "NUMBER"
     answer: Optional[Union[int, float]] = None
-    evaluation_function: str = "isSimilar"
 
 
 @dataclass(kw_only=True)
@@ -159,7 +164,6 @@ class NumericUnits(ResponseArea):
 
     response_type: ClassVar[str] = "NUMERIC_UNITS"
     answer: str = ""
-    evaluation_function: str = "compareExpressions"
 
     def _grade_params(self) -> Optional[dict[str, Any]]:
         # compareExpressions compares units only when told to.
@@ -180,7 +184,6 @@ class Boolean(ResponseArea):
 
     response_type: ClassVar[str] = "BOOLEAN"
     answer: bool = False
-    evaluation_function: str = "isExactEqual"
 
 
 @dataclass(kw_only=True)
@@ -189,10 +192,9 @@ class MultipleChoice(ResponseArea):
 
     response_type: ClassVar[str] = "MULTIPLE_CHOICE"
     answer: list[bool] = field(default_factory=list)
-    evaluation_function: str = "arrayEqual"
     options: list[str] = field(default_factory=list)
-    single: bool = True
-    randomise: bool = False
+    single: bool = UNSET
+    randomise: bool = UNSET
 
     def _config(self) -> Optional[dict[str, Any]]:
         return {
@@ -208,7 +210,6 @@ class Table(ResponseArea):
 
     response_type: ClassVar[str] = "TABLE"
     answer: list[list[str]] = field(default_factory=list)
-    evaluation_function: str = "arraySymbolicEqual"
     row_names: list[str] = field(default_factory=list)
     col_names: list[str] = field(default_factory=list)
 
@@ -227,7 +228,6 @@ class Matrix(ResponseArea):
 
     response_type: ClassVar[str] = "MATRIX"
     answer: list[list[str]] = field(default_factory=list)
-    evaluation_function: str = "arraySymbolicEqual"
 
     def _config(self) -> Optional[dict[str, Any]]:
         return {
@@ -242,8 +242,7 @@ class Code(ResponseArea):
 
     response_type: ClassVar[str] = "CODE"
     answer: str = ""
-    evaluation_function: str = "evaluatePython"
-    language: str = "python"
+    language: str = UNSET
 
     def _config(self) -> Optional[dict[str, Any]]:
         return {"language": self.language}
@@ -255,10 +254,10 @@ class Essay(ResponseArea):
 
     response_type: ClassVar[str] = "ESSAY"
     answer: Union[str, dict[str, str]] = ""
-    allow_draw: bool = False
-    allow_scan: bool = False
-    repeat_for_subjects: bool = False
-    allow_empty_submission: bool = False
+    allow_draw: bool = UNSET
+    allow_scan: bool = UNSET
+    repeat_for_subjects: bool = UNSET
+    allow_empty_submission: bool = UNSET
 
     def _config(self) -> Optional[dict[str, Any]]:
         return {
@@ -281,8 +280,8 @@ class Likert(ResponseArea):
     ] = None
     statements: list[str] = field(default_factory=list)
     options: Optional[list[str]] = None
-    repeat_for_subjects: bool = False
-    allow_empty_submission: bool = False
+    repeat_for_subjects: bool = UNSET
+    allow_empty_submission: bool = UNSET
 
     def _config(self) -> Optional[dict[str, Any]]:
         config: dict[str, Any] = {
@@ -300,12 +299,10 @@ class Images(ResponseArea):
     """Upload images."""
 
     response_type: ClassVar[str] = "IMAGES"
-    max_images: int = 3
-    allowed_types: list[str] = field(
-        default_factory=lambda: ["image/jpg", "image/jpeg", "image/png"]
-    )
-    max_size_mb: int = 10
-    resize_max_side: int = 0
+    max_images: int = UNSET
+    allowed_types: list[str] = UNSET
+    max_size_mb: int = UNSET
+    resize_max_side: int = UNSET
     """The longest side images are resized to; 0 leaves them as they are."""
 
     def _config(self) -> Optional[dict[str, Any]]:
@@ -315,3 +312,24 @@ class Images(ResponseArea):
             "maxSizeMb": self.max_size_mb,
             "resizeMaxSide": self.resize_max_side,
         }
+
+
+RESPONSE_TYPES: dict[str, type[ResponseArea]] = {
+    cls.response_type: cls
+    for cls in (
+        MathSingleLine,
+        MathMultiLines,
+        Number,
+        NumericUnits,
+        Text,
+        Boolean,
+        MultipleChoice,
+        Table,
+        Matrix,
+        Code,
+        Essay,
+        Likert,
+        Images,
+    )
+}
+"""Each response type's class, by the name Lambda Feedback gives the type."""
