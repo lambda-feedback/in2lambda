@@ -1,4 +1,8 @@
 # in2lambda's defaults: what it writes for a setting the author leaves unset.
+#
+# Override any of them with a TOML file of your own laid out the same way, holding
+# only the values you want to change, via `in2lambda.defaults.override(path)` or
+# `in2lambda --defaults path`.
 
 [set] # Visibility to students, at the set level (overrides the defaults). 
 # For strings, the options are OPEN, OPEN_WITH_WARNINGS (students confirm first) or HIDE.

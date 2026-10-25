@@ -15,6 +15,7 @@ import panflute as pf
 import rich_click as click
 
 import in2lambda.filters
+from in2lambda import defaults
 from in2lambda.api.set import Set
 
 
@@ -194,10 +195,23 @@ def runner(
     help="File containing solutions for QUESTION_FILE.",
     type=click.Path(resolve_path=True, exists=True, dir_okay=False),
 )
+@click.option(
+    "--defaults",
+    "defaults_file",
+    default=None,
+    help="TOML file overriding in2lambda's defaults.",
+    type=click.Path(resolve_path=True, exists=True, dir_okay=False),
+)
 def cli(
-    question_file: str, chosen_filter: str, output_dir: str, answer_file: Optional[str]
+    question_file: str,
+    chosen_filter: str,
+    output_dir: str,
+    answer_file: Optional[str],
+    defaults_file: Optional[str],
 ) -> None:
     """Takes in a QUESTION_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
+    if defaults_file:
+        defaults.override(defaults_file)
     # main() is made separate from click() so that it can be easily imported as part of a library.
     runner(question_file, chosen_filter, output_dir, answer_file)
 

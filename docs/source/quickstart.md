@@ -80,3 +80,28 @@ Click on a set in teacher mode. The arrow next to the "Add Question" button allo
 Choose the zip file you wish to upload, and the question should appear! 🎉
 
 ![Importing Question from file in Teacher Mode](_static/images/import-teacher.png)
+
+## Changing the Defaults
+
+A setting the document doesn't give, such as whether a question is published, takes in2lambda's default. To change some of the defaults, write a TOML file holding only those, laid out like in2lambda's own (below), and pass it with `--defaults`:
+
+```toml
+# ours.toml
+[question]
+publish = false
+
+[response_area.MATH_MULTI_LINES]
+evaluation_function = "evaluateProof (experimental)"
+```
+
+```bash
+$ in2lambda questions.tex PartSolPartSol --defaults ours.toml
+```
+
+From Python, call {func}`in2lambda.defaults.override` before creating the set. A file that sets something in2lambda has no default for, or a value of the wrong type, is refused.
+
+:::{dropdown} in2lambda's defaults
+```{literalinclude} ../../in2lambda/defaults.toml
+:language: toml
+```
+:::
