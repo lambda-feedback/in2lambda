@@ -22,7 +22,7 @@ documentation = "https://lambda-feedback.github.io/in2lambda"
 "Bug Tracker" = "https://github.com/lambda-feedback/in2lambda/issues"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 panflute = "^2.3.1"
 rich-click = "^1.7.4"
 beartype = "^0.17.2"
