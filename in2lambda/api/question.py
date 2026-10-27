@@ -5,7 +5,9 @@ from typing import Optional, Union
 
 import panflute as pf
 
+from in2lambda import defaults
 from in2lambda.api.part import Part
+from in2lambda.defaults import UNSET
 
 
 @dataclass
@@ -39,7 +41,8 @@ class Question:
     text."""
 
     # The settings below are left out of the repr, so that printing a question shows its
-    # content rather than nine lines of configuration.
+    # content rather than nine lines of configuration. Those set to UNSET default to
+    # what in2lambda's defaults.toml gives them.
 
     # The skill level may be an int as well as a float, because Lambda Feedback writes
     # its exports in JavaScript, which writes the levels 0.0 and 1.0 as 0 and 1.
@@ -47,11 +50,15 @@ class Question:
     guidance: Optional[str] = field(default=None, repr=False)
     duration_lower_bound: Optional[int] = field(default=None, repr=False)
     duration_upper_bound: Optional[int] = field(default=None, repr=False)
-    publish: bool = field(default=False, repr=False)
-    display_final_answer: bool = field(default=True, repr=False)
-    display_worked_solution: bool = field(default=True, repr=False)
-    display_structured_tutorial: bool = field(default=True, repr=False)
-    display_chatbot: bool = field(default=False, repr=False)
+    publish: bool = field(default=UNSET, repr=False)
+    display_final_answer: bool = field(default=UNSET, repr=False)
+    display_worked_solution: bool = field(default=UNSET, repr=False)
+    display_structured_tutorial: bool = field(default=UNSET, repr=False)
+    display_chatbot: bool = field(default=UNSET, repr=False)
+
+    def __post_init__(self) -> None:
+        """Gives each setting left unset its default."""
+        defaults.fill(self, "question")
 
     @property
     def master_content(self) -> str:

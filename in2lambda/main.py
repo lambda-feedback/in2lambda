@@ -15,6 +15,7 @@ import panflute as pf
 import rich_click as click
 
 import in2lambda.filters
+from in2lambda import defaults
 from in2lambda.api.set import Set
 
 
@@ -100,9 +101,9 @@ def runner(
         >>> from in2lambda.main import runner
         >>> # Retrieve an example TeX file and run the given filter.
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsSepSol/example.tex", "PartsSepSol") # doctest: +ELLIPSIS
-        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', _chatbotVisibility='HIDE', is_survey=False, released_at=None, hidden_at=None, manually_hidden=True, questions=[Question(title='', parts=[Part(content=..., response_areas=[], tutorial='', tutorial_branches=[], answer='', worked_solution='', worked_solution_branches=[]), ...], images=[], master_content='This is a sample question\n\n'), ...])
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', _chatbotVisibility='OPEN', is_survey=False, released_at=None, hidden_at=None, manually_hidden=False, questions=[Question(title='', parts=[Part(content=..., response_areas=[], tutorial='', tutorial_branches=[], answer='', worked_solution='', worked_solution_branches=[]), ...], images=[], master_content='This is a sample question\n\n'), ...])
         >>> runner(f"{os.path.dirname(in2lambda.__file__)}/filters/PartsOneSol/example.tex", "PartsOneSol") # doctest: +ELLIPSIS
-        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', _chatbotVisibility='HIDE', is_survey=False, released_at=None, hidden_at=None, manually_hidden=True, questions=[Question(title='', parts=[Part(content=..., response_areas=[], tutorial='', tutorial_branches=[], answer='', worked_solution='', worked_solution_branches=[]), ...], images=[], master_content='Here is some preliminary question information that might be useful.'), ...])
+        Set(_name='set', _description='', _finalAnswerVisibility='OPEN_WITH_WARNINGS', _workedSolutionVisibility='OPEN_WITH_WARNINGS', _structuredTutorialVisibility='OPEN', _chatbotVisibility='OPEN', is_survey=False, released_at=None, hidden_at=None, manually_hidden=False, questions=[Question(title='', parts=[Part(content=..., response_areas=[], tutorial='', tutorial_branches=[], answer='', worked_solution='', worked_solution_branches=[]), ...], images=[], master_content='Here is some preliminary question information that might be useful.'), ...])
     """
     # The list of questions for Lambda Feedback as a Python API.
     set_obj = Set()
@@ -194,10 +195,23 @@ def runner(
     help="File containing solutions for QUESTION_FILE.",
     type=click.Path(resolve_path=True, exists=True, dir_okay=False),
 )
+@click.option(
+    "--defaults",
+    "defaults_file",
+    default=None,
+    help="TOML file overriding in2lambda's defaults.",
+    type=click.Path(resolve_path=True, exists=True, dir_okay=False),
+)
 def cli(
-    question_file: str, chosen_filter: str, output_dir: str, answer_file: Optional[str]
+    question_file: str,
+    chosen_filter: str,
+    output_dir: str,
+    answer_file: Optional[str],
+    defaults_file: Optional[str],
 ) -> None:
     """Takes in a QUESTION_FILE for a given SUBJECT and produces Lambda Feedback compatible json/zip files."""
+    if defaults_file:
+        defaults.override(defaults_file)
     # main() is made separate from click() so that it can be easily imported as part of a library.
     runner(question_file, chosen_filter, output_dir, answer_file)
 

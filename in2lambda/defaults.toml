@@ -1,0 +1,106 @@
+# in2lambda's defaults: what it writes for a setting the author leaves unset.
+#
+# Override any of them with a TOML file of your own laid out the same way, holding
+# only the values you want to change, via `in2lambda.defaults.override(path)` or
+# `in2lambda --defaults path`.
+
+[set] # Visibility to students, at the set level (overrides the defaults). 
+# For strings, the options are OPEN, OPEN_WITH_WARNINGS (students confirm first) or HIDE.
+final_answer_visibility = "OPEN_WITH_WARNINGS"  
+worked_solution_visibility = "OPEN_WITH_WARNINGS"
+structured_tutorial_visibility = "OPEN"
+chatbot_visibility = "OPEN"
+is_survey = false       # For module evaluation questionnaires (MEQ)
+manually_hidden = false # Visible to students when uploaded to the platform
+
+[question] # Visibility to students, at the question level (overrides the set-level visibility)
+publish = true
+display_final_answer = true
+display_worked_solution = true
+display_structured_tutorial = true
+display_chatbot = true
+
+# Every response area, unless its own type's table below says otherwise.
+[response_area]
+display_input_symbols = false
+live_preview = true
+include_in_pdf = true
+save_allowed = false
+separate_feedback = true
+common_feedback_color = "#C4CDD5"  # any hex colour
+correct_feedback_color = "#22C55E"
+correct_feedback_prefix = "Correct"  # any text
+incorrect_feedback_color = "#ff5630"
+incorrect_feedback_prefix = "Incorrect"
+
+# evaluation_function is the name of an evaluation function, e.g. "compareExpressions".
+# A type with none here needs one from the author.
+
+[response_area.MATH_SINGLE_LINE]
+evaluation_function = "compareExpressions"
+live_preview = true
+display_input_symbols = true
+allow_handwrite = true
+allow_photo = true
+enable_refinement = true
+include_in_pdf = true
+
+[response_area.MATH_MULTI_LINES]
+live_preview = true
+allow_handwrite = true
+allow_photo = true
+enable_refinement = true
+include_in_pdf = false
+
+[response_area.NUMBER]
+evaluation_function = "isSimilar"
+include_in_pdf = true
+
+[response_area.NUMERIC_UNITS]
+evaluation_function = "compareExpressions"
+include_in_pdf = true
+
+[response_area.TEXT]
+include_in_pdf = true
+
+[response_area.BOOLEAN]
+evaluation_function = "isExactEqual"
+include_in_pdf = true
+
+[response_area.MULTIPLE_CHOICE]
+evaluation_function = "arrayEqual"
+include_in_pdf = true
+single = true
+randomise = false
+
+[response_area.TABLE]
+evaluation_function = "arraySymbolicEqual"
+include_in_pdf = true
+
+[response_area.MATRIX]
+evaluation_function = "arraySymbolicEqual"
+include_in_pdf = true
+
+[response_area.CODE]
+evaluation_function = "evaluatePython"
+language = "python"  # the language of the code students write
+include_in_pdf = true
+
+[response_area.ESSAY]
+allow_draw = false
+allow_scan = false
+repeat_for_subjects = false
+allow_empty_submission = false
+include_in_pdf = true
+
+[response_area.LIKERT]
+repeat_for_subjects = false
+allow_empty_submission = false
+include_in_pdf = true
+
+[response_area.IMAGES]
+max_images = 3  # 1 to 10
+allowed_types = ["image/jpg", "image/jpeg", "image/png"]  # file types, as MIME types
+max_size_mb = 10  # 1 to 20
+resize_max_side = 0  # 0 to 4096 pixels; 0 keeps images as uploaded
+include_in_pdf = true
