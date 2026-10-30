@@ -2,7 +2,16 @@
 
 import pytest
 
-from in2lambda.api.response_area import InputSymbol, Number, NumericUnits, Test
+from in2lambda.api.part import Part
+from in2lambda.api.question import Question
+from in2lambda.api.response_area import (
+    InputSymbol,
+    MultipleChoice,
+    Number,
+    NumericUnits,
+    Test,
+)
+from in2lambda.api.set import Set
 from in2lambda.json_convert.json_convert import _response_area_to_json
 
 
@@ -24,6 +33,10 @@ def test_the_answer_is_written_as_a_passing_test_once() -> None:
     ]
 
 
+def test_an_empty_list_answer_is_written_as_a_failing_test() -> None:
+    assert _tests(MultipleChoice(options=["A", "B"])) == [([], False)]
+
+
 def test_greek_aliases_cover_subscripts_and_unicode_forms() -> None:
     assert InputSymbol.greek("$\\sigma_f$", "sigma_f").aliases == [
         "sigma_{f}",
@@ -36,3 +49,15 @@ def test_greek_aliases_cover_subscripts_and_unicode_forms() -> None:
     ]
     with pytest.raises(ValueError):
         InputSymbol.greek("$x$", "x")
+
+
+def test_a_set_with_no_correct_multiple_choice_option_is_not_written(
+    tmp_path,
+) -> None:
+    area = MultipleChoice(options=["A", "B"], answer=[False, False])
+    s = Set(questions=[Question(parts=[Part(response_areas=[area])])])
+    earlier = tmp_path / "earlier.json"
+    earlier.write_text("{}")
+    with pytest.raises(ValueError, match="Question 1, part a"):
+        s.to_json(str(tmp_path))
+    assert earlier.exists()

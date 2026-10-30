@@ -8,7 +8,7 @@ import zipfile
 from typing import Any
 
 from in2lambda.api.part import Branch, Part
-from in2lambda.api.response_area import Case, ResponseArea, Test
+from in2lambda.api.response_area import Case, MultipleChoice, ResponseArea, Test
 from in2lambda.api.set import Set
 
 
@@ -42,12 +42,16 @@ def _case_to_json(case: Case) -> dict[str, Any]:
 
 
 def _tests(area: ResponseArea) -> list[Test]:
-    """The area's tests, led by its answer passing unless a test already says so."""
-    if area.answer in (None, "") or any(
-        t.payload == area.answer and t.is_correct for t in area.tests
-    ):
+    """The area's tests, led by its answer passing unless a test already says so.
+
+    An empty list is no answer, so it leads as a failing test instead.
+    """
+    if area.answer in (None, ""):
         return area.tests
-    return [Test(area.answer, True), *area.tests]
+    passes = area.answer != []
+    if any(t.payload == area.answer and t.is_correct == passes for t in area.tests):
+        return area.tests
+    return [Test(area.answer, passes), *area.tests]
 
 
 def _response_area_to_json(area: ResponseArea, order: int) -> dict[str, Any]:
@@ -128,6 +132,18 @@ def _part_to_json(part: Part, order: int) -> dict[str, Any]:
                 "children": [_branch_to_json(branch) for branch in branches],
             }
     return output
+
+
+def _check(set_questions: Set) -> None:
+    """Raises ValueError for a set Lambda Feedback could not mark."""
+    for i, question in enumerate(set_questions.questions):
+        for j, part in enumerate(question.parts):
+            for area in part.response_areas:
+                if isinstance(area, MultipleChoice) and True not in area.answer:
+                    raise ValueError(
+                        f"Question {i + 1}, part {chr(ord('a') + j)}: "
+                        "a multiple choice answer marks no option correct"
+                    )
 
 
 def converter(SetQuestions: Set, output_dir: str) -> None:
@@ -228,6 +244,7 @@ def main(set_questions: Set, output_dir: str) -> None:
         set_questions: A Set object containing questions.
         output_dir: Where to output the final Lambda Feedback JSON/ZIP files.
     """
+    _check(set_questions)
     # check if directory exists in file
     if os.path.isdir(output_dir):
         try:
