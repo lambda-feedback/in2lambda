@@ -8,7 +8,7 @@ import zipfile
 from typing import Any
 
 from in2lambda.api.part import Branch, Part
-from in2lambda.api.response_area import Case, ResponseArea
+from in2lambda.api.response_area import Case, ResponseArea, Test
 from in2lambda.api.set import Set
 
 
@@ -39,6 +39,15 @@ def _case_to_json(case: Case) -> dict[str, Any]:
     if case.color is not None:
         output["color"] = case.color.value
     return output
+
+
+def _tests(area: ResponseArea) -> list[Test]:
+    """The area's tests, led by its answer passing unless a test already says so."""
+    if area.answer in (None, "") or any(
+        t.payload == area.answer and t.is_correct for t in area.tests
+    ):
+        return area.tests
+    return [Test(area.answer, True), *area.tests]
 
 
 def _response_area_to_json(area: ResponseArea, order: int) -> dict[str, Any]:
@@ -74,7 +83,7 @@ def _response_area_to_json(area: ResponseArea, order: int) -> dict[str, Any]:
                 "payload": test.payload,
                 "expectedResponse": {"isCorrect": test.is_correct},
             }
-            for test in area.tests
+            for test in _tests(area)
         ],
         "cases": [_case_to_json(case) for case in area.cases],
         "response": {
