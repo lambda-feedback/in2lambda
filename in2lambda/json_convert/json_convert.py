@@ -15,6 +15,8 @@ from in2lambda.api.set import Set
 def _zip_sorted_folder(folder_path, zip_path):
     """Zips the contents of a folder, preserving the directory structure.
 
+    Lambda Feedback imports questions in archive order, so the files are sorted.
+
     Args:
         folder_path: The path to the folder to zip.
         zip_path: The path where the zip file will be created.
@@ -187,6 +189,7 @@ def converter(SetQuestions: Set, output_dir: str) -> None:
         # Output file
         filename = (
             "question_"
+            # Alphabetical order is question order for up to 1000 questions
             + str(i).zfill(3)
             + "_"
             + re.sub(r"[^\w\-_.]", "_", output["title"].strip())
