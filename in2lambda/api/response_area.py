@@ -1,6 +1,7 @@
 """An area for student responses that will receive automated feedback."""
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, ClassVar, Optional, Union
@@ -11,6 +12,24 @@ from in2lambda.defaults import UNSET
 
 def _new_id() -> str:
     return str(uuid.uuid4())
+
+
+_GREEK = {
+    "alpha": ["α", "𝛼"],
+    "beta": ["β", "𝛽"],
+    "gamma": ["γ", "𝛾"],
+    "delta": ["δ", "𝛿"],
+    "epsilon": ["ε", "ϵ", "𝜀"],
+    "theta": ["θ", "𝜃"],
+    "lambda": ["λ", "𝜆"],
+    "mu": ["μ", "𝜇"],
+    "nu": ["ν", "𝜈"],
+    "rho": ["ρ", "𝜌", "ϱ"],
+    "sigma": ["σ", "𝜎", "ς"],
+    "tau": ["τ", "𝜏"],
+    "phi": ["φ", "ϕ", "𝜙"],
+    "omega": ["ω", "𝜔"],
+}
 
 
 @dataclass
@@ -29,6 +48,26 @@ class InputSymbol:
     aliases: list[str] = field(default_factory=list)
     is_visible: bool = True
 
+    @classmethod
+    def greek(cls, symbol: str, code: str, extra: Sequence[str] = ()) -> "InputSymbol":
+        r"""A Greek symbol whose aliases are its unicode forms.
+
+        ``code`` is a Greek letter name, optionally followed by ``_`` and a subscript.
+
+        Examples:
+            >>> InputSymbol.greek("$\\rho$", "rho").aliases
+            ['ρ', '𝜌', 'ϱ']
+        """
+        name, _, sub = code.partition("_")
+        if name not in _GREEK:
+            raise ValueError(f"{name!r} is not a Greek letter name")
+        aliases = []
+        # Never "sigmaf": the subscript could be read as a symbol of its own.
+        for base in [name, *_GREEK[name]]:
+            aliases += [f"{base}_{sub}", f"{base}_{{{sub}}}"] if sub else [base]
+        aliases += extra
+        return cls(symbol, code, [a for a in dict.fromkeys(aliases) if a != code])
+
 
 @dataclass
 class Test:
@@ -37,7 +76,7 @@ class Test:
     # Its name would otherwise make pytest try to collect it wherever it is imported.
     __test__ = False
 
-    payload: str
+    payload: Any
     is_correct: bool
     id: str = field(default_factory=_new_id)
 
