@@ -120,6 +120,10 @@ class ResponseArea:
         """The parameters sent to the evaluation function."""
         return self.grade_params
 
+    def _serial(self, value: Any) -> Any:
+        """An answer or test payload as Lambda Feedback stores it."""
+        return value
+
 
 @dataclass(kw_only=True)
 class _Maths(ResponseArea):
@@ -184,6 +188,14 @@ class Boolean(ResponseArea):
 
     response_type: ClassVar[str] = "BOOLEAN"
     answer: bool = False
+
+    # Lambda Feedback stores the answer, and sends the response, as 1 or 0, and
+    # isExactEqual compares them as strings.
+    def _serial(self, value: Any) -> Any:
+        return int(value) if isinstance(value, bool) else value
+
+    def _grade_params(self) -> Optional[dict[str, Any]]:
+        return {"type": "str", **(self.grade_params or {})}
 
 
 @dataclass(kw_only=True)

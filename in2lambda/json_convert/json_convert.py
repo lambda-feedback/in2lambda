@@ -71,7 +71,7 @@ def _response_area_to_json(area: ResponseArea, order: int) -> dict[str, Any]:
         "tests": [
             {
                 "id": test.id,
-                "payload": test.payload,
+                "payload": area._serial(test.payload),
                 "expectedResponse": {"isCorrect": test.is_correct},
             }
             for test in area.tests
@@ -80,7 +80,7 @@ def _response_area_to_json(area: ResponseArea, order: int) -> dict[str, Any]:
         "response": {
             "responseInput": {
                 "responseType": area.response_type,
-                "answer": area.answer,
+                "answer": area._serial(area.answer),
                 "config": area._config(),
             }
         },
