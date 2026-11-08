@@ -97,3 +97,31 @@ def test_a_set_with_no_correct_multiple_choice_option_is_not_written(
     with pytest.raises(ValueError, match="Question 1, part a"):
         s.to_json(str(tmp_path))
     assert earlier.exists()
+
+
+def test_accept_and_reject_are_written_as_tests_after_the_answer() -> None:
+    area = NumericUnits(answer="4 m/s", accept=["400 cm/s", "4 m/s"], reject=["4 km/h"])
+    assert _tests(area) == [("4 m/s", True), ("400 cm/s", True), ("4 km/h", False)]
+
+
+def test_a_response_both_accepted_and_rejected_is_refused(tmp_path) -> None:
+    with pytest.raises(ValueError, match="both accepted and rejected"):
+        _write(tmp_path, NumericUnits(answer="4 m/s", reject=["4 m/s"]))
+
+
+def test_each_wrong_option_alone_is_a_failing_test() -> None:
+    area = MultipleChoice(options=["A", "B", "C"], answer=[False, True, False])
+    assert _tests(area) == [
+        ([False, True, False], True),
+        ([True, False, False], False),
+        ([False, False, True], False),
+    ]
+
+
+def test_a_multi_select_also_fails_one_correct_option_and_all_options() -> None:
+    area = MultipleChoice(options=["A", "B", "C"], answer=[True, True, False])
+    assert _tests(area)[1:] == [
+        ([False, False, True], False),
+        ([True, False, False], False),
+        ([True, True, True], False),
+    ]

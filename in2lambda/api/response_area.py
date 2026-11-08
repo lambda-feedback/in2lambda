@@ -87,6 +87,15 @@ class Test:
     id: str = field(default_factory=_new_id)
 
 
+def _same(a: Test, b: Test) -> bool:
+    """Whether two tests make the same assertion; True and 1 count as different."""
+    return (
+        type(a.payload) is type(b.payload)
+        and a.payload == b.payload
+        and a.is_correct == b.is_correct
+    )
+
+
 class Color(Enum):
     """Acceptable colours for a feedback case."""
 
@@ -153,6 +162,10 @@ class ResponseArea:
     incorrect_feedback_color: str = UNSET
     incorrect_feedback_prefix: str = UNSET
     tests: list[Test] = field(default_factory=list)
+    accept: list[Any] = field(default_factory=list)
+    """Responses that must be marked correct; each is written as a passing test."""
+    reject: list[Any] = field(default_factory=list)
+    """Responses that must be marked incorrect; each is written as a failing test."""
     cases: list[Case] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -167,12 +180,32 @@ class ResponseArea:
         """The parameters sent to the evaluation function."""
         return self.grade_params
 
+    def _all_tests(self) -> list[Test]:
+        """The tests written to JSON, without repeats.
+
+        In order: the answer, ``accept``, ``reject``, then ``tests``. The answer is
+        left out when empty. Subclasses add tests their response type implies.
+        """
+        tests = []
+        if not (self.answer is None or self.answer == "" or self.answer == []):
+            tests.append(Test(self.answer, True))
+        tests += [Test(p, True) for p in self.accept]
+        tests += [Test(p, False) for p in self.reject]
+        unique: list[Test] = []
+        for test in [*tests, *self.tests]:
+            if not any(_same(u, test) for u in unique):
+                unique.append(test)
+        return unique
+
     def _validate(self) -> None:
         """Raises ValueError if Lambda Feedback could not mark the area.
 
         Subclasses extend this with the rules of their response type.
         """
-        for test in self.tests:
+        for p in self.reject:
+            if p in self.accept or p == self.answer:
+                raise ValueError(f"{p!r} is both accepted and rejected")
+        for test in self._all_tests():
             if not isinstance(test.payload, self.payload_types):
                 names = " or ".join(t.__name__ for t in self.payload_types)
                 raise ValueError(f"test payload {test.payload!r} is not {names}")
@@ -223,7 +256,7 @@ class Number(ResponseArea):
     def _validate(self) -> None:
         super()._validate()
         # bool is a subclass of int, but True is not a number response.
-        for test in self.tests:
+        for test in self._all_tests():
             if isinstance(test.payload, bool):
                 raise ValueError(f"test payload {test.payload!r} is not int or float")
 
@@ -286,12 +319,35 @@ class MultipleChoice(ResponseArea):
             "single": self.single,
         }
 
+    def _all_tests(self) -> list[Test]:
+        """Adds a failing test for each wrong option chosen alone.
+
+        With several correct options, also adds failing tests for one correct
+        option alone and for every option chosen.
+        """
+        n = len(self.options)
+        implied = []
+        if len(self.answer) == n and True in self.answer:
+            for i, correct in enumerate(self.answer):
+                if not correct:
+                    implied.append([j == i for j in range(n)])
+            if self.answer.count(True) > 1:
+                first = self.answer.index(True)
+                implied.append([j == first for j in range(n)])
+                if False in self.answer:
+                    implied.append([True] * n)
+        tests = super()._all_tests()
+        extra = [
+            Test(p, False) for p in implied if not any(t.payload == p for t in tests)
+        ]
+        return [*tests, *extra]
+
     def _validate(self) -> None:
         super()._validate()
         if True not in self.answer:
             raise ValueError("a multiple choice answer marks no option correct")
         n = len(self.options)
-        for marks in [self.answer, *(t.payload for t in self.tests)]:
+        for marks in [self.answer, *(t.payload for t in self._all_tests())]:
             if len(marks) != n or not all(isinstance(m, bool) for m in marks):
                 raise ValueError(f"{marks!r} is not {n} booleans, one per option")
 
