@@ -71,7 +71,13 @@ class InputSymbol:
 
 @dataclass
 class Test:
-    """Teacher author's assertions of how responses should be evaluated."""
+    """Teacher author's assertions of how responses should be evaluated.
+
+    ``payload`` is a sample student response, so it takes the type of the area's
+    answer: a number for ``Number``, a list of booleans for ``MultipleChoice``, a
+    string for ``NumericUnits``. Each area checks its tests' payloads when the set
+    is written.
+    """
 
     # Its name would otherwise make pytest try to collect it wherever it is imported.
     __test__ = False
@@ -124,6 +130,8 @@ class ResponseArea:
     """
 
     response_type: ClassVar[str]
+    payload_types: ClassVar[tuple[type, ...]] = (object,)
+    """The types a test payload, a sample response, may take."""
     answer: Any = None
     evaluation_function: str = UNSET
     grade_params: Optional[dict[str, Any]] = None
@@ -159,9 +167,20 @@ class ResponseArea:
         """The parameters sent to the evaluation function."""
         return self.grade_params
 
+    def _validate(self) -> None:
+        """Raises ValueError if Lambda Feedback could not mark the area.
+
+        Subclasses extend this with the rules of their response type.
+        """
+        for test in self.tests:
+            if not isinstance(test.payload, self.payload_types):
+                names = " or ".join(t.__name__ for t in self.payload_types)
+                raise ValueError(f"test payload {test.payload!r} is not {names}")
+
 
 @dataclass(kw_only=True)
 class _Maths(ResponseArea):
+    payload_types: ClassVar[tuple[type, ...]] = (str,)
     answer: str = ""
     allow_handwrite: bool = UNSET
     allow_photo: bool = UNSET
@@ -194,7 +213,15 @@ class Number(ResponseArea):
     """A number."""
 
     response_type: ClassVar[str] = "NUMBER"
+    payload_types: ClassVar[tuple[type, ...]] = (int, float)
     answer: Optional[Union[int, float]] = None
+
+    def _validate(self) -> None:
+        super()._validate()
+        # bool is a subclass of int, but True is not a number response.
+        for test in self.tests:
+            if isinstance(test.payload, bool):
+                raise ValueError(f"test payload {test.payload!r} is not int or float")
 
 
 @dataclass(kw_only=True)
@@ -202,6 +229,7 @@ class NumericUnits(ResponseArea):
     """A number with units, e.g. ``30 N``."""
 
     response_type: ClassVar[str] = "NUMERIC_UNITS"
+    payload_types: ClassVar[tuple[type, ...]] = (str,)
     answer: str = ""
 
     def _grade_params(self) -> Optional[dict[str, Any]]:
@@ -214,6 +242,7 @@ class Text(ResponseArea):
     """A short piece of text."""
 
     response_type: ClassVar[str] = "TEXT"
+    payload_types: ClassVar[tuple[type, ...]] = (str,)
     answer: str = ""
 
 
@@ -222,6 +251,7 @@ class Boolean(ResponseArea):
     """True or false."""
 
     response_type: ClassVar[str] = "BOOLEAN"
+    payload_types: ClassVar[tuple[type, ...]] = (bool,)
     answer: bool = False
 
 
@@ -235,6 +265,8 @@ class MultipleChoice(ResponseArea):
     single: bool = UNSET
     randomise: bool = UNSET
 
+    payload_types: ClassVar[tuple[type, ...]] = (list,)
+
     def _config(self) -> Optional[dict[str, Any]]:
         return {
             "options": self.options,
@@ -242,12 +274,22 @@ class MultipleChoice(ResponseArea):
             "single": self.single,
         }
 
+    def _validate(self) -> None:
+        super()._validate()
+        if True not in self.answer:
+            raise ValueError("a multiple choice answer marks no option correct")
+        n = len(self.options)
+        for marks in [self.answer, *(t.payload for t in self.tests)]:
+            if len(marks) != n or not all(isinstance(m, bool) for m in marks):
+                raise ValueError(f"{marks!r} is not {n} booleans, one per option")
+
 
 @dataclass(kw_only=True)
 class Table(ResponseArea):
     """A grid of cells, one row per row name and one column per column name."""
 
     response_type: ClassVar[str] = "TABLE"
+    payload_types: ClassVar[tuple[type, ...]] = (list,)
     answer: list[list[str]] = field(default_factory=list)
     row_names: list[str] = field(default_factory=list)
     col_names: list[str] = field(default_factory=list)
@@ -266,6 +308,7 @@ class Matrix(ResponseArea):
     """A table, with parentheses displayed around it, with the shape of ``answer``."""
 
     response_type: ClassVar[str] = "MATRIX"
+    payload_types: ClassVar[tuple[type, ...]] = (list,)
     answer: list[list[str]] = field(default_factory=list)
 
     def _config(self) -> Optional[dict[str, Any]]:
@@ -280,6 +323,7 @@ class Code(ResponseArea):
     """A monaco code editor."""
 
     response_type: ClassVar[str] = "CODE"
+    payload_types: ClassVar[tuple[type, ...]] = (str,)
     answer: str = ""
     language: str = UNSET
 

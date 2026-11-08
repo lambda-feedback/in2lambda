@@ -8,7 +8,7 @@ import zipfile
 from typing import Any
 
 from in2lambda.api.part import Branch, Part
-from in2lambda.api.response_area import Case, MultipleChoice, ResponseArea, Test
+from in2lambda.api.response_area import Case, ResponseArea, Test
 from in2lambda.api.set import Set
 
 
@@ -44,16 +44,12 @@ def _case_to_json(case: Case) -> dict[str, Any]:
 
 
 def _tests(area: ResponseArea) -> list[Test]:
-    """The area's tests, led by its answer passing unless a test already says so.
-
-    An empty list is no answer, so it leads as a failing test instead.
-    """
-    if area.answer in (None, ""):
+    """The area's tests, led by its answer passing unless a test already says so."""
+    if area.answer is None or area.answer == "" or area.answer == []:
         return area.tests
-    passes = area.answer != []
-    if any(t.payload == area.answer and t.is_correct == passes for t in area.tests):
+    if any(t.payload == area.answer and t.is_correct for t in area.tests):
         return area.tests
-    return [Test(area.answer, passes), *area.tests]
+    return [Test(area.answer, True), *area.tests]
 
 
 def _response_area_to_json(area: ResponseArea, order: int) -> dict[str, Any]:
@@ -141,11 +137,12 @@ def _check(set_questions: Set) -> None:
     for i, question in enumerate(set_questions.questions):
         for j, part in enumerate(question.parts):
             for area in part.response_areas:
-                if isinstance(area, MultipleChoice) and True not in area.answer:
+                try:
+                    area._validate()
+                except ValueError as error:
                     raise ValueError(
-                        f"Question {i + 1}, part {chr(ord('a') + j)}: "
-                        "a multiple choice answer marks no option correct"
-                    )
+                        f"Question {i + 1}, part {chr(ord('a') + j)}: {error}"
+                    ) from None
 
 
 def converter(SetQuestions: Set, output_dir: str) -> None:

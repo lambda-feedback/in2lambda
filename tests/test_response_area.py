@@ -33,8 +33,44 @@ def test_the_answer_is_written_as_a_passing_test_once() -> None:
     ]
 
 
-def test_an_empty_list_answer_is_written_as_a_failing_test() -> None:
-    assert _tests(MultipleChoice(options=["A", "B"])) == [([], False)]
+def test_an_empty_answer_adds_no_test() -> None:
+    assert _tests(MultipleChoice(options=["A", "B"])) == []
+
+
+def _write(tmp_path, area) -> None:
+    Set(questions=[Question(parts=[Part(response_areas=[area])])]).to_json(
+        str(tmp_path)
+    )
+
+
+@pytest.mark.parametrize(
+    "area",
+    [
+        Number(answer=2.5, tests=[Test("2.5", True)]),
+        Number(answer=1, tests=[Test(True, True)]),
+        NumericUnits(answer="4 m/s", tests=[Test(4, True)]),
+        MultipleChoice(
+            options=["A", "B"], answer=[True, False], tests=[Test([True], True)]
+        ),
+        MultipleChoice(options=["A", "B"], answer=[True]),
+        MultipleChoice(
+            options=["A", "B"], answer=[True, False], tests=[Test("A", True)]
+        ),
+    ],
+)
+def test_a_payload_of_the_wrong_type_or_shape_is_refused(tmp_path, area) -> None:
+    with pytest.raises(ValueError, match="Question 1, part a"):
+        _write(tmp_path, area)
+
+
+def test_payloads_of_the_answer_type_are_written(tmp_path) -> None:
+    _write(tmp_path, Number(answer=2.5, tests=[Test(3, False)]))
+    _write(
+        tmp_path,
+        MultipleChoice(
+            options=["A", "B"], answer=[True, False], tests=[Test([False, True], False)]
+        ),
+    )
 
 
 def test_greek_aliases_cover_subscripts_and_unicode_forms() -> None:
