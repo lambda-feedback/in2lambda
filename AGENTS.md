@@ -2,6 +2,55 @@
 
 Rules for an agent that uses in2lambda to build Lambda Feedback problem sets, or that changes in2lambda itself.
 
+Typical workflow 1:
+- Provide existing materials such as in a PDF
+- Call in2lambda to output a zip file
+- Upload the zip file to Lambda Feedback 
+
+Typical workflow 2:
+- Compose new content
+- Call in2lambda to output a zip file
+- Upload the zip file to Lambda Feedback 
+
+## General guidance
+
+Lambda Feedback is an online platform for self-study. It is a content management system using markdown, and includes 'response areas' where students can input responses and receive formative feedback. Feedback is generated externally by microservices as described in mued.org.
+
+in2lambda is a library for creating valid content to be imported into the platform. The general structure of content is 
+
+module/module_instance/Set/Question/Part/[x] 
+
+where [x] is a content type like the question, a response area, worked solutions, etc. For example, pseudo breadcrumbs: 
+
+GCSE_English/2026_27/2_creative_writing/4_10_mark_question
+
+in2lambda works at the Set level and lower. For multiple Sets, run in2lambda multiple times.
+
+A Set contains multiple 'questions', which are independent and complete task descriptions including all sub-questions, interactions, and support material.
+
+Within a Question, the 'main content' is assumed relevant across all parts, as is the guidance (time stimate, skill level, blurb). Parts themselves contain dedicated content, response areas, and optional 'support material' (structured tutorial, final answer, worked solutions). A question with a single part is displayed without 'parts' as a continuous page. Questions with multiple parts are split with 'part' tabs, (a), (b), (c), etc.
+
+The in2lambda API completely describes the data structure for a Set and its components and should be used strictly, i.e. inputs all go into the API, and in2lambda creates the JSON out with the correct format. 
+
+When using in2lambda, do not create your own JSONs or ZIPs - that is the job of in2lambda. 
+
+## Academic contexts
+
+Lambda Feedback is domain-agnostic. It supports materials from any academic domain or level. Therefore, when using in2lambda, judgements will need to be made about the content being created. For example, whether a given piece of content should be split into more questions or more parts. Or whether something constitutes a 'final answer', or 'structured tutorial', or whether neither of those are relevant in a given context (e.g. essays don't have 'answers').
+
+Initiative is also required to interpret incoming materials, for example combining multiple sources, and to what extent content should be verified or the user should be trusted.
+
+## Tactics
+
+in2lambda was created before agents came of age. The method of converting material was to define a Pandoc filter, and programmatically convert the incoming format into the required format. This remains the most robust method so is 'prefered' if the source is consistent enough for a filter to be feasible. Agents are recommended to try and write a filter.
+
+In cases where input material is highly unstructured, it may be better to directly insert content into the API.
+
+Using both methods and cross-checking would be belt-and-braces, so most reliable (but most work).
+
+** IMPORTANT PRINCIPLE ** The general idea of in2lambda is that the content itself is not edited. As an agent, try to use commands that move content between places, rather than using LLM outputs which may introduce errors. For a trustworthy system, the output should be reliably mapped to the input. The role of an agent calling in2lambda is to choose this mapping. 
+
+
 ## Building a set
 
 Write a Python script that builds a `Set` with the API in `in2lambda/api/` and calls `Set.to_json(output_dir)`. Give the author the zip that `to_json` writes, unchanged; the author uploads it. The platform imports questions in the zip's entry order, so never rezip or rename its files.
