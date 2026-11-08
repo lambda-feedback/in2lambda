@@ -7,6 +7,7 @@ type; those of ``gradeParams`` and a case's ``params`` belong to the evaluation 
 """
 
 import json
+import zipfile
 from pathlib import Path
 
 from in2lambda.api.part import Part
@@ -93,3 +94,13 @@ def test_each_response_type_writes_the_settings_of_a_real_export() -> None:
                     evaluation_function=""
                 )
                 assert set(written._config() or {}) == set(response["config"] or {})
+
+
+def test_the_zip_lists_questions_in_order_number_order(tmp_path) -> None:
+    titles = ["Zeta", "Alpha", "Mu"]
+    Set(questions=[Question(title=t) for t in titles]).to_json(str(tmp_path))
+
+    with zipfile.ZipFile(tmp_path / "set.zip") as zf:
+        names = [n for n in zf.namelist() if n.startswith("question_")]
+        orders = [json.loads(zf.read(n))["orderNumber"] for n in names]
+    assert orders == list(range(len(titles)))

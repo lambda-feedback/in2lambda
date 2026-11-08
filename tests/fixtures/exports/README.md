@@ -24,7 +24,7 @@ answers, worked solutions, structured tutorials and the chatbot.
 
 | key | meaning |
 |---|---|
-| `orderNumber` | position in the set, from 0; matches the filename |
+| `orderNumber` | position in the set, from 0; matches the filename. The importer currently follows archive order, so the two must agree |
 | `title` | shown to students |
 | `skill` | difficulty (exports use 1/3 and 2/3) |
 | `guidance` | a sentence to students about the question's purpose |
